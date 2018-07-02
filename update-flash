@@ -1,0 +1,14 @@
+#!/bin/bash
+UPDATER=/usr/sbin/update-flashplugin-nonfree
+if test ! -e "$UPDATER"; then
+    echo "Updater not found at $UPDATER"
+    exit 1
+fi
+STATUS="$($UPDATER --status)"
+LOCAL="$(echo "$STATUS" | head -n 1 | awk '{print $(NF)}')"
+REMOTE="$(echo "$STATUS" | head -n 2 | tail -n 1 | awk '{print $(NF)}')"
+if test "$LOCAL" != "$REMOTE"; then
+    echo "Update available... getting"
+    rm -rf /var/cache/flashplugin-nonfree/*
+    $UPDATER --install
+fi

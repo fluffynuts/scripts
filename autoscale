@@ -1,0 +1,257 @@
+#!/usr/bin/python
+#vim: expandtab
+import os
+import sys
+
+class AutoSize:
+  def __init__(self):
+    self.scale_width = 800
+    self.scale_height = 600
+    self.overwrite_existing = False
+    self.edits_dir = "scaled"
+    self.line_prefix = ""
+    self.keep_smaller = False
+    pass
+  
+  def get_info(self, path):
+    cmd = "identify \"" + path + "\""
+    raw = os.popen(cmd).read()
+    if (len(raw) == 0):
+      return False
+    parts = raw.split(" ")
+    info = dict()
+    info["name"] = parts[0]
+    startidx = 1
+    while not os.path.isfile(info["name"]):
+      info["name"] += " " + parts[startidx]
+      startidx += 1
+    info["format"] = parts[startidx]
+    size = parts[startidx+1].split("x")
+    info["width"] = int(size[0])
+    info["height"] = int(size[1])
+    bits = parts[startidx+4].split("-")
+    try:
+      info["bits"] = int(bits[0])
+    except:
+      info["bits"] = "unknown"
+    info["size"] = parts[startidx+5]
+    return info
+    
+  def scale_img(self, path):
+    if not os.path.isfile(path):
+      print("Unable to find image at " + path)
+      return False
+
+    if (not self.check_edit_dir(path)):
+      print("No '" + self.edits_dir + "' dir")
+      return False
+
+    info = self.get_info(path)
+    if (info == False):
+      return False
+    
+    new = ""
+    portrait = False
+    if (info["width"] > info ["height"]):
+      # maintain aspect ratio
+      width = self.scale_width
+      height = info["height"] * self.scale_width / info["width"]
+    else:
+      portrait = True
+      width = self.scale_height
+      height = info["width"] * self.scale_height / info["height"]
+
+    just_copy = False
+    if self.keep_smaller:
+      if (info["width"] < width) and (info["height"] < height):
+        just_copy = True
+		
+    if just_copy:
+      new = self.get_edit_path(path, info["width"], info["height"])
+      if os.path.isfile(new) and not self.overwrite_existing:
+        print("%s already exists; skipping" % new)
+        return False
+      open(new, "wb").write(open(path, "rb").read())
+    else:
+      new = self.resize_img(path, width, height)
+    
+    if (not os.path.isfile(new)):
+      return False
+
+    # check rotation
+    new_info = self.get_info(new)
+    if (new_info == False):
+      return False
+
+    if (portrait and (new_info["width"] > new_info["height"])):
+      return self.rotate_img(new, new_info["width"], new_info["height"])
+    else:
+      return True
+
+  def clear_line(self):
+    sys.stdout.write("\r")
+    for i in range(72):
+      sys.stdout.write(" ")
+    sys.stdout.write("\r")
+
+  def startmsg(self, string):
+    self.clear_line()
+    rem = 65 - len(self.line_prefix)
+    if len(string) > rem:
+      string = self.line_prefix + string[:rem] + "..."
+    else:
+      string = self.line_prefix + string
+    sys.stdout.write(string)
+    sys.stdout.flush()
+
+  def okmsg(self):
+    sys.stdout.write("(ok)")
+    sys.stdout.flush()
+
+  def get_edit_path(self, path, width, height):
+    # TODO: include the dimensions
+    dir = os.path.dirname(path)
+    file = os.path.basename(path)
+    return os.path.join(dir, self.edits_dir, file)
+
+  def check_edit_dir(self, path):
+    dir = os.path.join(os.path.dirname(path), self.edits_dir)
+    if (not os.path.isdir(dir)):
+      try:
+        (os.mkdir(dir))
+        return True
+      except Exception, e:
+        print("Unable to create non-existent edits dir '" + dir + ": " + str(e))
+        return False
+    else:
+      return True
+  
+  def get_resize_path(self, path, width, height):
+    parts = os.path.splitext(path)
+    return parts[0] + "_" + str(width) + "x" + str(height) + parts[1]
+  
+  def get_rotate_path(self, path, width, height):
+    ret = path.replace(str(width) + "x" + str(height), str(height) + "x" + str(width))
+    if (ret == path):
+      parts = os.path.splitext(path)
+      ret = parts[0] + "_" + str(height) + "x" + str(width) + parts[1]
+    return ret
+
+  def resize_img(self, path, width, height):
+    out = self.get_edit_path(path, width, height)
+    if os.path.isfile(out) and not self.overwrite_existing:
+      print("Not overwriting existing file '" + out + "'")
+      return ""
+    cmd = "convert \"" + path + "\" -resize " + str(width) + "x"\
+      + str(height) + " \""\
+      + out + "\""
+    self.startmsg("Resizing '" + path + "'...    ")
+    if (os.system(cmd)):
+      print("(fail)")
+      print("cmd: " + cmd)
+      return ""
+    else:
+      self.okmsg()
+      return out
+
+  def rotate_img(self, path):
+    cmd = "convert \"" + path + "\" -rotate 90 \""\
+      + self.get_rotate_path(path) + "\""
+    self.startmsg(" - Rotating '" + path + "'...    ")
+    if (os.system(cmd)):
+      print("(fail)")
+      print("cmd: " + cmd)
+      return False
+    else:
+      self.okmsg()
+      return True
+
+img_extensions = [".jpg", ".jpeg", ".png", ".gif", ".bmp"]
+
+def usage():
+  print("Usage: " + os.path.basename(sys.argv[0]) + " {-w <width>} {-h <height>} {-o} {-e name} {files or dirs}")
+  print("    scales images using ImageMagick to required scale. May rotate if necessary.")
+  print("    * width (-w) and height (-h) are in px")
+  print("    * -o causes existing images to be overwritten")
+  print("    * -e specifies subdir name for edits (default is 'scaled')")
+  print("    * -k keeps images smaller than the set limits")
+  print("    * dirs are searched for files with extensions: " + ",".join(img_extensions))
+  print("    * if no files or dirs specified, current dir is searched")
+
+if __name__ == "__main__":
+  a = AutoSize()
+  files = []
+  if (len(sys.argv) > 1):
+    files = sys.argv[1:]
+  
+  if files.count("--help") > 0 or files.count("-help") > 0:
+    usage()
+    sys.exit(0)
+
+  scaled = 0
+  tmp = []
+  lastarg = ""
+  for f in files:
+    # allow for other arguments, some day (eg sizing)
+    if lastarg == "-w" or lastarg == "--width":
+      try:
+        a.scale_width = int(f)
+        lastarg = ""
+      except:
+        print(f + " is not a valid image width: choose an integer value")
+        sys.exit(1)
+    elif lastarg == "-h" or lastarg == "--height":
+      try:
+        a.scale_height = int(f)
+        lastarg = ""
+      except:
+        print(f + " is not a valid image height: select an integer value")
+        sys.exit(1)
+    elif lastarg == "-e":
+      a.edits_dir = f
+      lastarg = ""
+    elif f == "-o" or f == "--overwrite":
+      a.overwrite_existing = True
+    elif os.path.isdir(f) or os.path.isfile(f):
+      tmp.append(f)
+    else:
+      lastarg = f
+  if len(lastarg) > 0:
+    if lastarg[0] == "-":
+      print(lastarg + " requires an argument; bailing out")
+    else:
+      print("Can't find file or don't understand argument: " + lastarg)
+    sys.exit(1)
+  files = tmp
+
+  if len(files) == 0:
+    files.append(".")
+  scaled = 0
+  images = 0
+
+  real_files = []
+  for arg in files:
+    if os.path.isdir(arg):
+      for f in os.listdir(arg):
+        if img_extensions.count(os.path.splitext(f)[1].lower()) > 0:
+          real_files.append(os.path.join(arg, f))
+    elif os.path.isfile(arg):
+      if img_extensions.count(os.path.splitext(f)[1].lower()) > 0:
+        real_files.append(f)
+      else:
+        print("Skipping non-image '" + arg + "'")
+  files = real_files
+
+  for f in files:
+    images += 1
+    idx = str(images)
+    while (len(idx) < len(str(len(files)))):
+      idx = " " + idx
+    a.line_prefix = "[" + idx + "/" + str(len(files)) + "] "
+    if (a.scale_img(f)):
+      scaled += 1
+  a.clear_line()
+  if (images):
+    print("Autoscaled " + str(scaled) + "/" + str(len(files)) + " files")
+  else:
+    print

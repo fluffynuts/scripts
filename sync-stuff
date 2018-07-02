@@ -1,0 +1,24 @@
+#!/bin/bash
+src="$1"
+dst="$2"
+cmd="medesync.py --no-remove"
+if test ! -z "$DUMMY"; then
+  cmd="${cmd} --dummy"
+fi
+if test -z "$src" || test -z "$dst"; then
+  echo "usage: $(basename $0) {src} {dst}"
+  exit 1
+fi
+
+find "${dst}" -maxdepth 1 -type d | while read -r dir; do
+  if test "${dir}" = "${dst}"; then
+    continue
+  fi
+  series="$(basename "$dir")"
+  relSrc="${src}/${series}"
+  if test ! -e "${relSrc}"; then
+    echo "${relSrc} not found!"
+    continue
+  fi
+  ${cmd} -s "${relSrc}" -d "${dst}/${series}"
+done

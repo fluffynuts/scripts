@@ -1,0 +1,55 @@
+#!/bin/bash
+
+RCFILE=${HOME}/.delayed_autostart
+
+if test ! -f ${RCFILE}; then
+	exit 1
+fi
+
+DELAY=30
+STATE="start"
+START=""
+
+while read -r line; do
+	if test -z "$line"; then
+		continue
+	fi
+	if test -n "$(echo $line | grep '^#.*')"; then
+		continue
+	fi
+	case "$line" in
+		"[conf]")
+			STATE="config"
+			continue
+		;;
+		"[start]")
+			STATE="start"
+			continue
+		;;
+	esac
+
+	case "$STATE" in
+		"config")
+			eval $line
+		;;
+		"start")
+			START="${START}${line}\n"
+		;;
+	esac
+done < $RCFILE
+
+echo "Waiting $DELAY seconds..."
+sleep $DELAY
+LOGDIR=/tmp/delayed_autostart_logs
+if ! test -e $LOGDIR; then
+    mkdir $LOGDIR
+fi
+
+echo -e "$START" | while read -r line; do
+	if test -z "$line"; then
+		continue
+	fi
+    LOGFILE="$LOGDIR/$(echo $line | sed -e 's/ /-/g' | sed -e 's/\//-/g')"
+	$line &> $LOGFILE &
+done
+

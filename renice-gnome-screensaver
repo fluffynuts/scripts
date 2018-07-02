@@ -1,0 +1,13 @@
+#!/bin/zsh
+if test -n "$1"; then
+  NICE="$1"
+else
+  NICE="5"
+fi
+
+PID=$(pidof gnome-screensaver)
+if test -n "$PID"; then
+  renice $NICE $PID
+else
+  echo "Unable to find pid of gnome-screensaver process"
+fi

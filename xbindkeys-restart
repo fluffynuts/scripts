@@ -1,0 +1,6 @@
+#!/bin/sh
+if [ ! -z "$1" ]; then
+	sleep $1
+fi
+killall xbindkeys
+xbindkeys

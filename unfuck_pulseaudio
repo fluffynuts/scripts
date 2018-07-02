@@ -1,0 +1,12 @@
+#!/bin/sh
+echo "Killing stupid PulseAudio"
+killall -9 pulseaudio
+echo "Restarting PulseAudio daemon"
+pulseaudio -D
+if test ! -z "$(ps aux | grep xfce4-volumed | grep -v grep)"; then
+    echo "Restarting XFCE volume daemon"
+    killall xfce4-volumed
+    xfce4-volumed
+fi
+echo "Unfucking headphones"
+amixer set Headphone 100% unmute

@@ -1,0 +1,164 @@
+#!/usr/bin/python
+import os
+import sys
+import pygtk
+pygtk.require("2.0")
+import pynotify
+import time
+try:
+  import psyco
+  psyco.full()
+except:
+  pass
+
+def fix_series_similar(dir):
+  if not os.path.isdir(dir):
+    return False
+  files = os.listdir(dir)
+  pre = ""
+  idx = 1
+  while True:
+    for f in files:
+      path = os.path.join(dir, f)
+      if os.path.isfile(path):
+        pre = f[:idx]
+        break
+    if len(pre) == 0:
+      break
+    break_out = False
+    for f in files:
+      try:
+        if f.index(pre) != 0:
+          pre = pre[:len(pre)-1]
+          break
+          break_out = True
+      except Exception, e:
+        pre = pre[:len(pre)-1]
+        break_out = True
+    if break_out:
+      break
+    idx += 1
+  if (len(pre) == 0):
+    # nothing to do and no error
+    return True
+  for f in files:
+    path = os.path.join(dir, f)
+    if not os.path.isfile(path):
+      continue
+    newpath = os.path.join(dir, f[len(pre):])
+    try:
+      print("renaming '" + path + "' to '" + newpath + "'")
+      os.rename(path, newpath)
+    except Exception, e:
+      print("Can't rename '" + path + "' to '" + newpath + "':" + str(e))
+      return False
+  return True
+    
+def fix_series_dash(dir):
+  print dir
+  if not os.path.isdir(dir):
+    return False
+  pre = ""
+  for f in os.listdir(dir):
+    if not os.path.isfile(os.path.join(dir, f)):
+      continue
+    parts = f.split(" - ")
+    if len(parts) < 2:
+      return False
+    if pre == "":
+      pre = parts[0]
+      print("Looking for pre '" + pre + "'")
+      continue
+    if pre != parts[0]:
+      print("'" + f + "' doesn't have pre '" + pre + "'")
+      return False
+  pre += " - "
+  l = len(pre)
+  for f in os.listdir(dir):
+    src = os.path.join(dir, f)
+    if os.path.isdir(src):
+      continue
+    dst = os.path.join(dir, f[l:])
+    if os.path.isfile(dst):
+      continue
+    try:
+      os.rename(src, dst)
+    except Exception, e:
+      print("Can't rename '" + src + "' to '" + dst + "':" + str(e))
+      return False
+  return True
+
+def fix_series_space(dir):
+  if not os.path.isdir(dir):
+    return False
+  pre = ""
+  for f in os.listdir(dir):
+    if not os.path.isfile(os.path.join(dir, f)):
+      continue
+    parts = f.split(" ")
+    if len(parts) < 2:
+      return False
+    head = " ".join(parts[:-1])
+    if pre == "":
+      pre = head
+      print("Looking for pre '" + pre + "'")
+      continue
+    if pre != head:
+      print("'" + f + "' doesn't have pre '" + pre + "'")
+      return False
+  l = len(pre)
+  for f in os.listdir(dir):
+    src = os.path.join(dir, f)
+    if os.path.isdir(src):
+      continue
+    dst = os.path.join(dir, f[l:].strip())
+    if os.path.isfile(dst):
+      print(dst + " already exists!")
+    try:
+      print("renaming '" + src + "' to '" + dst + "'")
+      os.rename(src, dst)
+    except Exception, e:
+      print("Can't rename '" + src + "' to '" + dst + "':" + str(e))
+      return False
+  return True
+
+if __name__ == "__main__":
+  did_something = False
+  notify_init = pynotify.init("V30 unmounter")
+  for line in os.popen("mount"):
+    parts = line.split(" ")
+    dev = parts[0]
+    mount = parts[2].lower()
+    if mount.find('/media/v30') > -1:
+      did_something = True
+      if notify_init:
+        n = pynotify.Notification("Series fix...", "Scanning for series to shorten names for 8.3 pathing")
+        n.set_timeout(30000)
+        n.show()
+      fix_series_similar(parts[2])
+      #if not fix_series_dash(parts[2]):
+      #  fix_series_space(parts[2])
+      if notify_init:
+        n.close()
+      print("Unmounting " + dev)
+      if notify_init:
+        n.set_timeout(100000)
+        n = pynotify.Notification("Unmounting", "Unmounting V30 device; please be patient as data is written to disk")
+        n.show()
+      ret = os.system("umount " + dev)
+      if notify_init:
+        n.close()
+      if ret == 0:
+        if notify_init:
+          n = pynotify.Notification("Sorting FAT", "Sorting FAT filesystem for stupid readers...")
+          n.show()
+        os.system("fatsort -c " + dev)
+        if notify_init:
+          n.close()
+          n = pynotify.Notification("V30 unmounted", "It is safe to remove your V30 stokkie now!")
+          n.show()
+
+  if not did_something:
+    if notify_init:
+      n = pynotify.Notification("Nothing to do", "No V30 mounts found; nothing to do! Remember, this is a silly script specifically designed for the V30 stokkies that we use for the divx-capable media player...")
+      n.show()

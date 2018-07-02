@@ -1,0 +1,254 @@
+#!/usr/bin/python
+# vim: expandtab
+import sys
+import os
+import time
+
+io_chunksize = 16384
+use_ddr = True
+
+# colors
+if os.name == "posix":
+  red = "\033[01;31m"
+  yellow = "\033[01;33m"
+  green = "\033[01;32m"
+  default = "\033[0m"
+else:
+  red = ""
+  yellow = ""
+  default = ""
+
+def ls_R(dir):
+  sys.stdout.flush()
+  ls = [dir]
+  os.path.walk(dir, walk_cb, ls)
+  ls = ls[1:]
+  ls.sort()
+  return ls
+
+def walk_cb(ls, dirname, fnames):
+  d = dirname[len(ls[0]):]
+  for f in fnames:
+    fpath = os.path.join(dirname, f)
+    if os.path.isfile(fpath):
+      ls.append(fpath)
+      items = len(ls) - 1
+
+def shorten(s, l = 36):
+  if (len(s) < l):
+    return s
+  pos1 = l/4
+  pos2 = l - pos1
+  s = s[:pos1-2] + "..." + s[-pos2:]
+  return s
+
+def status(src, dst):
+  src = shorten(src)
+  dst = shorten(dst)
+  print(src + " -> " + dst)
+
+def ensure_container_dir_exists(f):
+  d = os.path.dirname(f)
+  if os.path.isdir(f):
+    return True
+  parts = f.split(os.sep)
+  check = ""
+  for part in parts[:-1]:
+    check += os.sep + part
+    if os.path.isdir(check):
+      continue
+    try:
+      os.mkdir(check)
+    except:
+      print("Unable to create dir: '" + check + "'; bailing out")
+      sys.exit(1)
+  return True
+
+def copy_file(src, dst):
+  global io_chunksize
+  try:
+    fpsrc = open(src, "rb")
+  except Exception, e:
+    print("Can't open '" + src + "' for reading")
+    print(str(e))
+    return False
+
+  try:
+    fpdst = open(dst, "wb")
+  except Exception, e:
+    fpsrc.close()
+    print("Can't open '" + dst + "' for writing")
+    print(str(e))
+    return False
+
+  st = os.stat(src)
+  toRead = st.st_size
+  ret = False
+  try:
+    while (toRead > 0):
+      chunk = toRead
+      if chunk > io_chunksize:
+        chunk = io_chunksize
+      data = fpsrc.read(chunk)
+      fpdst.write(data)
+      toRead -= len(data)
+    ret = True
+  except Exception, e:
+    print("Can't copy " + str(chunk) + " bytes from '" + src + "' to '"\
+      + dst + "' at offset " + str(st.st_size - toRead))
+    print("error was: " + str(e))
+  try:
+    fpsrc.close()
+  except:
+    pass
+  try:
+    fpdst.close()
+  except:
+    pass
+  return ret
+
+def copy_files(src_dir, dest_dir, mode = 0):
+  global red
+  global green
+  global use_ddr
+  if dest_dir[-1] == os.sep:
+    dest_dir = destdir[0:-1]
+  src_files = ls_R(src_dir)
+  src_count = len(src_files)
+  copied = 0
+  for f in src_files:
+    rel = f[len(src_dir):]
+    dstfile = dest_dir + rel
+    status(f, dstfile)
+    ensure_container_dir_exists(dstfile)
+    if os.path.isfile(dstfile):
+      stsrc = os.stat(f)
+      stdst = os.stat(dstfile)
+      if stsrc.st_size == stdst.st_size:
+        continue
+    did_copy = False
+    attempts = 3
+    for i in range(attempts):
+      did_copy = False
+      if os.path.isfile(dstfile):
+        # make sure we can write to the output file
+        os.chmod(dstfile, 0666)
+      try:
+        did_copy = copy_file(f, dstfile)
+        if did_copy:
+          break
+        time.sleep(1)
+      except Exception, e:
+        if (i < (attempts)):
+          print(red + "Error whilst copying '" + f + "', will try again" + default)
+          print(" (error was: " + str(e) + ")")
+          time.sleep(1)
+        else:
+          print(red + "Error whilst copying '" + f + "', giving up" + default)
+          break
+    if not did_copy and use_ddr:
+      try:
+        p = os.popen("which dd_rescue").read().strip()
+        if len(p):
+          try:
+            print(green + " Trying ddrescue on '" + f + "'" + default )
+            cmd = p + " \"" + f + "\" \"" + dstfile + "\""
+            os.system(cmd)
+          except:
+            print("  -> sorry! even dd_rescue fails ):")
+      except:
+        pass
+
+    if did_copy:
+      if mode > 0:
+        os.chmod(dstfile, mode)
+      copied += 1
+    else:
+      if os.path.isfile(dstfile):
+        try:
+          os.remove(dstfile)
+        except:
+          pass
+  return src_count, copied
+
+def usage():
+  print("Usage: " + os.path.basename(sys.argv[0]) \
+    + " {opts} <srcdir> <dstdir>")
+  sys.exit(1)
+
+if __name__ == "__main__":
+  
+  if (len(sys.argv) < 3):
+    usage()
+  srcdir = ""
+  dstdir = ""
+  prompt = False
+  command = ""
+
+  lastarg = ""
+  mode = ""
+  for arg in sys.argv[1:]:
+    if ["-c", "-m"].count(arg):
+      lastarg = arg
+      continue
+    if lastarg == "-c":
+      command = arg
+    elif lastarg == "-m":
+      mode = arg
+    elif arg == "-p":
+      prompt = True
+    elif arg == "-noddr":
+      use_ddr = False
+    elif srcdir == "":
+      srcdir = arg
+    elif dstdir == "":
+      dstdir = arg
+    else:
+      print("Unrecognised or extra argument: '" + arg + "'; bailing out")
+      usage()
+
+    lastarg = ""
+
+  if srcdir == "" or dstdir == "":
+    print("You must specify at least a src and dst dir each")
+    sys.exit(1)
+  if not os.path.isdir(srcdir):
+    print(srcdir + " is not a dir; exiting")
+    sys.exit(1)
+  if len(mode):
+    imode = int(mode, 8)
+  else:
+    imode = 0
+
+  waiting = False
+  while True:
+    try:
+      count, copied = copy_files(srcdir, dstdir, imode)
+      if count == 0:
+        if not waiting:
+          print(yellow + "Waiting for files at '" + srcdir + "'" + default)
+          waiting = True
+        time.sleep(1)
+        continue
+      if copied == 0:
+        if not waiting:
+          print(yellow + "'" + srcdir \
+            + "' contents copied -- insert new medium" + default)
+          waiting = True
+          time.sleep(1)
+          continue
+      waiting = False
+      if len(command):
+        os.system(command)
+      if prompt:
+        sys.stdout.write(" Do another? (Y/n) >")
+        sys.stdout.flush()
+        ans = sys.stdin.readline().strip().lower()
+        if len(ans) == 0:
+          continue
+        if ans[0] == "y":
+          continue
+        break
+    except KeyboardInterrupt:
+      print(" (aborted by user)")
+      sys.exit(1)

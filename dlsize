@@ -1,0 +1,94 @@
+#!/usr/bin/python
+import urllib
+import urllib2
+import sys
+import os
+import time
+
+def get_dl_size(url):
+	try:
+		fp = urllib2.urlopen(url, "r")
+		for h in fp.headers.headers:
+			parts = h.strip().split(":")
+			if parts[0].lower() == "content-length":
+				ret =  int(parts[1].strip())
+				fp.close()
+				return ret
+	except urllib2.HTTPError as e:
+		try:
+			#perhaps this is a dir listing
+			ret = 0
+			fp1 = urllib.urlretrieve(url)
+			index = open(fp1[0], "r").read()
+			for part in index.split("<a href=")[1:]:
+				if len(part) == 0:
+					continue
+				if part[0] == "\"":
+					part = part[1:]
+				url_part = part.split("\"")[0]
+				if url_part.count("?") > 0:
+					continue
+				if url_part.find("://") == -1:
+					url_part = "/".join(url.split("/")[:-1]) + url_part
+				status("(" + str(human_readable_size(total_size + ret)) + ") " + line)
+				tmp = get_dl_size(url_part)
+				if tmp > -1:
+					ret += tmp
+				else:
+					print("Can't get size for %s" % (url_part))
+			return ret
+		except Exception, e:
+			status("")
+			print("Error:")
+			print(" url: " + url)
+			print(" err: " + str(e))
+	return -1
+
+def status(s):
+	limit = 78
+	b = "\r" + (limit *  " ") + "\r"
+	sys.stdout.write(b)
+	if len(s) > limit:
+		mid1 = int(limit / 2)
+		mid2 = len(s) - mid1
+		s = s[:mid1-2] + "..." + s[mid2+2:]
+	sys.stdout.write(s)
+	sys.stdout.flush()
+
+def human_readable_size(size):
+	suffixes = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"]
+	idx = 0
+	ret = float(size)
+	while idx < len(suffixes) and ret > 1024:
+		ret /= 1024.0
+		idx += 1
+	return "%.2f %s" % (ret, suffixes[idx])
+
+if __name__ == "__main__":
+	if len(sys.argv) < 2:
+		print("Usage: %s <list file> ..." % (os.path.basename(sys.argv[0])))
+		sys.exit(1)
+	try:
+		total_size = 0
+		for arg in sys.argv[1:]:
+			if not os.path.isfile(arg):
+				print("Not a file: %s" % (arg))
+				continue
+			for line in open(arg, "r").readlines():
+				line = line.strip()
+				if len(line) == 0 or line[0] == "#":
+					continue
+				status("(" + str(human_readable_size(total_size)) + ") " + line)
+				size = get_dl_size(line)
+				if (size > -1):
+					total_size += size
+				else:
+					status("")
+					print("Can't get size for %s" % (line))
+		status("")
+		print("Total download: %s" % (human_readable_size(total_size)))
+	except KeyboardInterrupt:
+		status("")
+		print("(aborted)")
+	except Exception, e:
+		print(str(e))

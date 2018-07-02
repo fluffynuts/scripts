@@ -1,0 +1,2 @@
+#!/bin/sh
+KMIX_PULSEAUDIO_DISABLE=1 /usr/bin/kmix

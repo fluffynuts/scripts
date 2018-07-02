@@ -1,0 +1,185 @@
+#!/usr/bin/python
+#vim: tabstop=2 shiftwidth=2 expandtab softtabstop=2
+import os
+import sys
+import re
+import subprocess
+
+def would(str):
+  print("Would: %s" % (str))
+
+def purge(version):
+  if not on_debian():
+    return
+  print("Purging headers for %s" % (version))
+  cmd = "dpkg --purge linux-image-%s" % (version)
+  if DRY_RUN:
+    would(cmd)
+  else:
+    os.system(cmd)
+  
+  print("Purging image for %s" % (version))
+  cmd = "dpkg --purge linux-headers-%s" % (version)
+  if DRY_RUN:
+    would(cmd)
+  else:
+    os.system(cmd)
+
+def on_debian():
+    proc = subprocess.Popen(["which", "dpkg"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return proc.returncode == 0
+
+def rm_rf(version, base):
+  print(yellow("Picking off straggling modules for %s" % (version)))
+  contents = sorted(ls_R(os.path.join(base, version)), reverse=True)
+  blankstr = 75 * " "
+  for f in contents:
+    if DRY_RUN:
+      would(red("remove: %s" % (f)))
+      continue
+
+    short = f
+    if len(short) > 74:
+      short = short[:72] + "..."
+    sys.stdout.write("\r%s\r%s" % (blankstr, short))
+    sys.stdout.flush()
+
+    if os.path.isdir(f):
+      os.rmdir(f)
+    else:
+      try:
+        os.remove(f)
+      except Exception as e:
+        print("Can't purge %s: %s" % (f, e))
+
+  module_dir = os.path.join(base, version)
+  if DRY_RUN:
+    would(red("remove: %s" % (module_dir)))
+  else:
+    os.rmdir(module_dir)
+    sys.stdout.write("\r%s\r" % (blankstr))
+    sys.stdout.flush()
+
+def remove_boot_detritus(version):
+  print(yellow("Cleaning out /boot"))
+  contents = ls_R("/boot")
+  for f in contents:
+    if not version in f:
+      continue
+    if DRY_RUN:
+      would(red("remove: %s" % (f)))
+    else:
+      os.remove(f)
+
+def ls_R(dir):
+  stack = [dir]
+  ret = []
+  items = 0
+  while stack:
+    thisdir = stack.pop(0)
+    if not os.path.isdir(thisdir):
+      continue
+    for f in sorted(os.listdir(thisdir)):
+      path = os.path.join(thisdir, f)
+      ret.append(path)
+      if os.path.isdir(path):
+        stack.append(path)
+  return ret
+
+def version(path):
+    parts = path.split(os.sep)
+    last = re.sub(r"-.*$","", parts[-1])
+    parts = map(lambda x: x * 100, map(int, last.split(".")))
+    reversed = parts[::-1]
+    largest = sorted(parts)[-1]
+    step = 100
+    while step < largest:
+        step = step * 10
+    mul = 1
+    result = 0
+    for part in reversed:
+        result = result + (part * mul)
+        mul = mul * step
+    return result
+    
+
+def usage():
+  print("Usage: %s {opts}" % (os.path.basename(sys.argv[0])))
+  print(" where opts are of")
+  print(" -d / --dryrun:      report only, don't actually delete or remove anything")
+  print(" -k / --keep:        specify how many versions of the kernel to keep")
+  print("                      (default 2)")
+  print(" -md / --modulesdir  specify location of your modules")
+  print("                      (default /lib/modules)")
+
+def red(s):
+  return color(s, 31)
+def green(s):
+  return color(s, 32)
+def yellow(s):
+  return color(s, 33)
+def blue(s):
+  return color(s, 34)
+def purple(s):
+  return color(s, 35)
+def cyan(s):
+  return color(s, 36)
+def white(s):
+  return color(s, 37)
+
+def color(s, c):
+  return "\033[1;%im%s\033[1;0m" % (c, s)
+
+if __name__ == "__main__":
+  global DRY_RUN
+  DRY_RUN=False
+  keep = 2
+  basedir = "/lib/modules"
+  last_arg = ""
+  for arg in sys.argv[1:]:
+    if ["-k", "--keep", "-keep",\
+          "-md", "--modulesdir", "-modulesdir"].count(arg) > 0:
+      last_arg = arg
+      continue
+    if ["-h", "-help", "--help"].count(arg) > 0:
+      usage()
+      sys.exit(0)
+    if ["-d", "--dryrun"].count(arg) > 0:
+      DRY_RUN=True
+
+  available_kernels = sorted(os.listdir(basedir), reverse=True, key=version)
+
+  if len(available_kernels) <= keep:
+    print("You only have %i kernel images: nothing to do" % (len(available_kernels)))
+    sys.exit(0)
+
+  to_remove = available_kernels[2:]
+
+  if DRY_RUN:
+    print(cyan("DRY RUN ONLY - NON-DESTRUCTIVE"))
+  else:
+    print(red("Please verify before continuing:"))
+  print("Operation would purge the following kernels:")
+  for k in to_remove:
+    print(red("  %s" % (k)))
+  print("The following kernels would be left:")
+  for k in available_kernels[:2]:
+    print(green("  %s" % (k)))
+
+  sys.stdout.write("Are you sure you want to continue ? (y/N) ")
+  sys.stdout.flush()
+  ans = sys.stdin.readline().strip().lower()
+  if ans[0] != "y":
+    print("Bailing out")
+    sys.exit(0)
+
+  for k in to_remove:
+    purge(k)
+    rm_rf(k, basedir)
+    remove_boot_detritus(k)
+  print(yellow("Update GRUB"))
+  if DRY_RUN:
+    would(purple("update grub"))
+  else:
+    os.system("update-grub")
+    print(green(">> done <<"))

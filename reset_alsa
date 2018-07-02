@@ -1,0 +1,4 @@
+#!/bin/sh
+chan=Master
+amixer set $chan 0%
+amixer set $chan 42%

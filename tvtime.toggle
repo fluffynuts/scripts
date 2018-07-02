@@ -1,0 +1,36 @@
+#!/bin/bash
+#running="`ps aux | grep -i tvtime | grep -v tvtime.toggle | grep -v grep`"
+running="$(ps -C tvtime | grep tvtime)"
+#echo "running: $running"
+if [ "$running" = "" ];then
+	DEVUSER=$(ps aux | grep mencoder | grep -v grep | grep '/dev/video0' | awk '{print $2}')
+	if [ "$DEVUSER" = "" ]; then
+		# check that the line volume isn't muted. If so, set to 50%
+		if test ! -x "$(which setmixer)"; then
+			if test -x "$(which aumix)"; then
+				aumix -l 80
+			fi
+		else
+			setmixer line 80,80
+		fi
+		# kill instances of mplayer and gmplayer that will tie up hardware
+		killall -9 gmplayer
+		killall -9 mplayer
+		tvtime &
+		sleep 1s
+		#tvtime-command TOGGLE_FULLSCREEN
+		#tvtime-command TOGGLE_FULLSCREEN
+	else
+		zenity --error --title "Can't start TVTime..."\
+			--text "Something else is using the video device (Perhaps there is a recording going on). If you are totally sure that you want to start TVTime anyway, I suggest you hunt down and kill the process hogging the device\n\n(INFO: pid of said process is $DEVUSER)"
+	fi
+else
+	tvtime-command QUIT
+	if test -x "$(which setmixer)"; then
+		setmixer line 0,0
+	else
+		if test -x "$(which aumix)"; then
+			aumix -l 80
+		fi
+	fi
+fi

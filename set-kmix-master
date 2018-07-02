@@ -1,0 +1,16 @@
+#!/bin/bash
+CONF=$(dirname $0)/kmixrc-$1
+TARGET=~/.config/kmixrc
+if ! test -e "$CONF"; then
+  echo "no config for $1 found (searched for: $CONF)"
+  exit 2
+fi
+if test -z "$(diff "$CONF" $TARGET)"; then
+  echo "$1 already selected for kmix mixer"
+  exit 0
+fi
+echo "killing kmix..."
+killall kmix
+echo "overwriting $TARGET with $CONF ..."
+cp $CONF $TARGET
+echo " (hopefully, kmix is restarted by a watchdoggy)"

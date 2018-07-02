@@ -1,0 +1,30 @@
+#!/bin/bash
+while true
+do
+  players_list=$(gdbus call --session --dest org.freedesktop.DBus \
+      --object-path / --method org.freedesktop.DBus.ListNames | \
+      awk 'BEGIN { RS=","; } /org.mpris.MediaPlayer2./ { gsub(/[\[\]()\x27]/, ""); print $1; }' | grep -v audacious)
+    for player in $players_list
+    do
+        state=$(gdbus call --session \
+            --dest $player \
+            --object-path /org/mpris/MediaPlayer2 \
+            --method org.freedesktop.DBus.Properties.Get \
+            "org.mpris.MediaPlayer2.Player" \
+            "PlaybackStatus")
+        if [ "$state" = "(<'Playing'>,)" ]
+        then
+            echo $player $state -- send signal
+            xscreensaver-command -deactivate
+            #use xset to work with all screensaver tools and avoid dimming display ... 
+            xset s reset
+            xset -dpms
+            break
+        else
+            echo "back to screensavin'"
+            echo $player $state
+            xset +dpms
+        fi
+    done
+    sleep 55
+done

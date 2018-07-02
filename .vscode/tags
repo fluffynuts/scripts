@@ -1,0 +1,902 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Universal Ctags Team	//
+!_TAG_PROGRAM_NAME	Universal Ctags	/Derived from Exuberant Ctags/
+!_TAG_PROGRAM_URL	https://ctags.io/	/official site/
+!_TAG_PROGRAM_VERSION	0.0.0	//
+265-to-264	../265-to-264	1;"	kind:file	line:1
+2pass_dvd_iso_to_xvid	../2pass_dvd_iso_to_xvid	1;"	kind:file	line:1
+2pass_rescale	../2pass_rescale	1;"	kind:file	line:1
+APIBase	../api_test.py	/^class APIBase(object):$/;"	kind:class	line:7
+AddOpt	../opts.py	/^  def AddOpt(self, opt, help = "(no help)", aliases = [], consumes = 0, $/;"	kind:member	line:50
+AppWrapper	../teamviewer-notify	/^class AppWrapper:$/;"	kind:class	line:7
+AppendValue	../opts.py	/^    def AppendValue(self, val):$/;"	kind:member	line:320
+AutoSize	../autoscale	/^class AutoSize:$/;"	kind:class	line:6
+BASE	../get-latest-chromium.py	/^    BASE = "http:\/\/build.chromium.org\/buildbot\/snapshots\/chromium-rel-linux-64\/"$/;"	kind:variable	line:31
+BASE	../get-latest-chromium.py	/^    BASE = "http:\/\/build.chromium.org\/buildbot\/snapshots\/chromium-rel-linux\/"$/;"	kind:variable	line:33
+BASE	../get-latest-chromium.py	/^  BASE = "http:\/\/build.chromium.org\/buildbot\/snapshots\/chromium-rel-mac\/"$/;"	kind:variable	line:35
+BASE	../get-latest-chromium.py	/^  BASE = "http:\/\/build.chromium.org\/buildbot\/snapshots\/chromium-rel-xp\/"$/;"	kind:variable	line:38
+BASE_OUT	../get-latest-chromium.py	/^BASE_OUT = os.path.expanduser("~") # default "temp" dir is user's home$/;"	kind:variable	line:27
+BoolToStr	../opts.py	/^  def BoolToStr(self, b):$/;"	kind:member	line:120
+COLS	../medesync.py	/^	COLS = 78 # fallback$/;"	kind:variable	line:45
+COLS	../medesync.py	/^	COLS = None$/;"	kind:variable	line:43
+COLS	../medesync.py.u1conflict	/^	COLS = 78 # fallback$/;"	kind:variable	line:43
+COLS	../medesync.py.u1conflict	/^	COLS = None$/;"	kind:variable	line:41
+COLS	../medesync.py.u1conflict.1	/^	COLS = 78 # fallback$/;"	kind:variable	line:44
+COLS	../medesync.py.u1conflict.1	/^	COLS = None$/;"	kind:variable	line:42
+CONTROL_FILE	../link-watcher	/^CONTROL_FILE="\/var\/lock\/link-watcher.pid"$/;"	kind:variable	line:10
+CheckType	../opts.py	/^  def CheckType(self, val, opt):$/;"	kind:member	line:136
+CloneFailure	../repo	/^class CloneFailure(Exception):$/;"	kind:class	line:218
+DropboxPushbulletPusher.py	../DropboxPushbulletPusher.py	1;"	kind:file	line:1
+Dump	../opts.py	/^  def Dump(self):$/;"	kind:member	line:126
+Encoder	../2pass_dvd_iso_to_xvid	/^class Encoder:$/;"	kind:class	line:7
+FindKarma	../karma	/^  def FindKarma(self):$/;"	kind:member	line:9
+Flattener	../flatten_fs.py	/^class Flattener:$/;"	kind:class	line:8
+Flattener	../flatten_once.py	/^class Flattener:$/;"	kind:class	line:5
+GIT	../repo	/^GIT = 'git'                     # our git command$/;"	kind:variable	line:104
+GetConsoleCols	../opts.py	/^  def GetConsoleCols(self):$/;"	kind:member	line:22
+GetMaxLHSW	../opts.py	/^  def GetMaxLHSW(self, SkipAliases=False):$/;"	kind:member	line:78
+INTERVAL	../transmission-throttle	/^INTERVAL=1$/;"	kind:variable	line:11
+KEYRING_VERSION	../repo	/^KEYRING_VERSION = (1, 2)$/;"	kind:variable	line:26
+KarmaFinder	../karma	/^class KarmaFinder:$/;"	kind:class	line:5
+LAST_DOWN	../transmission-throttle	/^LAST_DOWN=""$/;"	kind:variable	line:16
+LAST_UP	../transmission-throttle	/^LAST_UP=""$/;"	kind:variable	line:15
+LinkWatcher	../link-watcher	/^class LinkWatcher:$/;"	kind:class	line:11
+MAINTAINER_KEYS	../repo	/^MAINTAINER_KEYS = """$/;"	kind:variable	line:27
+MIN_GIT_VERSION	../repo	/^MIN_GIT_VERSION = (1, 7, 2)     # minimum supported git version$/;"	kind:variable	line:105
+MIN_PYTHON_VERSION	../repo	/^MIN_PYTHON_VERSION = (2, 6)     # minimum supported python version$/;"	kind:variable	line:110
+Match	../opts.py	/^    def Match(self, arg):$/;"	kind:member	line:312
+MessagePusher	../PushbulletMessage.py	/^class MessagePusher:$/;"	kind:class	line:8
+NeedSetupGnuPG	../repo	/^def NeedSetupGnuPG():$/;"	kind:function	line:323
+OUT	../get-latest-chromium.py	/^  OUT = "chrome-linux.zip"$/;"	kind:variable	line:29
+OUT	../get-latest-chromium.py	/^  OUT = "chrome-mac.zip"$/;"	kind:variable	line:36
+OUT	../get-latest-chromium.py	/^  OUT = "chrome-win32.zip"$/;"	kind:variable	line:39
+Option	../opts.py	/^  class Option:$/;"	kind:class	line:280
+Options	../opts.py	/^class Options:$/;"	kind:class	line:7
+PROFILE	../265-to-264	/^PROFILE='ipad-webop-better'$/;"	kind:variable	line:6
+ParseArgs	../opts.py	/^  def ParseArgs(self):$/;"	kind:member	line:167
+ParseGitVersion	../repo	/^def ParseGitVersion(ver_str):$/;"	kind:function	line:281
+PushbulletMessage.py	../PushbulletMessage.py	1;"	kind:file	line:1
+Pusher	../DropboxPushbulletPusher.py	/^class Pusher:$/;"	kind:class	line:8
+REPO_MAIN	../repo	/^REPO_MAIN = S_repo + '\/main.py' # main script$/;"	kind:variable	line:109
+REPO_REV	../repo	/^REPO_REV = 'stable'$/;"	kind:variable	line:6
+REPO_URL	../repo	/^REPO_URL = 'https:\/\/gerrit.googlesource.com\/git-repo'$/;"	kind:variable	line:5
+RequiredMissing	../opts.py	/^  def RequiredMissing(self):$/;"	kind:member	line:229
+ResumableDownloader	../get-latest-chromium.py	/^  class ResumableDownloader(urllib.FancyURLopener):$/;"	kind:class	line:46
+ResumableDownloader	../get-latest-chromium.py	/^  class ResumableDownloader(urllib.request.FancyURLopener):$/;"	kind:class	line:42
+SLACK_PERIOD	../transmission-throttle	/^SLACK_PERIOD=60$/;"	kind:variable	line:13
+S_manifests	../repo	/^S_manifests = 'manifests'       # special manifest repository$/;"	kind:variable	line:108
+S_repo	../repo	/^S_repo = 'repo'                 # special repo repository$/;"	kind:variable	line:107
+SearchMatch	../api_test.py	/^class SearchMatch:$/;"	kind:class	line:16
+SearchMovies	../api_test.py	/^class SearchMovies(APIBase):$/;"	kind:class	line:24
+SetValue	../opts.py	/^    def SetValue(self, val):$/;"	kind:member	line:326
+SetupGnuPG	../repo	/^def SetupGnuPG(quiet):$/;"	kind:function	line:341
+SmartSaver	../smartsaver.py	/^class SmartSaver:$/;"	kind:class	line:8
+SmartSync	../medesync.py	/^class SmartSync:$/;"	kind:class	line:47
+SmartSync	../medesync.py.u1conflict	/^class SmartSync:$/;"	kind:class	line:45
+SmartSync	../medesync.py.u1conflict.1	/^class SmartSync:$/;"	kind:class	line:46
+THROTTLE	../transmission-throttle	/^THROTTLE={"slow_down":"2","slow_up":"0","fast_down":"unlimited","fast_up":"5"}$/;"	kind:variable	line:7
+THROTTLE_MARKER	../transmission-throttle	/^THROTTLE_MARKER="\/tmp\/.transmission-throttle"$/;"	kind:variable	line:8
+TR	../transmission-throttle	/^TR="transmission-remote"$/;"	kind:variable	line:9
+UTC_OFFSET	../transmission-throttle	/^UTC_OFFSET=7200$/;"	kind:variable	line:14
+Uptime	../uptime.py	/^class Uptime:$/;"	kind:class	line:5
+Usage	../opts.py	/^    def Usage(self, Long=False, SkipAliases=False, ReturnAsString = False):$/;"	kind:member	line:404
+Usage	../opts.py	/^  def Usage(self, Long=False):$/;"	kind:member	line:90
+VERSION	../repo	/^VERSION = (1, 21)$/;"	kind:variable	line:23
+Valid	../opts.py	/^    def Valid(self, val):$/;"	kind:member	line:303
+WATCH	../transmission-throttle	/^WATCH="\/var\/log\/squid\/access.log"$/;"	kind:variable	line:10
+_CheckGitVersion	../repo	/^def _CheckGitVersion():$/;"	kind:function	line:295
+_Checkout	../repo	/^def _Checkout(cwd, branch, rev, quiet):$/;"	kind:function	line:584
+_Clone	../repo	/^def _Clone(url, local, quiet):$/;"	kind:function	line:497
+_DownloadBundle	../repo	/^def _DownloadBundle(url, local, quiet):$/;"	kind:function	line:440
+_Fetch	../repo	/^def _Fetch(url, local, src, quiet):$/;"	kind:function	line:419
+_FindKarmaLocal	../karma	/^  def _FindKarmaLocal(self):$/;"	kind:member	line:16
+_FindRepo	../repo	/^def _FindRepo():$/;"	kind:function	line:606
+_Help	../repo	/^def _Help(args):$/;"	kind:function	line:661
+_ImportBundle	../repo	/^def _ImportBundle(local):$/;"	kind:function	line:490
+_Init	../repo	/^def _Init(args):$/;"	kind:function	line:223
+_InitHttp	../repo	/^def _InitHttp():$/;"	kind:function	line:395
+_LookForKarmaIn	../karma	/^  def _LookForKarmaIn(self, path):$/;"	kind:member	line:26
+_NoCommands	../repo	/^def _NoCommands(cmd):$/;"	kind:function	line:681
+_NotInstalled	../repo	/^def _NotInstalled():$/;"	kind:function	line:675
+_Options	../repo	/^class _Options:$/;"	kind:class	line:624
+_ParseArguments	../repo	/^def _ParseArguments(args):$/;"	kind:function	line:628
+_RunSelf	../repo	/^def _RunSelf(wrapper_path):$/;"	kind:function	line:687
+_SetConfig	../repo	/^def _SetConfig(local, name, value):$/;"	kind:function	line:387
+_SetDefaultsTo	../repo	/^def _SetDefaultsTo(gitdir):$/;"	kind:function	line:702
+_Usage	../repo	/^def _Usage():$/;"	kind:function	line:645
+_Verify	../repo	/^def _Verify(cwd, branch, quiet):$/;"	kind:function	line:532
+__deinit__	../medesync.py	/^	def __deinit__(self):#<<<*\/$/;"	kind:member	line:78
+__deinit__	../medesync.py.u1conflict	/^	def __deinit__(self):#<<<*\/$/;"	kind:member	line:74
+__deinit__	../medesync.py.u1conflict.1	/^	def __deinit__(self):#<<<*\/$/;"	kind:member	line:76
+__del__	../2pass_dvd_iso_to_xvid	/^	def __del__(self):$/;"	kind:member	line:24
+__init__	../2pass_dvd_iso_to_xvid	/^	def __init__(self):$/;"	kind:member	line:8
+__init__	../DropboxPushbulletPusher.py	/^  def __init__(self):$/;"	kind:member	line:9
+__init__	../PushbulletMessage.py	/^  def __init__(self):$/;"	kind:member	line:9
+__init__	../api_test.py	/^  def __init__(self):$/;"	kind:member	line:25
+__init__	../api_test.py	/^  def __init__(self, append):$/;"	kind:member	line:8
+__init__	../api_test.py	/^  def __init__(self, el):$/;"	kind:member	line:17
+__init__	../autoscale	/^  def __init__(self):$/;"	kind:member	line:7
+__init__	../flatten_fs.py	/^	def __init__(self, basedir = None):$/;"	kind:member	line:9
+__init__	../flatten_once.py	/^  def __init__(self, options = {}):$/;"	kind:member	line:6
+__init__	../karma	/^  def __init__(self):$/;"	kind:member	line:6
+__init__	../link-watcher	/^	def __init__(self, link, interval, mode):$/;"	kind:member	line:12
+__init__	../medesync.py	/^	def __init__(self): #<<<$/;"	kind:member	line:48
+__init__	../medesync.py.u1conflict	/^	def __init__(self): #<<<$/;"	kind:member	line:46
+__init__	../medesync.py.u1conflict.1	/^	def __init__(self): #<<<$/;"	kind:member	line:47
+__init__	../opts.py	/^    def __init__(self, opt, help, aliases, consumes, ConsumesHelp, Default, ShortHelp,$/;"	kind:member	line:281
+__init__	../opts.py	/^  def __init__(self, UsageHeader = "", UnconsumedHelp = ""):$/;"	kind:member	line:8
+__init__	../smartsaver.py	/^  def __init__(self):$/;"	kind:member	line:9
+__init__	../teamviewer-notify	/^  def __init__(self, name, command):$/;"	kind:member	line:8
+_authorize	../DropboxPushbulletPusher.py	/^  def _authorize(self):$/;"	kind:member	line:47
+_getLastBootStr	../uptime.py	/^  def _getLastBootStr(self):$/;"	kind:member	line:32
+_getPrintString	../uptime.py	/^  def _getPrintString(self, tdelta):$/;"	kind:member	line:15
+_getUptimeDelta	../uptime.py	/^  def _getUptimeDelta(self, timeString):$/;"	kind:member	line:28
+_initDropbox	../DropboxPushbulletPusher.py	/^  def _initDropbox(self, cfg):$/;"	kind:member	line:30
+_initPushbullet	../DropboxPushbulletPusher.py	/^  def _initPushbullet(self, cfg):$/;"	kind:member	line:23
+_initPushbullet	../PushbulletMessage.py	/^  def _initPushbullet(self, cfg):$/;"	kind:member	line:22
+_loadConfig	../DropboxPushbulletPusher.py	/^  def _loadConfig(self):$/;"	kind:member	line:12
+_loadConfig	../PushbulletMessage.py	/^  def _loadConfig(self):$/;"	kind:member	line:12
+_loadConfigFile	../DropboxPushbulletPusher.py	/^  def _loadConfigFile(self):$/;"	kind:member	line:17
+_loadConfigFile	../PushbulletMessage.py	/^  def _loadConfigFile(self):$/;"	kind:member	line:17
+_print	../medesync.py	/^	def _print(self, s):#<<<*\/$/;"	kind:member	line:94
+_print	../medesync.py.u1conflict.1	/^	def _print(self, s):#<<<*\/$/;"	kind:member	line:92
+_print	../opts.py	/^  def _print(self, s, indent = 0):$/;"	kind:member	line:64
+_print	../repo	/^def _print(*objects, **kwargs):$/;"	kind:function	line:132
+_printUptime	../uptime.py	/^  def _printUptime(self, tdelta):$/;"	kind:member	line:11
+_pushToDropbox	../DropboxPushbulletPusher.py	/^  def _pushToDropbox(self, path):$/;"	kind:member	line:63
+_pushToPushbullet	../DropboxPushbulletPusher.py	/^  def _pushToPushbullet(self, url):$/;"	kind:member	line:73
+_pushToPushbullet	../PushbulletMessage.py	/^  def _pushToPushbullet(self, subject, message):$/;"	kind:member	line:30
+_setPersistentToken	../DropboxPushbulletPusher.py	/^  def _setPersistentToken(self, cfg, section, token):$/;"	kind:member	line:41
+_zeroPad	../uptime.py	/^  def _zeroPad(self, i):$/;"	kind:member	line:21
+a	../autoscale	/^  a = AutoSize()$/;"	kind:variable	line:182
+accepted_codecs	../share_media	/^accepted_codecs = ["divx", "xvid", "div3", "dx50"]$/;"	kind:variable	line:26
+acodec	../gen_toxvid_makefile.py	/^            acodec = fdata[pos:].strip(" \\n,").lower()$/;"	kind:variable	line:73
+all_numeric	../cputemp-xml.py	/^def all_numeric(s):$/;"	kind:function	line:6
+all_numeric	../hddtemp-xml.py	/^def all_numeric(s):$/;"	kind:function	line:6
+already_shared	../share_media	/^def already_shared(src, dst, idx, qlen):$/;"	kind:function	line:273
+always_overwrite	../toxvid	/^    always_overwrite = True$/;"	kind:variable	line:29
+always_overwrite	../toxvid	/^always_overwrite = False$/;"	kind:variable	line:23
+always_reencode	../2pass_rescale	/^    always_reencode = True$/;"	kind:variable	line:47
+always_reencode	../2pass_rescale	/^always_reencode = False$/;"	kind:variable	line:18
+always_reencode	../share_media	/^        always_reencode = True$/;"	kind:variable	line:317
+always_reencode	../share_media	/^always_reencode = False$/;"	kind:variable	line:24
+ans	../kernel-sweeper	/^  ans = sys.stdin.readline().strip().lower()$/;"	kind:variable	line:89
+ans	../perpetual_copy	/^        ans = sys.stdin.readline().strip().lower()$/;"	kind:variable	line:246
+ans	../toxvid	/^      ans = "n"$/;"	kind:variable	line:66
+ans	../toxvid	/^    ans = sys.stdin.readline().lower()$/;"	kind:variable	line:64
+api_test.py	../api_test.py	1;"	kind:file	line:1
+appWrapper	../teamviewer-notify	/^  appWrapper = AppWrapper('TeamViewer', 'teamviewer')$/;"	kind:variable	line:18
+arg	../2pass_rescale	/^    arg = os.path.join(os.getcwd(), arg)$/;"	kind:variable	line:79
+arg	../hddtemp-xml.py	/^				arg = "\/dev\/" + arg$/;"	kind:variable	line:44
+args	../karma	/^  args = [karmaPath]$/;"	kind:variable	line:40
+as_file_list	../265-to-264	/^def as_file_list(input):$/;"	kind:function	line:8
+audio_quality	../toxvid	/^      audio_quality = int(arg)$/;"	kind:variable	line:41
+audio_quality	../toxvid	/^audio_quality = 96$/;"	kind:variable	line:5
+autoscale	../autoscale	1;"	kind:file	line:1
+available	../link-watcher	/^	def available(self, url):$/;"	kind:member	line:38
+available_kernels	../kernel-sweeper	/^  available_kernels = sorted(os.listdir(basedir), reverse=True)$/;"	kind:variable	line:72
+basedir	../kernel-sweeper	/^  basedir = "\/lib\/modules"$/;"	kind:variable	line:61
+basename	../share_media	/^      basename = f[len(srcdir) + len(os.sep):]$/;"	kind:variable	line:385
+bg_end	../colors.py	/^bg_end = 48$/;"	kind:variable	line:8
+bg_start	../colors.py	/^bg_start = 40$/;"	kind:variable	line:7
+blank	../get-latest-chromium.py	/^blank = ""$/;"	kind:variable	line:26
+blankstr	../dircmp	/^blankstr = ""$/;"	kind:variable	line:10
+blankstr	../dircmp.py	/^blankstr = ""$/;"	kind:variable	line:10
+bounce_link	../link-watcher	/^	def bounce_link(self):$/;"	kind:member	line:48
+build_first_pass_cmd	../2pass_dvd_iso_to_xvid	/^	def build_first_pass_cmd(self):$/;"	kind:member	line:41
+build_fixed_quant_cmd	../2pass_dvd_iso_to_xvid	/^	def build_fixed_quant_cmd(self):$/;"	kind:member	line:34
+build_second_pass_cmd	../2pass_dvd_iso_to_xvid	/^	def build_second_pass_cmd(self):$/;"	kind:member	line:48
+bus	../inhibit-screensaver.py	/^bus = dbus.Bus(dbus.Bus.TYPE_SESSION)$/;"	kind:variable	line:5
+bw	../bw	1;"	kind:file	line:1
+bypass_proxy	../link-watcher	/^	def bypass_proxy(self):$/;"	kind:member	line:19
+c	../bw	/^c = conn.execute("select oidid, value, created from tbldata where oidid in (1,2) order by oidid,/;"	kind:variable	line:17
+c	../link-watcher	/^			c = ConfigParser.ConfigParser()$/;"	kind:variable	line:132
+catch_dir	../medesync.py	/^	def catch_dir(self, line):#<<<*\/$/;"	kind:member	line:926
+catch_dir	../medesync.py.u1conflict	/^	def catch_dir(self, line):$/;"	kind:member	line:847
+catch_dir	../medesync.py.u1conflict.1	/^	def catch_dir(self, line):$/;"	kind:member	line:867
+cfile	../link-watcher	/^	cfile = "\/etc\/link-watcher.conf"$/;"	kind:variable	line:129
+check_edit_dir	../autoscale	/^  def check_edit_dir(self, path):$/;"	kind:member	line:117
+check_link	../link-watcher	/^	def check_link(self):$/;"	kind:member	line:25
+chunk	../get-latest-chromium.py	/^chunk = min_chunk$/;"	kind:variable	line:24
+clean	../cleanup_series_folders	/^def clean(dir):$/;"	kind:function	line:21
+cleanup	../2pass_dvd_iso_to_xvid	/^	def cleanup(self):$/;"	kind:member	line:16
+cleanup	../medesync.py.u1conflict	/^	def cleanup(self, uri_base, listing, location):$/;"	kind:member	line:372
+cleanup	../medesync.py.u1conflict.1	/^	def cleanup(self, uri_base, listing, location):$/;"	kind:member	line:380
+cleanup_series_folders	../cleanup_series_folders	1;"	kind:file	line:1
+clear_last_error	../medesync.py	/^	def clear_last_error(self):#<<<$/;"	kind:member	line:160
+clear_last_error	../medesync.py.u1conflict	/^	def clear_last_error(self):#<<<$/;"	kind:member	line:148
+clear_last_error	../medesync.py.u1conflict.1	/^	def clear_last_error(self):#<<<$/;"	kind:member	line:156
+clear_line	../autoscale	/^  def clear_line(self):$/;"	kind:member	line:91
+clear_line	../dircmp	/^def clear_line():$/;"	kind:function	line:78
+clear_line	../dircmp.py	/^def clear_line():$/;"	kind:function	line:78
+clear_status	../medesync.py	/^	def clear_status(self): #<<<$/;"	kind:member	line:794
+clear_status	../medesync.py.u1conflict	/^	def clear_status(self): #<<<$/;"	kind:member	line:732
+clear_status	../medesync.py.u1conflict.1	/^	def clear_status(self): #<<<$/;"	kind:member	line:749
+clearline	../get-latest-chromium.py	/^def clearline():$/;"	kind:function	line:83
+cmd	../gen_toxvid_makefile.py	/^            cmd = "cp \\"%s\\" \\"%s\\"" % (srcfile, dstfile)$/;"	kind:variable	line:87
+cmd	../gen_toxvid_makefile.py	/^            cmd = "toxvid -o \\"%s\\" \\"%s\\"" % (dstfile, srcfile)$/;"	kind:variable	line:83
+cmd	../get_level	/^cmd = ('amixer get %s' % sys.argv[1])$/;"	kind:variable	line:6
+cmd	../share_media	/^    cmd = "ionice -c 3 -p %i" % os.getpid()$/;"	kind:variable	line:299
+cmd	../share_media	/^    cmd = "renice -n 19 %i" % os.getpid()$/;"	kind:variable	line:297
+cmd	../toxvid	/^cmd = "nice -n " + str(nice) + " mencoder -o \\"" + str(outfile) + "\\" -oac mp3lame -lameopts v/;"	kind:variable	line:69
+cmd1	../2pass_rescale	/^  cmd1 = "nice -n 10 mencoder -oac mp3lame -ovc xvid "\\$/;"	kind:variable	line:121
+cmd2	../2pass_rescale	/^  cmd2 = "nice -n 10 mencoder -oac mp3lame -ovc xvid -xvidencopts "\\$/;"	kind:variable	line:125
+cmdopts	../medesync.py	/^	cmdopts = dict()$/;"	kind:variable	line:1030
+cmdopts	../medesync.py.u1conflict	/^	cmdopts = dict()$/;"	kind:variable	line:946
+cmdopts	../medesync.py.u1conflict.1	/^	cmdopts = dict()$/;"	kind:variable	line:968
+colors.py	../colors.py	1;"	kind:file	line:1
+colw	../colors.py	/^colw = 10$/;"	kind:variable	line:6
+command	../perpetual_copy	/^      command = arg$/;"	kind:variable	line:195
+command	../perpetual_copy	/^  command = ""$/;"	kind:variable	line:186
+conf	../link-watcher	/^	conf = {"link":"ppp0", "interval":60}$/;"	kind:variable	line:128
+config_file	../g11profile	/^config_file = os.path.join(os.path.expanduser("~"), ".g11profiles")$/;"	kind:variable	line:5
+conn	../bw	/^conn = sqlite3.connect("\/opt\/ham\/nea.db")$/;"	kind:variable	line:16
+conn	../share_media	/^conn = sqlite3.connect(db)$/;"	kind:variable	line:247
+connect	../medesync.py	/^	def connect(self, host, user, passwd):#<<<$/;"	kind:member	line:163
+connect	../medesync.py.u1conflict	/^	def connect(self, host, user, passwd):#<<<$/;"	kind:member	line:151
+connect	../medesync.py.u1conflict.1	/^	def connect(self, host, user, passwd):#<<<$/;"	kind:member	line:159
+conversions	../gen_toxvid_makefile.py	/^    conversions = 0$/;"	kind:variable	line:48
+convert	../gen_toxvid_makefile.py	/^                convert = False$/;"	kind:variable	line:75
+convert	../gen_toxvid_makefile.py	/^        convert = True$/;"	kind:variable	line:62
+convertText	../fappy	/^def convertText(text, action = "replace"):$/;"	kind:function	line:48
+convert_music_vids	../convert_music_vids	1;"	kind:file	line:1
+convert_ogg_to_mp3	../flatten_fs.py	/^	def convert_ogg_to_mp3(self, file):$/;"	kind:member	line:76
+convert_to_mp4_under	../convert_to_mp4_under	1;"	kind:file	line:1
+convert_video	../convert_music_vids	/^def convert_video(src):$/;"	kind:function	line:11
+cookie	../inhibit-screensaver.py	/^cookie = dev.Inhibit('inhibit-screensaver.py', 'client request')$/;"	kind:variable	line:8
+copied	../perpetual_copy	/^      count, copied = copy_files(srcdir, dstdir, imode)$/;"	kind:variable	line:226
+copies	../gen_toxvid_makefile.py	/^    copies = 0$/;"	kind:variable	line:49
+copy_file	../medesync.py	/^	def copy_file(self, src_base, dst_base, relative_path):#<<<$/;"	kind:member	line:632
+copy_file	../medesync.py.u1conflict	/^	def copy_file(self, src_base, dst_base, relative_path):#<<<$/;"	kind:member	line:578
+copy_file	../medesync.py.u1conflict.1	/^	def copy_file(self, src_base, dst_base, relative_path):#<<<$/;"	kind:member	line:589
+copy_file	../perpetual_copy	/^def copy_file(src, dst):$/;"	kind:function	line:67
+copy_file_local_to_ftp	../medesync.py	/^	def copy_file_local_to_ftp(self, src, dst, rel):#<<<$/;"	kind:member	line:653
+copy_file_local_to_ftp	../medesync.py.u1conflict	/^	def copy_file_local_to_ftp(self, src, dst, rel):#<<<$/;"	kind:member	line:599
+copy_file_local_to_ftp	../medesync.py.u1conflict.1	/^	def copy_file_local_to_ftp(self, src, dst, rel):#<<<$/;"	kind:member	line:610
+copy_file_local_to_local	../medesync.py	/^	def copy_file_local_to_local(self, src, dst, rel):#<<<$/;"	kind:member	line:744
+copy_file_local_to_local	../medesync.py.u1conflict	/^	def copy_file_local_to_local(self, src, dst, rel):#<<<$/;"	kind:member	line:684
+copy_file_local_to_local	../medesync.py.u1conflict.1	/^	def copy_file_local_to_local(self, src, dst, rel):#<<<$/;"	kind:member	line:697
+copy_files	../perpetual_copy	/^def copy_files(src_dir, dest_dir, mode = 0):$/;"	kind:function	line:110
+copy_or_transcode	../share_media	/^def copy_or_transcode(src, dst, only_do_copy, idx, qlen, force_transcode = False):$/;"	kind:function	line:97
+count	../perpetual_copy	/^      count, copied = copy_files(srcdir, dstdir, imode)$/;"	kind:variable	line:226
+cputemp-xml.py	../cputemp-xml.py	1;"	kind:file	line:1
+create_db	../share_media	/^  create_db = True$/;"	kind:variable	line:245
+create_db	../share_media	/^create_db = False$/;"	kind:variable	line:243
+cur	../share_media	/^  cur = conn.cursor()$/;"	kind:variable	line:250
+cvol	../set_pulseaudio_defaults	/^cvol = "0x%x" % cvol;$/;"	kind:variable	line:13
+cvol	../set_pulseaudio_defaults	/^cvol = 0x10000 * 0.15;$/;"	kind:variable	line:12
+d1	../diffdir	/^d1 = sys.argv[1]$/;"	kind:variable	line:32
+d1_files	../diffdir	/^d1_files = ls_R(d1)$/;"	kind:variable	line:35
+d1_len	../diffdir	/^d1_len = len(d1)$/;"	kind:variable	line:42
+d1_size	../diffdir	/^			d1_size = os.stat(f).st_size$/;"	kind:variable	line:56
+d2	../diffdir	/^d2 = sys.argv[2]$/;"	kind:variable	line:33
+d2_check	../diffdir	/^	d2_check = d2 + rel$/;"	kind:variable	line:53
+d2_files	../diffdir	/^d2_files = ls_R(d2)$/;"	kind:variable	line:37
+d2_size	../diffdir	/^			d2_size = os.stat(d2_check).st_size$/;"	kind:variable	line:57
+db	../share_media	/^db = os.path.join(os.path.expanduser("~"), "shared_media.db")$/;"	kind:variable	line:242
+debug	../2pass_rescale	/^debug = True$/;"	kind:variable	line:13
+debug	../share_media	/^debug = True$/;"	kind:variable	line:20
+default	../perpetual_copy	/^  default = ""$/;"	kind:variable	line:19
+default	../perpetual_copy	/^  default = "\\033[0m"$/;"	kind:variable	line:15
+desired	../set_pulseaudio_defaults	/^desired = max * 0.40$/;"	kind:variable	line:21
+dev	../inhibit-screensaver.py	/^dev = dbus.Interface(devobj, "org.gnome.ScreenSaver")$/;"	kind:variable	line:7
+dev	../umount_v30	/^    dev = parts[0]$/;"	kind:variable	line:130
+dev	../umount_v30.py	/^    dev = parts[0]$/;"	kind:variable	line:130
+devobj	../inhibit-screensaver.py	/^devobj = bus.get_object('org.gnome.ScreenSaver', '\/org\/gnome\/ScreenSaver')$/;"	kind:variable	line:6
+did_something	../umount_v30	/^      did_something = True$/;"	kind:variable	line:133
+did_something	../umount_v30	/^  did_something = False$/;"	kind:variable	line:126
+did_something	../umount_v30.py	/^      did_something = True$/;"	kind:variable	line:133
+did_something	../umount_v30.py	/^  did_something = False$/;"	kind:variable	line:126
+diff	../bw	/^		diff = val - last_val$/;"	kind:variable	line:34
+diffdir	../diffdir	1;"	kind:file	line:1
+dircmp	../dircmp	1;"	kind:file	line:1
+dircmp.py	../dircmp.py	1;"	kind:file	line:1
+dlsize	../dlsize	1;"	kind:file	line:1
+do_encode	../2pass_dvd_iso_to_xvid	/^	def do_encode(self):$/;"	kind:member	line:55
+doc	../cputemp-xml.py	/^	doc = xml.dom.minidom.Document()$/;"	kind:variable	line:16
+doc	../hddtemp-xml.py	/^	doc = xml.dom.minidom.Document()$/;"	kind:variable	line:54
+docEl	../cputemp-xml.py	/^	docEl = doc.createElement("cputemp")$/;"	kind:variable	line:17
+docEl	../hddtemp-xml.py	/^	docEl = doc.createElement("hddtemp")$/;"	kind:variable	line:55
+drives	../hddtemp-xml.py	/^	drives = []$/;"	kind:variable	line:34
+dst	../gen_toxvid_makefile.py	/^            dst = arg$/;"	kind:variable	line:30
+dst	../gen_toxvid_makefile.py	/^    dst = None$/;"	kind:variable	line:24
+dstdir	../perpetual_copy	/^      dstdir = arg$/;"	kind:variable	line:205
+dstdir	../perpetual_copy	/^  dstdir = ""$/;"	kind:variable	line:184
+dstfile	../gen_toxvid_makefile.py	/^        dstfile = os.path.join(dst, os.path.splitext(f)[0] + ".avi")$/;"	kind:variable	line:61
+dstfile	../share_media	/^        dstfile = ".".join(dstfile.split(".")[:-1]) + ".avi"$/;"	kind:variable	line:372
+dstfile	../share_media	/^      dstfile = ".".join(dstfile.split(".")[:-1]) + ".avi"$/;"	kind:variable	line:387
+dstfile	../share_media	/^      dstfile = os.path.join(output, os.path.basename(f))$/;"	kind:variable	line:370
+dstfile	../share_media	/^      dstfile = os.path.join(output, os.path.basename(f))$/;"	kind:variable	line:386
+dummy	../share_media	/^        dummy = True$/;"	kind:variable	line:319
+dummy	../share_media	/^dummy = False$/;"	kind:variable	line:31
+el	../cputemp-xml.py	/^		el = doc.createElement(parts[0])$/;"	kind:variable	line:25
+el	../hddtemp-xml.py	/^		el = doc.createElement(os.path.basename(d))$/;"	kind:variable	line:62
+ensure_container_dir_exists	../perpetual_copy	/^def ensure_container_dir_exists(f):$/;"	kind:function	line:50
+ensure_dir_exists	../2pass_rescale	/^def ensure_dir_exists(dirname):$/;"	kind:function	line:20
+ensure_dir_exists	../medesync.py	/^	def ensure_dir_exists(self, uri_base, relative_path):#<<<$/;"	kind:member	line:556
+ensure_dir_exists	../medesync.py.u1conflict	/^	def ensure_dir_exists(self, uri_base, relative_path):#<<<$/;"	kind:member	line:512
+ensure_dir_exists	../medesync.py.u1conflict.1	/^	def ensure_dir_exists(self, uri_base, relative_path):#<<<$/;"	kind:member	line:520
+ensure_dir_exists	../share_media	/^def ensure_dir_exists(dirname):$/;"	kind:function	line:62
+ensure_dir_exists_ftp	../medesync.py	/^	def ensure_dir_exists_ftp(self, uri_parts, relative_path):#<<<$/;"	kind:member	line:588
+ensure_dir_exists_ftp	../medesync.py.u1conflict	/^	def ensure_dir_exists_ftp(self, uri_parts, relative_path):#<<<$/;"	kind:member	line:537
+ensure_dir_exists_ftp	../medesync.py.u1conflict.1	/^	def ensure_dir_exists_ftp(self, uri_parts, relative_path):#<<<$/;"	kind:member	line:545
+ensure_dir_exists_local	../medesync.py	/^	def ensure_dir_exists_local(self, path):#<<<$/;"	kind:member	line:566
+ensure_dir_exists_local	../medesync.py.u1conflict	/^	def ensure_dir_exists_local(self, path):#<<<$/;"	kind:member	line:521
+ensure_dir_exists_local	../medesync.py.u1conflict.1	/^	def ensure_dir_exists_local(self, path):#<<<$/;"	kind:member	line:529
+equal	../diffdir	/^	equal = False$/;"	kind:variable	line:69
+equal	../diffdir	/^	equal = False$/;"	kind:variable	line:74
+equal	../diffdir	/^equal = True$/;"	kind:variable	line:67
+etree	../api_test.py	/^import xml.etree.ElementTree as etree$/;"	kind:namespace	line:3
+exe	../update-cm.py	/^exe = 'code\/xda-rom-downloader\/source\/xda-rom-downloader\/bin\/Debug\/xda-rom-downloader.exe'$/;"	kind:variable	line:9
+exe	../update-cm.py	/^exe = os.path.join(home, exe)$/;"	kind:variable	line:11
+expire_media	../share_media	/^        expire_media = True$/;"	kind:variable	line:304
+expire_media	../share_media	/^expire_media = False$/;"	kind:variable	line:34
+ext	../gen_toxvid_makefile.py	/^        ext = os.path.splitext(f)[-1][1:].lower()$/;"	kind:variable	line:55
+extra_args	../repo	/^extra_args = []$/;"	kind:variable	line:154
+f	../flatten_fs.py	/^	f = Flattener()$/;"	kind:variable	line:107
+f	../medesync.py	/^	f = SmartSync()$/;"	kind:variable	line:1029
+f	../medesync.py.u1conflict	/^	f = SmartSync()$/;"	kind:variable	line:945
+f	../medesync.py.u1conflict.1	/^	f = SmartSync()$/;"	kind:variable	line:967
+failmsg	../link-watcher	/^def failmsg():$/;"	kind:function	line:74
+fake_it	../share_media	/^        fake_it = True$/;"	kind:variable	line:306
+fake_it	../share_media	/^fake_it = False$/;"	kind:variable	line:32
+fappy	../fappy	1;"	kind:file	line:1
+fdata	../gen_toxvid_makefile.py	/^            fdata = fdata[pos + len("audio:")]$/;"	kind:variable	line:72
+fdata	../gen_toxvid_makefile.py	/^            fdata = fdata[pos + len("video:"):]$/;"	kind:variable	line:69
+fdata	../gen_toxvid_makefile.py	/^            fdata = pfp.read()$/;"	kind:variable	line:66
+feedback	../medesync.py	/^	def feedback(self, fstr):#<<<$/;"	kind:member	line:133
+feedback	../medesync.py.u1conflict	/^	def feedback(self, fstr):#<<<$/;"	kind:member	line:123
+feedback	../medesync.py.u1conflict.1	/^	def feedback(self, fstr):#<<<$/;"	kind:member	line:129
+fetch	../api_test.py	/^  def fetch(self, searchString=None):$/;"	kind:member	line:28
+fetch_content	../api_test.py	/^  def fetch_content(self, parameter):$/;"	kind:member	line:11
+fg_end	../colors.py	/^fg_end = 38$/;"	kind:variable	line:10
+fg_start	../colors.py	/^fg_start = 30$/;"	kind:variable	line:9
+files	../2pass_rescale	/^files = []$/;"	kind:variable	line:17
+files	../autoscale	/^    files = sys.argv[1:]$/;"	kind:variable	line:185
+files	../autoscale	/^  files = []$/;"	kind:variable	line:183
+files	../autoscale	/^  files = real_files$/;"	kind:variable	line:243
+files	../autoscale	/^  files = tmp$/;"	kind:variable	line:225
+files	../share_media	/^files = []$/;"	kind:variable	line:23
+filesize	../medesync.py	/^	def filesize(self, base_uri, relative_path):#<<<*\/$/;"	kind:member	line:880
+filesize	../medesync.py.u1conflict	/^	def filesize(self, base_uri, relative_path):$/;"	kind:member	line:810
+filesize	../medesync.py.u1conflict.1	/^	def filesize(self, base_uri, relative_path):$/;"	kind:member	line:830
+find_265_encoded_files	../265-to-264	/^def find_265_encoded_files(paths):$/;"	kind:function	line:20
+finder	../karma	/^  finder = KarmaFinder()$/;"	kind:variable	line:34
+fix_series_dash	../umount_v30	/^def fix_series_dash(dir):$/;"	kind:function	line:57
+fix_series_dash	../umount_v30.py	/^def fix_series_dash(dir):$/;"	kind:function	line:57
+fix_series_similar	../umount_v30	/^def fix_series_similar(dir):$/;"	kind:function	line:14
+fix_series_similar	../umount_v30.py	/^def fix_series_similar(dir):$/;"	kind:function	line:14
+fix_series_space	../umount_v30	/^def fix_series_space(dir):$/;"	kind:function	line:91
+fix_series_space	../umount_v30.py	/^def fix_series_space(dir):$/;"	kind:function	line:91
+flatten	../flatten_fs.py	/^	def flatten(self, dir = None):$/;"	kind:member	line:26
+flatten_fs.py	../flatten_fs.py	1;"	kind:file	line:1
+flatten_once.py	../flatten_once.py	1;"	kind:file	line:1
+flattener	../flatten_once.py	/^  flattener = Flattener()$/;"	kind:variable	line:77
+format_rhs	../opts.py	/^    def format_rhs(self, s):$/;"	kind:member	line:358
+fp	../gen_toxvid_makefile.py	/^        fp = open(makefile, "w")$/;"	kind:variable	line:40
+fp	../gen_toxvid_makefile.py	/^    fp = None$/;"	kind:variable	line:38
+fp	../set_pulseaudio_defaults	/^fp = os.popen("qdbus org.kde.kmix \/Mixers\/0\/combined org.kde.KMix.Control.absoluteVolumeMax",/;"	kind:variable	line:19
+fparts	../remove_leading_number	/^		fparts = pathparts[1].split("-")$/;"	kind:variable	line:8
+ftp_status	../medesync.py	/^	def ftp_status(self, b):$/;"	kind:member	line:726
+ftp_status	../medesync.py.u1conflict	/^	def ftp_status(self, b):$/;"	kind:member	line:666
+ftp_status	../medesync.py.u1conflict.1	/^	def ftp_status(self, b):$/;"	kind:member	line:679
+g11profile	../g11profile	1;"	kind:file	line:1
+gen_toxvid_makefile.py	../gen_toxvid_makefile.py	1;"	kind:file	line:1
+get-latest-chromium.py	../get-latest-chromium.py	1;"	kind:file	line:1
+get_Kps	../get-latest-chromium.py	/^def get_Kps(transferred, size):$/;"	kind:function	line:62
+get_dl_secs	../get-latest-chromium.py	/^def get_dl_secs():$/;"	kind:function	line:57
+get_dl_size	../dlsize	/^def get_dl_size(url):$/;"	kind:function	line:8
+get_edit_path	../autoscale	/^  def get_edit_path(self, path, width, height):$/;"	kind:member	line:111
+get_hr_time	../dircmp	/^def get_hr_time(t):$/;"	kind:function	line:39
+get_hr_time	../dircmp.py	/^def get_hr_time(t):$/;"	kind:function	line:39
+get_hr_time	../fappy	/^def get_hr_time(t):$/;"	kind:function	line:360
+get_info	../autoscale	/^  def get_info(self, path):$/;"	kind:member	line:16
+get_last_error	../medesync.py	/^	def get_last_error(self):#<<<$/;"	kind:member	line:154
+get_last_error	../medesync.py.u1conflict	/^	def get_last_error(self):#<<<$/;"	kind:member	line:142
+get_last_error	../medesync.py.u1conflict.1	/^	def get_last_error(self):#<<<$/;"	kind:member	line:150
+get_level	../get_level	1;"	kind:file	line:1
+get_m3u_info	../fappy	/^def get_m3u_info(f):$/;"	kind:function	line:186
+get_media_types_from	../265-to-264	/^def get_media_types_from(info):$/;"	kind:function	line:14
+get_mp3_tag_info	../fappy	/^def get_mp3_tag_info(f):$/;"	kind:function	line:253
+get_new	../dircmp	/^def get_new(label, reference, compare):$/;"	kind:function	line:49
+get_new	../dircmp.py	/^def get_new(label, reference, compare):$/;"	kind:function	line:49
+get_non_empty	../medesync.py	/^	def get_non_empty(self, l):#<<<*\/$/;"	kind:member	line:929
+get_non_empty	../medesync.py.u1conflict	/^	def get_non_empty(self, l):$/;"	kind:member	line:850
+get_non_empty	../medesync.py.u1conflict.1	/^	def get_non_empty(self, l):$/;"	kind:member	line:870
+get_ogg_tag_info	../fappy	/^def get_ogg_tag_info(f):$/;"	kind:function	line:302
+get_removed	../dircmp	/^def get_removed(label, reference, compare):$/;"	kind:function	line:64
+get_removed	../dircmp.py	/^def get_removed(label, reference, compare):$/;"	kind:function	line:64
+get_resize_path	../autoscale	/^  def get_resize_path(self, path, width, height):$/;"	kind:member	line:129
+get_rotate_path	../autoscale	/^  def get_rotate_path(self, path, width, height):$/;"	kind:member	line:133
+get_temp	../hddtemp-xml.py	/^def get_temp(drive):$/;"	kind:function	line:12
+get_terminal_size	../medesync.py	/^	def get_terminal_size(self):#<<<*\/$/;"	kind:member	line:99
+get_terminal_size	../medesync.py.u1conflict	/^	def get_terminal_size(self):#<<<*\/$/;"	kind:member	line:90
+get_terminal_size	../medesync.py.u1conflict.1	/^	def get_terminal_size(self):#<<<*\/$/;"	kind:member	line:97
+get_ver	../get-latest-chromium.py	/^def get_ver():$/;"	kind:function	line:149
+get_video_list	../convert_music_vids	/^def get_video_list(filename):$/;"	kind:function	line:28
+get_xspf_info	../fappy	/^def get_xspf_info(f):$/;"	kind:function	line:202
+got_first	../bw	/^		got_first = True$/;"	kind:variable	line:28
+got_first	../bw	/^got_first = False$/;"	kind:variable	line:23
+gotnum	../remove_leading_number	/^			gotnum = True$/;"	kind:variable	line:12
+gotnum	../remove_leading_number	/^		gotnum = False$/;"	kind:variable	line:9
+gpg_dir	../repo	/^gpg_dir = os.path.join(home_dot_repo, 'gnupg')$/;"	kind:variable	line:152
+green	../perpetual_copy	/^  green = "\\033[01;32m"$/;"	kind:variable	line:14
+group	../repo	/^group = init_optparse.add_option_group('Logging options')$/;"	kind:variable	line:158
+group	../repo	/^group = init_optparse.add_option_group('Manifest options')$/;"	kind:variable	line:164
+group	../repo	/^group = init_optparse.add_option_group('Other options')$/;"	kind:variable	line:213
+group	../repo	/^group = init_optparse.add_option_group('repo Version options')$/;"	kind:variable	line:201
+has_265	../265-to-264	/^def has_265(lst):$/;"	kind:function	line:17
+hddtemp-xml.py	../hddtemp-xml.py	1;"	kind:file	line:1
+help	../repo	/^  help = False$/;"	kind:variable	line:625
+home	../update-cm.py	/^home = os.path.expanduser('~')$/;"	kind:variable	line:10
+home_dot_repo	../repo	/^home_dot_repo = os.path.expanduser('~\/.repoconfig')$/;"	kind:variable	line:151
+http_error_206	../get-latest-chromium.py	/^    def http_error_206(self, url, fp, errcode, errmsg, headers, data=None):$/;"	kind:member	line:43
+http_error_206	../get-latest-chromium.py	/^    def http_error_206(self, url, fp, errcode, errmsg, headers, data=None):$/;"	kind:member	line:47
+human_readable_size	../dlsize	/^def human_readable_size(size):$/;"	kind:function	line:58
+human_readable_time	../medesync.py	/^	def human_readable_time(self, secs):$/;"	kind:member	line:715
+human_readable_time	../medesync.py.u1conflict	/^	def human_readable_time(self, secs):$/;"	kind:member	line:655
+human_readable_time	../medesync.py.u1conflict.1	/^	def human_readable_time(self, secs):$/;"	kind:member	line:668
+humanreadable	../medesync.py.u1conflict	/^	def humanreadable(self, b, s):$/;"	kind:member	line:646
+humanreadable	../medesync.py.u1conflict.1	/^	def humanreadable(self, b, s):$/;"	kind:member	line:659
+humanreadable_rate	../medesync.py	/^	def humanreadable_rate(self, b, s):$/;"	kind:member	line:710
+humanreadable_size	../medesync.py	/^	def humanreadable_size(self, byteCount):$/;"	kind:member	line:702
+idx	../autoscale	/^      idx = " " + idx$/;"	kind:variable	line:249
+idx	../autoscale	/^    idx = str(images)$/;"	kind:variable	line:247
+idx	../diffdir	/^idx = 0$/;"	kind:variable	line:45
+idx	../gen_toxvid_makefile.py	/^    idx = 0$/;"	kind:variable	line:45
+idx	../share_media	/^    idx = 0$/;"	kind:variable	line:366
+idx	../share_media	/^    idx = 0$/;"	kind:variable	line:381
+idx	../share_media	/^    idx = 0$/;"	kind:variable	line:396
+ignore_shared	../share_media	/^        ignore_shared = True$/;"	kind:variable	line:310
+ignore_shared	../share_media	/^ignore_shared = False$/;"	kind:variable	line:25
+images	../autoscale	/^  images = 0$/;"	kind:variable	line:230
+img_extensions	../autoscale	/^img_extensions = [".jpg", ".jpeg", ".png", ".gif", ".bmp"]$/;"	kind:variable	line:169
+imode	../perpetual_copy	/^    imode = 0$/;"	kind:variable	line:221
+imode	../perpetual_copy	/^    imode = int(mode, 8)$/;"	kind:variable	line:219
+infiles	../toxvid	/^infiles = []$/;"	kind:variable	line:21
+info	../2pass_rescale	/^  info = kaa.metadata.parse(arg)$/;"	kind:variable	line:81
+info	../link_quality	/^			info = os.popen("iwconfig %s" % adapter).read()$/;"	kind:variable	line:16
+info_to_m3u	../fappy	/^def info_to_m3u(info):$/;"	kind:function	line:316
+info_to_xspf_item	../fappy	/^def info_to_xspf_item(info):$/;"	kind:function	line:226
+inhibit-screensaver.py	../inhibit-screensaver.py	1;"	kind:file	line:1
+init_optparse	../repo	/^init_optparse = optparse.OptionParser(usage="repo init -u url [options]")$/;"	kind:variable	line:155
+input_files	../convert_music_vids	/^input_files = []$/;"	kind:variable	line:5
+io_chunksize	../perpetual_copy	/^io_chunksize = 16384$/;"	kind:variable	line:7
+ioctl_GWINSZ	../medesync.py	/^		def ioctl_GWINSZ(fd):$/;"	kind:function	line:105
+ioctl_GWINSZ	../medesync.py.u1conflict	/^		def ioctl_GWINSZ(fd):$/;"	kind:function	line:94
+ioctl_GWINSZ	../medesync.py.u1conflict.1	/^		def ioctl_GWINSZ(fd):$/;"	kind:function	line:101
+ireplace	../flatten_fs.py	/^	def ireplace(self,s,old,new,count=0):$/;"	kind:member	line:19
+isNext	../get_level	/^    isNext = True$/;"	kind:variable	line:19
+isNext	../get_level	/^isNext = False$/;"	kind:variable	line:11
+is_ftp_dir	../medesync.py	/^	def is_ftp_dir(self, ftp, dirname):#<<<$/;"	kind:member	line:990
+is_ftp_dir	../medesync.py.u1conflict	/^	def is_ftp_dir(self, ftp, dirname):#<<<$/;"	kind:member	line:911
+is_ftp_dir	../medesync.py.u1conflict.1	/^	def is_ftp_dir(self, ftp, dirname):#<<<$/;"	kind:member	line:931
+is_running	../smartsaver.py	/^  def is_running(self, cmd):$/;"	kind:member	line:29
+is_videofile	../medesync.py	/^	def is_videofile(self, path):#<<<$/;"	kind:member	line:278
+isdir	../medesync.py	/^	def isdir(self, uri_base, relative_path):#<<<*\/$/;"	kind:member	line:492
+isdir	../medesync.py.u1conflict	/^	def isdir(self, uri_base, relative_path):$/;"	kind:member	line:448
+isdir	../medesync.py.u1conflict.1	/^	def isdir(self, uri_base, relative_path):$/;"	kind:member	line:456
+karma	../karma	1;"	kind:file	line:1
+karmaPath	../karma	/^  karmaPath = finder.FindKarma()$/;"	kind:variable	line:35
+keep	../kernel-sweeper	/^  keep = 2$/;"	kind:variable	line:60
+kernel-sweeper	../kernel-sweeper	1;"	kind:file	line:1
+keycodes	../g11profile	/^keycodes = dict()$/;"	kind:variable	line:6
+last	../get_level	/^last = out[len(out)-1].strip()$/;"	kind:variable	line:9
+last_arg	../2pass_rescale	/^    last_arg = arg$/;"	kind:variable	line:45
+last_arg	../2pass_rescale	/^last_arg = ""$/;"	kind:variable	line:16
+last_arg	../g11profile	/^      last_arg = "-p"$/;"	kind:variable	line:98
+last_arg	../g11profile	/^    last_arg = ""$/;"	kind:variable	line:102
+last_arg	../g11profile	/^  last_arg = ""$/;"	kind:variable	line:95
+last_arg	../kernel-sweeper	/^      last_arg = arg$/;"	kind:variable	line:66
+last_arg	../kernel-sweeper	/^  last_arg = ""$/;"	kind:variable	line:62
+last_arg	../share_media	/^        last_arg = arg$/;"	kind:variable	line:315
+last_arg	../share_media	/^last_arg = ""$/;"	kind:variable	line:22
+last_transferredK	../get-latest-chromium.py	/^last_transferredK = 0$/;"	kind:variable	line:21
+last_val	../bw	/^		last_val = float(row[1])$/;"	kind:variable	line:29
+last_val	../bw	/^	last_val = val$/;"	kind:variable	line:42
+last_val	../bw	/^last_val = 0.0$/;"	kind:variable	line:22
+lastarg	../autoscale	/^        lastarg = ""$/;"	kind:variable	line:199
+lastarg	../autoscale	/^        lastarg = ""$/;"	kind:variable	line:206
+lastarg	../autoscale	/^      lastarg = ""$/;"	kind:variable	line:212
+lastarg	../autoscale	/^      lastarg = f$/;"	kind:variable	line:218
+lastarg	../autoscale	/^  lastarg = ""$/;"	kind:variable	line:193
+lastarg	../convert_music_vids	/^			lastarg = ""$/;"	kind:variable	line:54
+lastarg	../convert_music_vids	/^			lastarg = arg$/;"	kind:variable	line:47
+lastarg	../convert_music_vids	/^lastarg = ""$/;"	kind:variable	line:7
+lastarg	../hddtemp-xml.py	/^			lastarg = ""$/;"	kind:variable	line:41
+lastarg	../hddtemp-xml.py	/^			lastarg = arg$/;"	kind:variable	line:38
+lastarg	../hddtemp-xml.py	/^	lastarg = ""$/;"	kind:variable	line:35
+lastarg	../perpetual_copy	/^      lastarg = arg$/;"	kind:variable	line:192
+lastarg	../perpetual_copy	/^    lastarg = ""$/;"	kind:variable	line:210
+lastarg	../perpetual_copy	/^  lastarg = ""$/;"	kind:variable	line:188
+lastarg	../toxvid	/^    lastarg = arg$/;"	kind:variable	line:26
+lastarg	../toxvid	/^lastarg = ""$/;"	kind:variable	line:19
+leftw	../opts.py	/^    def leftw(self, SkipAliases=False):$/;"	kind:member	line:341
+line	../colors.py	/^		line = ""$/;"	kind:variable	line:20
+line	../cputemp-xml.py	/^			line = line.replace("  ", " ")$/;"	kind:variable	line:21
+line	../dlsize	/^				line = line.strip()$/;"	kind:variable	line:78
+lines	../link_quality	/^			lines = info.split("\\n")$/;"	kind:variable	line:20
+link-watcher	../link-watcher	1;"	kind:file	line:1
+link_quality	../link_quality	1;"	kind:file	line:1
+list_item_count	../fappy	/^list_item_count = 0$/;"	kind:variable	line:75
+load_profile	../g11profile	/^def load_profile(name):$/;"	kind:function	line:27
+localUrl	../update-cm.py	/^        localUrl = urlBase + newFile$/;"	kind:variable	line:20
+log	../fappy	/^def log(s):$/;"	kind:function	line:69
+log	../link-watcher	/^def log(s):$/;"	kind:function	line:77
+logfp	../medesync.py	/^				logfp = open(opts.value("-l"), "a")$/;"	kind:variable	line:1050
+logfp	../medesync.py	/^			logfp = sys.stdout$/;"	kind:variable	line:1054
+logfp	../medesync.py	/^	logfp = sys.stdout$/;"	kind:variable	line:1046
+logfp	../medesync.py.u1conflict.1	/^			logfp = open(opts.value("-l"), "a")$/;"	kind:variable	line:984
+logfp	../medesync.py.u1conflict.1	/^			logfp = sys.stdout$/;"	kind:variable	line:988
+ls_R	../cleanup_series_folders	/^def ls_R(dir):$/;"	kind:function	line:8
+ls_R	../convert_to_mp4_under	/^def ls_R(dir):$/;"	kind:function	line:8
+ls_R	../diffdir	/^def ls_R(dirname, include_dirs=False, prepend_dirname = True): #<<<$/;"	kind:function	line:5
+ls_R	../dircmp	/^def ls_R(dir):$/;"	kind:function	line:13
+ls_R	../dircmp.py	/^def ls_R(dir):$/;"	kind:function	line:13
+ls_R	../fappy	/^def ls_R(dir):$/;"	kind:function	line:77
+ls_R	../flatten_fs.py	/^	def ls_R(self, dir, include_dirs=False):$/;"	kind:member	line:87
+ls_R	../flatten_once.py	/^  def ls_R(self, dir, include_dirs=False):$/;"	kind:member	line:50
+ls_R	../kernel-sweeper	/^def ls_R(dir):$/;"	kind:function	line:36
+ls_R	../medesync.py	/^	def ls_R(self, path, include_dirs = False, prepend_dirname = True):#<<<$/;"	kind:member	line:225
+ls_R	../medesync.py.u1conflict	/^	def ls_R(self, path, include_dirs = False, prepend_dirname = True):#<<<$/;"	kind:member	line:213
+ls_R	../medesync.py.u1conflict.1	/^	def ls_R(self, path, include_dirs = False, prepend_dirname = True):#<<<$/;"	kind:member	line:221
+ls_R	../perpetual_copy	/^def ls_R(dir):$/;"	kind:function	line:21
+ls_R	../share_media	/^def ls_R(dir, include_dirs=False):$/;"	kind:function	line:40
+ls_R_ALL	../fappy	/^def ls_R_ALL(dir):$/;"	kind:function	line:88
+ls_R_ftp	../medesync.py	/^	def ls_R_ftp(self, uri_parts, include_dirs = False, prepend_dirname = True):#<<<$/;"	kind:member	line:936
+ls_R_ftp	../medesync.py.u1conflict	/^	def ls_R_ftp(self, uri_parts, include_dirs = False, prepend_dirname = True):#<<<$/;"	kind:member	line:857
+ls_R_ftp	../medesync.py.u1conflict.1	/^	def ls_R_ftp(self, uri_parts, include_dirs = False, prepend_dirname = True):#<<<$/;"	kind:member	line:877
+ls_R_local	../medesync.py	/^	def ls_R_local(self, dirname, include_dirs=False, prepend_dirname = True): #<<<$/;"	kind:member	line:801
+ls_R_local	../medesync.py.u1conflict	/^	def ls_R_local(self, dirname, include_dirs=False, prepend_dirname = True): #<<<$/;"	kind:member	line:736
+ls_R_local	../medesync.py.u1conflict.1	/^	def ls_R_local(self, dirname, include_dirs=False, prepend_dirname = True): #<<<$/;"	kind:member	line:756
+ls_label	../dircmp	/^ls_label = ""$/;"	kind:variable	line:11
+ls_label	../dircmp.py	/^ls_label = ""$/;"	kind:variable	line:11
+lw	../link-watcher	/^		lw = LinkWatcher(conf["link"], conf["interval"], "start")$/;"	kind:variable	line:157
+m3u_get_mp3_tag_info	../fappy	/^def m3u_get_mp3_tag_info(f):$/;"	kind:function	line:293
+m3u_get_ogg_tag_info	../fappy	/^def m3u_get_ogg_tag_info(f):$/;"	kind:function	line:298
+main	../dircmp	/^def main():$/;"	kind:function	line:103
+main	../dircmp.py	/^def main():$/;"	kind:function	line:103
+main	../fappy	/^def main():$/;"	kind:function	line:371
+main	../repo	/^def main(orig_args):$/;"	kind:function	line:724
+make_temp_script	../2pass_dvd_iso_to_xvid	/^	def make_temp_script(self, cmd):$/;"	kind:member	line:27
+makefile	../gen_toxvid_makefile.py	/^    makefile = os.path.join(src, "Makefile")$/;"	kind:variable	line:37
+max	../set_pulseaudio_defaults	/^max = int(fp.read().strip())$/;"	kind:variable	line:20
+max_chunk	../get-latest-chromium.py	/^max_chunk = 65536$/;"	kind:variable	line:23
+max_height	../2pass_rescale	/^        max_height = int(arg)$/;"	kind:variable	line:57
+max_height	../2pass_rescale	/^max_height = 352$/;"	kind:variable	line:12
+max_height	../share_media	/^            max_height = int(arg)$/;"	kind:variable	line:329
+max_height	../share_media	/^max_height = 576$/;"	kind:variable	line:19
+max_width	../2pass_rescale	/^        max_width = int(arg)$/;"	kind:variable	line:51
+max_width	../2pass_rescale	/^max_width = 624$/;"	kind:variable	line:11
+max_width	../share_media	/^            max_width = int(arg)$/;"	kind:variable	line:323
+max_width	../share_media	/^max_width = 720$/;"	kind:variable	line:18
+medesync.py	../medesync.py	1;"	kind:file	line:1
+medesync.py.u1conflict	../medesync.py.u1conflict	1;"	kind:file	line:1
+medesync.py.u1conflict.1	../medesync.py.u1conflict.1	1;"	kind:file	line:1
+min_chunk	../get-latest-chromium.py	/^min_chunk = 1024$/;"	kind:variable	line:22
+missing	../diffdir	/^missing = []$/;"	kind:variable	line:43
+mkftp	../medesync.py	/^	def mkftp(self, host, user, password, port = None, timeout=None, passive=None):#<<<$/;"	kind:member	line:840
+mkftp	../medesync.py.u1conflict	/^	def mkftp(self, host, user, password, port = None, timeout=None, passive=None):#<<<$/;"	kind:member	line:772
+mkftp	../medesync.py.u1conflict.1	/^	def mkftp(self, host, user, password, port = None, timeout=None, passive=None):#<<<$/;"	kind:member	line:792
+mkftp2	../medesync.py	/^	def mkftp2(self, uri_parts):#<<<$/;"	kind:member	line:836
+mkftp2	../medesync.py.u1conflict	/^	def mkftp2(self, uri_parts):#<<<$/;"	kind:member	line:768
+mkftp2	../medesync.py.u1conflict.1	/^	def mkftp2(self, uri_parts):#<<<$/;"	kind:member	line:788
+mkpidfile	../link-watcher	/^def mkpidfile():$/;"	kind:function	line:111
+mkskel	../g11profile	/^def mkskel():$/;"	kind:function	line:76
+mode	../link-watcher	/^	mode = sys.argv[1]$/;"	kind:variable	line:124
+mode	../perpetual_copy	/^      mode = arg$/;"	kind:variable	line:197
+mode	../perpetual_copy	/^  mode = ""$/;"	kind:variable	line:189
+mount	../umount_v30	/^    mount = parts[2].lower()$/;"	kind:variable	line:131
+mount	../umount_v30.py	/^    mount = parts[2].lower()$/;"	kind:variable	line:131
+move_file	../medesync.py	/^	def move_file(self, uri_from, relative_from, uri_to, relative_to):#<<<*\/$/;"	kind:member	line:424
+move_file	../medesync.py.u1conflict	/^	def move_file(self, uri_from, relative_from, uri_to, relative_to):$/;"	kind:member	line:389
+move_file	../medesync.py.u1conflict.1	/^	def move_file(self, uri_from, relative_from, uri_to, relative_to):$/;"	kind:member	line:397
+msg	../get-latest-chromium.py	/^def msg(s):$/;"	kind:function	line:53
+music_extensions	../fappy	/^music_extensions = [".mp3", ".ogg", ".mp2", ".wav", ".wma"]$/;"	kind:variable	line:46
+n	../umount_v30	/^          n = pynotify.Notification("Sorting FAT", "Sorting FAT filesystem for stupid readers.../;"	kind:variable	line:153
+n	../umount_v30	/^          n = pynotify.Notification("V30 unmounted", "It is safe to remove your V30 stokkie now!/;"	kind:variable	line:158
+n	../umount_v30	/^        n = pynotify.Notification("Series fix...", "Scanning for series to shorten names for 8.3/;"	kind:variable	line:135
+n	../umount_v30	/^        n = pynotify.Notification("Unmounting", "Unmounting V30 device; please be patient as dat/;"	kind:variable	line:146
+n	../umount_v30	/^      n = pynotify.Notification("Nothing to do", "No V30 mounts found; nothing to do! Remember, /;"	kind:variable	line:163
+n	../umount_v30.py	/^          n = pynotify.Notification("Sorting FAT", "Sorting FAT filesystem for stupid readers.../;"	kind:variable	line:153
+n	../umount_v30.py	/^          n = pynotify.Notification("V30 unmounted", "It is safe to remove your V30 stokkie now!/;"	kind:variable	line:158
+n	../umount_v30.py	/^        n = pynotify.Notification("Series fix...", "Scanning for series to shorten names for 8.3/;"	kind:variable	line:135
+n	../umount_v30.py	/^        n = pynotify.Notification("Unmounting", "Unmounting V30 device; please be patient as dat/;"	kind:variable	line:146
+n	../umount_v30.py	/^      n = pynotify.Notification("Nothing to do", "No V30 mounts found; nothing to do! Remember, /;"	kind:variable	line:163
+never_reencode	../share_media	/^        never_reencode = True$/;"	kind:variable	line:308
+never_reencode	../share_media	/^never_reencode = False$/;"	kind:variable	line:33
+new_height	../2pass_rescale	/^    new_height = -2$/;"	kind:variable	line:94
+new_height	../2pass_rescale	/^    new_height = info.video[0].height$/;"	kind:variable	line:108
+new_height	../2pass_rescale	/^    new_height = max_height$/;"	kind:variable	line:98
+new_width	../2pass_rescale	/^    new_width = -2$/;"	kind:variable	line:97
+new_width	../2pass_rescale	/^    new_width = info.video[0].width$/;"	kind:variable	line:107
+new_width	../2pass_rescale	/^    new_width = max_width$/;"	kind:variable	line:93
+newname	../remove_leading_number	/^			newname = "-".join(fparts[1:])$/;"	kind:variable	line:17
+nice	../toxvid	/^      nice = int(arg)$/;"	kind:variable	line:47
+nice	../toxvid	/^nice = 0$/;"	kind:variable	line:7
+notify_init	../umount_v30	/^  notify_init = pynotify.init("V30 unmounter")$/;"	kind:variable	line:127
+notify_init	../umount_v30.py	/^  notify_init = pynotify.init("V30 unmounter")$/;"	kind:variable	line:127
+now	../bw	/^now = datetime.datetime.now()$/;"	kind:variable	line:10
+now	../transmission-throttle	/^			now = utctime(datetime.datetime.now())$/;"	kind:variable	line:69
+num	../remove_leading_number	/^			num = int(fparts[0])$/;"	kind:variable	line:11
+okmsg	../autoscale	/^  def okmsg(self):$/;"	kind:member	line:107
+okmsg	../link-watcher	/^def okmsg():$/;"	kind:function	line:71
+opts	../medesync.py	/^	opts = Options()$/;"	kind:variable	line:1005
+opts	../medesync.py.u1conflict	/^	opts = Options()$/;"	kind:variable	line:926
+opts	../medesync.py.u1conflict.1	/^	opts = Options()$/;"	kind:variable	line:946
+opts.py	../opts.py	1;"	kind:file	line:1
+out	../cputemp-xml.py	/^		out = sys.argv[1]$/;"	kind:variable	line:15
+out	../cputemp-xml.py	/^	out = ""$/;"	kind:variable	line:13
+out	../get_level	/^out = proc.read().strip().split('\\n')$/;"	kind:variable	line:8
+out	../hddtemp-xml.py	/^			out = arg$/;"	kind:variable	line:40
+out	../hddtemp-xml.py	/^	out = ""$/;"	kind:variable	line:33
+outdir	../2pass_rescale	/^  outdir = os.path.dirname(arg) + os.sep + "scaled"$/;"	kind:variable	line:110
+outfile	../2pass_rescale	/^  outfile = os.path.join(outdir, os.path.basename(arg))$/;"	kind:variable	line:114
+outfile	../2pass_rescale	/^  outfile = os.path.splitext(outfile)[0] + ".avi"$/;"	kind:variable	line:116
+outfile	../toxvid	/^      outfile = arg$/;"	kind:variable	line:53
+outfile	../toxvid	/^outfile = ""$/;"	kind:variable	line:22
+output	../share_media	/^              output = arg$/;"	kind:variable	line:347
+output	../share_media	/^          output = arg$/;"	kind:variable	line:341
+output	../share_media	/^output = None$/;"	kind:variable	line:27
+output_set	../share_media	/^output_set = False$/;"	kind:variable	line:30
+outputdir	../convert_music_vids	/^			outputdir = arg$/;"	kind:variable	line:53
+outputdir	../convert_music_vids	/^outputdir = ""$/;"	kind:variable	line:8
+pad	../opts.py	/^    def pad(self, s, w, padwith = " "):$/;"	kind:member	line:353
+pad	../vacuum_ff.py	/^def pad(s, w = 60):$/;"	kind:function	line:7
+parts	../cputemp-xml.py	/^		parts = line.split(" ")$/;"	kind:variable	line:22
+parts	../get_level	/^parts = last.split(' ')$/;"	kind:variable	line:10
+parts	../link_quality	/^				parts = line.split("=")$/;"	kind:variable	line:24
+parts	../link_quality	/^				parts = qual.split("\/")$/;"	kind:variable	line:26
+parts	../umount_v30	/^    parts = line.split(" ")$/;"	kind:variable	line:129
+parts	../umount_v30.py	/^    parts = line.split(" ")$/;"	kind:variable	line:129
+pathparts	../remove_leading_number	/^		pathparts = os.path.split(f)$/;"	kind:variable	line:7
+pbase	../vacuum_ff.py	/^    pbase = os.path.join(os.path.expanduser("~"), ".mozilla", "firefox")$/;"	kind:variable	line:33
+pbase	../vacuum_ff.py	/^    pbase = os.path.join(os.path.expanduser("~"), "Application Data", "Mozilla", "Firefox")$/;"	kind:variable	line:31
+pcfg	../vacuum_ff.py	/^  pcfg = ConfigParser.ConfigParser()$/;"	kind:variable	line:35
+perc	../diffdir	/^		perc = (idx * 100) \/ total$/;"	kind:variable	line:49
+perc	../link_quality	/^				perc = (float(parts[0]) * 100.0) \/ float(parts[1])$/;"	kind:variable	line:27
+perpetual_copy	../perpetual_copy	1;"	kind:file	line:1
+pfp	../gen_toxvid_makefile.py	/^            pfp = os.popen("file \\"%s\\"" % srcfile)$/;"	kind:variable	line:65
+pidx	../vacuum_ff.py	/^  pidx = 0$/;"	kind:variable	line:37
+pini	../vacuum_ff.py	/^  pini = os.path.join(pbase, "profiles.ini")$/;"	kind:variable	line:34
+plogfile	../2pass_rescale	/^  plogfile = "divx2pass-" + str(os.getpid()) + ".log"$/;"	kind:variable	line:89
+pname	../vacuum_ff.py	/^    pname = pcfg.get(psection, "name")$/;"	kind:variable	line:43
+poke_screensaver	../smartsaver.py	/^  def poke_screensaver(self):$/;"	kind:member	line:21
+pos	../gen_toxvid_makefile.py	/^            pos = fdata.index("audio:")$/;"	kind:variable	line:70
+pos	../gen_toxvid_makefile.py	/^            pos = fdata.index("video:")$/;"	kind:variable	line:68
+ppath	../vacuum_ff.py	/^    ppath = os.path.join(pbase, ppath)$/;"	kind:variable	line:45
+ppath	../vacuum_ff.py	/^    ppath = pcfg.get(psection, "path").replace("\/", os.sep)$/;"	kind:variable	line:44
+prepare	../opts.py	/^    def prepare(self, SkipAliases=False):$/;"	kind:member	line:332
+printUptime	../uptime.py	/^  def printUptime(self):$/;"	kind:member	line:6
+print_list	../dircmp	/^def print_list(label, ref_list, dlist, out_file):$/;"	kind:function	line:82
+print_list	../dircmp.py	/^def print_list(label, ref_list, dlist, out_file):$/;"	kind:function	line:82
+proc	../get_level	/^proc = os.popen(cmd)$/;"	kind:variable	line:7
+process	../flatten_once.py	/^  def process(self, baseFolder):$/;"	kind:member	line:13
+profile	../g11profile	/^      profile = arg$/;"	kind:variable	line:101
+profile	../g11profile	/^  profile = "default"$/;"	kind:variable	line:94
+prompt	../perpetual_copy	/^      prompt = True$/;"	kind:variable	line:199
+prompt	../perpetual_copy	/^  prompt = False$/;"	kind:variable	line:185
+psection	../vacuum_ff.py	/^    psection = ("Profile%i" % pidx)$/;"	kind:variable	line:40
+purge	../kernel-sweeper	/^def purge(version):$/;"	kind:function	line:6
+push	../DropboxPushbulletPusher.py	/^  def push(self, path):$/;"	kind:member	line:59
+push	../PushbulletMessage.py	/^  def push(self, subject, message):$/;"	kind:member	line:27
+pusher	../DropboxPushbulletPusher.py	/^  pusher = Pusher()$/;"	kind:variable	line:80
+pusher	../PushbulletMessage.py	/^  pusher = MessagePusher()$/;"	kind:variable	line:40
+pusher	../update-cm.py	/^        pusher = MessagePusher()$/;"	kind:variable	line:21
+pyver	../get-latest-chromium.py	/^pyver = int(sys.version.split(" ")[0].split(".")[0])$/;"	kind:variable	line:6
+qlen	../share_media	/^    qlen = len(files)$/;"	kind:variable	line:367
+qlen	../share_media	/^    qlen = len(srcdir_files)$/;"	kind:variable	line:382
+qlen	../share_media	/^    qlen = len(to_transcode)$/;"	kind:variable	line:397
+qual	../link_quality	/^				qual = parts[1].split(" ")[0]$/;"	kind:variable	line:25
+real_files	../autoscale	/^  real_files = []$/;"	kind:variable	line:232
+recursively_convert	../convert_to_mp4_under	/^def recursively_convert(folder):$/;"	kind:function	line:32
+red	../perpetual_copy	/^  red = ""$/;"	kind:variable	line:17
+red	../perpetual_copy	/^  red = "\\033[01;31m"$/;"	kind:variable	line:12
+register_share	../share_media	/^def register_share(src, dst):$/;"	kind:function	line:254
+rel	../diffdir	/^	rel = f[d1_len:]$/;"	kind:variable	line:52
+remove	../medesync.py	/^	def remove(self, uri_base, relative_path = ""):#<<<$/;"	kind:member	line:507
+remove	../medesync.py.u1conflict	/^	def remove(self, uri_base, relative_path = ""):#<<<$/;"	kind:member	line:463
+remove	../medesync.py.u1conflict.1	/^	def remove(self, uri_base, relative_path = ""):#<<<$/;"	kind:member	line:471
+removeAllEmptyFoldersUnder	../flatten_once.py	/^  def removeAllEmptyFoldersUnder(self, baseFolder):$/;"	kind:member	line:36
+remove_hidden	../medesync.py	/^	def remove_hidden(self, ls, base):#<<<*\/$/;"	kind:member	line:263
+remove_ignored	../medesync.py	/^	def remove_ignored(self, l, regex):#<<<*\/$/;"	kind:member	line:251
+remove_ignored	../medesync.py.u1conflict	/^	def remove_ignored(self, l, regex):#<<<*\/$/;"	kind:member	line:239
+remove_ignored	../medesync.py.u1conflict.1	/^	def remove_ignored(self, l, regex):#<<<*\/$/;"	kind:member	line:247
+remove_leading_number	../remove_leading_number	1;"	kind:file	line:1
+repo	../repo	1;"	kind:file	line:1
+repodir	../repo	/^repodir = '.repo'               # name of repo's private directory$/;"	kind:variable	line:106
+resize_img	../autoscale	/^  def resize_img(self, path, width, height):$/;"	kind:member	line:140
+resolvebool	../medesync.py	/^	def resolvebool(self, opts, key, default):#<<<$/;"	kind:member	line:245
+resolvebool	../medesync.py.u1conflict	/^	def resolvebool(self, opts, key, default):#<<<$/;"	kind:member	line:233
+resolvebool	../medesync.py.u1conflict.1	/^	def resolvebool(self, opts, key, default):#<<<$/;"	kind:member	line:241
+result	../api_test.py	/^  result = search.fetch("foo")$/;"	kind:variable	line:43
+ret	../umount_v30	/^      ret = os.system("umount " + dev)$/;"	kind:variable	line:148
+ret	../umount_v30.py	/^      ret = os.system("umount " + dev)$/;"	kind:variable	line:148
+rip_dvd	../2pass_dvd_iso_to_xvid	/^def rip_dvd():$/;"	kind:function	line:87
+rm_rf	../kernel-sweeper	/^def rm_rf(version, base):$/;"	kind:function	line:16
+rotate_img	../autoscale	/^  def rotate_img(self, path):$/;"	kind:member	line:157
+run_cmd	../smartsaver.py	/^  def run_cmd(self, cmd):$/;"	kind:member	line:17
+runpacmd	../set_pulseaudio_defaults	/^def runpacmd(args):$/;"	kind:function	line:5
+s	../smartsaver.py	/^  s = SmartSaver()$/;"	kind:variable	line:116
+s1	../gen_toxvid_makefile.py	/^        s1 = ""$/;"	kind:variable	line:104
+s1	../gen_toxvid_makefile.py	/^    s1 = "s"$/;"	kind:variable	line:102
+s2	../gen_toxvid_makefile.py	/^        s2 = ""$/;"	kind:variable	line:107
+s2	../gen_toxvid_makefile.py	/^    s2 = "s"$/;"	kind:variable	line:105
+sanitise_ftp_path	../medesync.py	/^	def sanitise_ftp_path(self, p):#<<<*\/$/;"	kind:member	line:923
+sanitise_ftp_path	../medesync.py.u1conflict	/^	def sanitise_ftp_path(self, p):$/;"	kind:member	line:844
+sanitise_ftp_path	../medesync.py.u1conflict.1	/^	def sanitise_ftp_path(self, p):$/;"	kind:member	line:864
+sanitise_leftw	../opts.py	/^    def sanitise_leftw(self):$/;"	kind:member	line:336
+scale_img	../autoscale	/^  def scale_img(self, path):$/;"	kind:member	line:40
+scaled	../autoscale	/^  scaled = 0$/;"	kind:variable	line:191
+scaled	../autoscale	/^  scaled = 0$/;"	kind:variable	line:229
+schedule_remove_item	../medesync.py	/^	def schedule_remove_item(self, to_remove, item):$/;"	kind:member	line:283
+search	../api_test.py	/^  search = Search()$/;"	kind:variable	line:42
+selected	../opts.py	/^  def selected(self, opt):$/;"	kind:member	line:269
+selectedOptions	../opts.py	/^  def selectedOptions(self):$/;"	kind:member	line:273
+serve_path	../update-cm.py	/^serve_path = '\/var\/www\/html\/cm12'$/;"	kind:variable	line:7
+served	../update-cm.py	/^    served = os.listdir(serve_path)$/;"	kind:variable	line:15
+set_down_speed	../transmission-throttle	/^def set_down_speed(speed):$/;"	kind:function	line:18
+set_last_error	../medesync.py	/^	def set_last_error(self, descr, err): #<<<$/;"	kind:member	line:126
+set_last_error	../medesync.py.u1conflict	/^	def set_last_error(self, descr, err): #<<<$/;"	kind:member	line:116
+set_last_error	../medesync.py.u1conflict.1	/^	def set_last_error(self, descr, err): #<<<$/;"	kind:member	line:122
+set_pulseaudio_defaults	../set_pulseaudio_defaults	1;"	kind:file	line:1
+set_up_speed	../transmission-throttle	/^def set_up_speed(speed):$/;"	kind:function	line:35
+share_media	../share_media	1;"	kind:file	line:1
+shorten	../medesync.py	/^	def shorten(self, checkstr, maxlen = None):#<<<$/;"	kind:member	line:763
+shorten	../medesync.py.u1conflict	/^	def shorten(self, checkstr, maxlen = None):#<<<$/;"	kind:member	line:710
+shorten	../medesync.py.u1conflict.1	/^	def shorten(self, checkstr, maxlen = None):#<<<$/;"	kind:member	line:723
+shorten	../perpetual_copy	/^def shorten(s, l = 36):$/;"	kind:function	line:37
+show_fail	../medesync.py	/^	def show_fail(self):#<<<$/;"	kind:member	line:150
+show_fail	../medesync.py.u1conflict	/^	def show_fail(self):#<<<$/;"	kind:member	line:138
+show_fail	../medesync.py.u1conflict.1	/^	def show_fail(self):#<<<$/;"	kind:member	line:146
+show_ok	../medesync.py	/^	def show_ok(self):#<<<$/;"	kind:member	line:146
+show_ok	../medesync.py.u1conflict	/^	def show_ok(self):#<<<$/;"	kind:member	line:134
+show_ok	../medesync.py.u1conflict.1	/^	def show_ok(self):#<<<$/;"	kind:member	line:142
+show_progress	../medesync.py	/^	def show_progress(self, label, fraction):#<<<*\/$/;"	kind:member	line:613
+show_progress	../medesync.py.u1conflict	/^	def show_progress(self, label, fraction):$/;"	kind:member	line:562
+show_progress	../medesync.py.u1conflict.1	/^	def show_progress(self, label, fraction):$/;"	kind:member	line:570
+size	../dlsize	/^				size = get_dl_size(line)$/;"	kind:variable	line:82
+smartsaver.py	../smartsaver.py	1;"	kind:file	line:1
+spin	../medesync.py	/^	def spin(self):#<<<*\/$/;"	kind:member	line:85
+spin	../medesync.py.u1conflict	/^	def spin(self):#<<<*\/$/;"	kind:member	line:81
+spin	../medesync.py.u1conflict.1	/^	def spin(self):#<<<*\/$/;"	kind:member	line:83
+split_uri	../medesync.py	/^	def split_uri(self, uri):#<<<$/;"	kind:member	line:184
+split_uri	../medesync.py.u1conflict	/^	def split_uri(self, uri):#<<<$/;"	kind:member	line:172
+split_uri	../medesync.py.u1conflict.1	/^	def split_uri(self, uri):#<<<$/;"	kind:member	line:180
+src	../gen_toxvid_makefile.py	/^            src = arg$/;"	kind:variable	line:27
+src	../gen_toxvid_makefile.py	/^    src = None$/;"	kind:variable	line:23
+srcdir	../perpetual_copy	/^      srcdir = arg$/;"	kind:variable	line:203
+srcdir	../perpetual_copy	/^  srcdir = ""$/;"	kind:variable	line:183
+srcdir	../share_media	/^              srcdir = arg$/;"	kind:variable	line:345
+srcdir	../share_media	/^          srcdir = arg$/;"	kind:variable	line:339
+srcdir	../share_media	/^srcdir = None$/;"	kind:variable	line:28
+srcdir_files	../share_media	/^      srcdir_files = ls_R(srcdir)$/;"	kind:variable	line:360
+srcdir_files	../share_media	/^    srcdir_files = []$/;"	kind:variable	line:358
+srcfile	../gen_toxvid_makefile.py	/^        srcfile = os.path.join(src, f)$/;"	kind:variable	line:51
+st	../2pass_rescale	/^    st = os.stat(arg)$/;"	kind:variable	line:73
+st	../transmission-throttle	/^			st = os.stat(WATCH)$/;"	kind:variable	line:68
+start	../bw	/^start = datetime.datetime(now.year, now.month, 1)$/;"	kind:variable	line:11
+start	../get-latest-chromium.py	/^start = datetime.datetime.now()$/;"	kind:variable	line:20
+startmsg	../autoscale	/^  def startmsg(self, string):$/;"	kind:member	line:97
+startmsg	../link-watcher	/^def startmsg(s):$/;"	kind:function	line:65
+status	../dircmp	/^def status(s):$/;"	kind:function	line:99
+status	../dircmp.py	/^def status(s):$/;"	kind:function	line:99
+status	../dlsize	/^def status(s):$/;"	kind:function	line:47
+status	../fappy	/^def status(s):$/;"	kind:function	line:348
+status	../flatten_fs.py	/^	def status(self, s):$/;"	kind:member	line:13
+status	../flatten_once.py	/^  def status(self, s):$/;"	kind:member	line:69
+status	../medesync.py	/^	def status(self, statusstr, autofit = True):#<<<$/;"	kind:member	line:781
+status	../medesync.py.u1conflict	/^	def status(self, statusstr, autofit = True):#<<<$/;"	kind:member	line:723
+status	../medesync.py.u1conflict.1	/^	def status(self, statusstr, autofit = True):#<<<$/;"	kind:member	line:736
+status	../perpetual_copy	/^def status(src, dst):$/;"	kind:function	line:45
+status	../share_media	/^def status(s = "\\n"):$/;"	kind:function	line:36
+status	../update-cm.py	/^status = os.system('%s -o %s' % (exe, store_path))$/;"	kind:variable	line:12
+status1	../get-latest-chromium.py	/^def status1(val):$/;"	kind:function	line:87
+status2	../get-latest-chromium.py	/^def status2(read, size):$/;"	kind:function	line:92
+status_callback	../medesync.py	/^	def status_callback(self, blocks):#<<<$/;"	kind:member	line:777
+status_callback	../medesync.py.u1conflict	/^	def status_callback(self, blocks):#<<<$/;"	kind:member	line:719
+status_callback	../medesync.py.u1conflict.1	/^	def status_callback(self, blocks):#<<<$/;"	kind:member	line:732
+stop_watcher	../link-watcher	/^def stop_watcher():$/;"	kind:function	line:93
+store_path	../update-cm.py	/^store_path = '\/mnt\/dump\/install-src\/cm12-i9300\/rom'$/;"	kind:variable	line:6
+stored	../update-cm.py	/^    stored = os.listdir(store_path)$/;"	kind:variable	line:14
+sync	../medesync.py	/^	def sync(self, options):#<<<$/;"	kind:member	line:287
+sync	../medesync.py.u1conflict	/^	def sync(self, options):#<<<$/;"	kind:member	line:251
+sync	../medesync.py.u1conflict.1	/^	def sync(self, options):#<<<$/;"	kind:member	line:259
+t	../cputemp-xml.py	/^		t = doc.createTextNode(temp)$/;"	kind:variable	line:32
+t	../gen_toxvid_makefile.py	/^    t = list(targets.keys())$/;"	kind:variable	line:94
+t	../hddtemp-xml.py	/^		t = doc.createTextNode(temp)$/;"	kind:variable	line:64
+target_br	../2pass_rescale	/^        target_br = int(arg)$/;"	kind:variable	line:63
+target_br	../2pass_rescale	/^target_br=1800$/;"	kind:variable	line:15
+target_br	../share_media	/^            target_br = int(arg)$/;"	kind:variable	line:335
+target_br	../share_media	/^target_br=3000$/;"	kind:variable	line:21
+targets	../gen_toxvid_makefile.py	/^    targets = dict()$/;"	kind:variable	line:47
+teamviewer-notify	../teamviewer-notify	1;"	kind:file	line:1
+temp	../cputemp-xml.py	/^		temp = ""$/;"	kind:variable	line:28
+temp	../hddtemp-xml.py	/^		temp = get_temp(d)$/;"	kind:variable	line:58
+throttle_transmission	../transmission-throttle	/^def throttle_transmission(type):$/;"	kind:function	line:52
+timeout	../get-latest-chromium.py	/^timeout = 180$/;"	kind:variable	line:25
+tmp	../autoscale	/^  tmp = []$/;"	kind:variable	line:192
+tmp	../colors.py	/^			tmp = " " + str(mod) + ";" + str(fg) + ";" + str(bg)$/;"	kind:variable	line:23
+tmp	../cputemp-xml.py	/^		tmp = parts[2]$/;"	kind:variable	line:27
+to_copy	../update-cm.py	/^    to_copy = list(set(stored) - set(served))$/;"	kind:variable	line:16
+to_print	../link_quality	/^		to_print = ""$/;"	kind:variable	line:12
+to_remove	../2pass_rescale	/^to_remove = []$/;"	kind:variable	line:14
+to_remove	../2pass_rescale	/^to_remove = []$/;"	kind:variable	line:69
+to_remove	../kernel-sweeper	/^  to_remove = available_kernels[2:]$/;"	kind:variable	line:78
+to_transcode	../share_media	/^    to_transcode = []$/;"	kind:variable	line:365
+total	../diffdir	/^total = len(d1_files)$/;"	kind:variable	line:44
+total_size	../dlsize	/^		total_size = 0$/;"	kind:variable	line:72
+totals	../bw	/^totals = dict()$/;"	kind:variable	line:19
+toxvid	../toxvid	1;"	kind:file	line:1
+transmission-throttle	../transmission-throttle	1;"	kind:file	line:1
+trim_cache	../smartsaver.py	/^  def trim_cache(self, pids = []):$/;"	kind:member	line:81
+ttcend	../bw	/^ttcend = utctime(now)$/;"	kind:variable	line:14
+ttstart	../bw	/^ttstart = utctime(start)$/;"	kind:variable	line:13
+umount_v30	../umount_v30	1;"	kind:file	line:1
+umount_v30.py	../umount_v30.py	1;"	kind:file	line:1
+unpack	../get-latest-chromium.py	/^def unpack(src, dst, theme):$/;"	kind:function	line:98
+update-cm.py	../update-cm.py	1;"	kind:file	line:1
+update_chrome	../get-latest-chromium.py	/^def update_chrome(known_version = ""):$/;"	kind:function	line:165
+uptime.py	../uptime.py	1;"	kind:file	line:1
+urlBase	../update-cm.py	/^urlBase = 'http:\/\/192.168.1.100\/cm12\/'$/;"	kind:variable	line:8
+urllib	../repo	/^  urllib = imp.new_module('urllib')$/;"	kind:variable	line:127
+usage	../2pass_dvd_iso_to_xvid	/^def usage():$/;"	kind:function	line:79
+usage	../2pass_rescale	/^def usage():$/;"	kind:function	line:23
+usage	../autoscale	/^def usage():$/;"	kind:function	line:171
+usage	../dircmp	/^def usage():$/;"	kind:function	line:35
+usage	../dircmp.py	/^def usage():$/;"	kind:function	line:35
+usage	../fappy	/^def usage():$/;"	kind:function	line:109
+usage	../g11profile	/^def usage():$/;"	kind:function	line:61
+usage	../gen_toxvid_makefile.py	/^def usage():$/;"	kind:function	line:13
+usage	../get-latest-chromium.py	/^def usage():$/;"	kind:function	line:135
+usage	../kernel-sweeper	/^def usage():$/;"	kind:function	line:51
+usage	../link-watcher	/^def usage():$/;"	kind:function	line:61
+usage	../perpetual_copy	/^def usage():$/;"	kind:function	line:174
+usage	../share_media	/^def usage():$/;"	kind:function	line:74
+usage	../toxvid	/^def usage():$/;"	kind:function	line:9
+use_ddr	../perpetual_copy	/^      use_ddr = False$/;"	kind:variable	line:201
+use_ddr	../perpetual_copy	/^use_ddr = True$/;"	kind:variable	line:8
+utctime	../bw	/^def utctime(dt):$/;"	kind:function	line:7
+utctime	../transmission-throttle	/^def utctime(dt):$/;"	kind:function	line:59
+vacuum	../vacuum_ff.py	/^def vacuum(db):$/;"	kind:function	line:12
+vacuum_ff.py	../vacuum_ff.py	1;"	kind:file	line:1
+vacuum_profile	../vacuum_ff.py	/^def vacuum_profile(ppath):$/;"	kind:function	line:23
+val	../bw	/^	val = float(row[1])$/;"	kind:variable	line:32
+validate	../opts.py	/^  def validate(self, opt):$/;"	kind:member	line:260
+value	../get_level	/^    value = part$/;"	kind:variable	line:16
+value	../get_level	/^value = ''$/;"	kind:variable	line:13
+value	../opts.py	/^  def value(self, opt):$/;"	kind:member	line:265
+varel	../2pass_rescale	/^  varel = 0.9   # video \/ audio relative size within stream; guesswork$/;"	kind:variable	line:91
+vcodec	../gen_toxvid_makefile.py	/^            vcodec = fdata[:pos].strip(" ,").lower()$/;"	kind:variable	line:71
+ver	../repo	/^ver = sys.version_info$/;"	kind:variable	line:140
+video_extensions	../share_media	/^video_extensions = [".avi", ".wmv", ".mkv", ".xvid", ".divx", ".mpg"]$/;"	kind:variable	line:29
+video_list	../convert_music_vids	/^video_list = []$/;"	kind:variable	line:6
+video_quality	../toxvid	/^      video_quality = int(arg)$/;"	kind:variable	line:35
+video_quality	../toxvid	/^video_quality = 2$/;"	kind:variable	line:6
+vm	../kernel-sweeper	/^    vm = "\/boot\/vmlinux-%s" % (k)$/;"	kind:variable	line:97
+vol	../set_pulseaudio_defaults	/^vol = "0x%x" % (vol)$/;"	kind:variable	line:11
+vol	../set_pulseaudio_defaults	/^vol = 0x10000 * 0.9$/;"	kind:variable	line:10
+waiting	../perpetual_copy	/^          waiting = True$/;"	kind:variable	line:230
+waiting	../perpetual_copy	/^          waiting = True$/;"	kind:variable	line:237
+waiting	../perpetual_copy	/^      waiting = False$/;"	kind:variable	line:240
+waiting	../perpetual_copy	/^  waiting = False$/;"	kind:variable	line:223
+walk_cb	../cleanup_series_folders	/^def walk_cb(ls, dirname, fnames):$/;"	kind:function	line:15
+walk_cb	../convert_to_mp4_under	/^def walk_cb(ls, dirname, fnames):$/;"	kind:function	line:17
+walk_cb	../dircmp	/^def walk_cb(ls, dirname, fnames):$/;"	kind:function	line:22
+walk_cb	../dircmp.py	/^def walk_cb(ls, dirname, fnames):$/;"	kind:function	line:22
+walk_cb	../perpetual_copy	/^def walk_cb(ls, dirname, fnames):$/;"	kind:function	line:29
+watch	../smartsaver.py	/^  def watch(self):$/;"	kind:member	line:94
+watch_link	../link-watcher	/^	def watch_link(self):$/;"	kind:member	line:55
+write	../fappy	/^  write = lambda fp, str: fp.write(str)$/;"	kind:function	line:40
+write	../fappy	/^  write = lambda fp, str: fp.write(str.encode('utf-8'))$/;"	kind:function	line:42
+write_m3u_playlist	../fappy	/^def write_m3u_playlist(m3u, f, append):$/;"	kind:function	line:117
+write_xspf_playlist	../fappy	/^def write_xspf_playlist(playlist, playlistfile, append):$/;"	kind:function	line:141
+x	../cputemp-xml.py	/^	x = doc.toprettyxml()$/;"	kind:variable	line:35
+x	../hddtemp-xml.py	/^	x = doc.toprettyxml()$/;"	kind:variable	line:67
+xml_safe	../fappy	/^def xml_safe(s):$/;"	kind:function	line:247
+xspf_get_mp3_tag_info	../fappy	/^def xspf_get_mp3_tag_info(f):$/;"	kind:function	line:218
+xspf_get_ogg_tag_info	../fappy	/^def xspf_get_ogg_tag_info(f):$/;"	kind:function	line:222
+xspf_location	../fappy	/^def xspf_location(path):$/;"	kind:function	line:250
+yellow	../perpetual_copy	/^  yellow = ""$/;"	kind:variable	line:18
+yellow	../perpetual_copy	/^  yellow = "\\033[01;33m"$/;"	kind:variable	line:13

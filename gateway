@@ -1,0 +1,201 @@
+#!/bin/bash
+#TODO: refine this!
+
+if test -f /etc/default/gateway; then
+	source /etc/default/gateway
+fi
+if test -z "$EXTERNAL_INTERFACE"; then
+	EXTERNAL_INTERFACE=wlan1
+fi
+if test -z "$INTERNAL_INTERFACE"; then
+	INTERNAL_INTERFACE=wlan1
+fi
+if test -z "$LOCALNET"; then
+	LOCALNET=192.168.2.0/24
+fi
+if test -z "$EXTERNAL_ACCESS_PORTS"; then
+	EXTERNAL_ACCESS_PORTS="443 80"
+fi
+
+i=/sbin/iptables
+tc=/sbin/tc
+ext=$EXTERNAL_INTERFACE
+int=$INTERNAL_INTERFACE
+
+ip_addr() {
+	ifconfig $1 | grep "inet addr" | sed -e 's/:/ /'\
+		| sed -e 's/^ *//' | awk '{print $3}'
+}
+
+classify () {
+	proto=$1
+	port=$2
+	class=$3
+	direction=$4
+	$i -t mangle -A POSTROUTING -o $ext -p $proto \
+		--${direction}port $port -j CLASSIFY --set-class $class
+	$i -t mangle -A POSTROUTING -o $ext -p $proto \
+		--dport $port -j RETURN
+}
+
+mangle () {
+	$i -t mangle -F
+	
+	# for HTTP,SSL,ftp,DNS
+
+	classify udp 53 1:11 d
+	classify tcp 53 1:11 d
+	for port in 80 443 21; do
+		classify tcp $port 1:11 d
+	done
+	classify tcp 443 1:11 s
+	$i -t mangle -A POSTROUTING -m helper --helper ftp -j CLASSIFY --set-class 1:11
+	$i -t mangle -A POSTROUTING -m helper --helper ftp -j RETURN
+
+	# for imap,SMTP
+	for port in 993 143 465 587; do
+		classify tcp $port 1:12 d
+	done
+	                               
+	# for IM                      
+	for port in 5222 5223 1863 6667; do
+		classify tcp $port 1:13 d
+	done
+	#games - battle.net
+	classify tcp 4000 1:14 d
+	for ((port=6112; $port < 6120; port++)); do
+		classify tcp $port 1:14 d
+		classify udp $port 1:14 d
+	done
+	# for SSH/RDP
+	for port in 3389 22; do
+		classify tcp $port 1:15 d
+	done
+	
+	# throttle our apache...
+	classify tcp 8888 1:17 d
+	# everything else
+	$i -t mangle -A POSTROUTING -m mark --mark 3 -j CLASSIFY --set-class 1:16
+	$i -t mangle -A POSTROUTING -o $ext -j CLASSIFY --set-class 1:16
+}
+
+qos () {
+	for interface in $ext $int; do
+		for d in root ingress; do
+			tc qdisc del dev $ext $d &> /dev/null
+		done
+	done
+	
+	$tc qdisc add dev $ext root handle 1: htb default 16
+	$tc qdisc add dev $int root handle 2: htb default 1 
+
+
+	# limit total rate
+	$tc class add dev $ext parent 1: classid 1:1 htb rate ${MAX_UPLOAD}kbit ceil ${MAX_UPLOAD}kbit
+	
+	# setup priorities
+
+	# http,ssl
+	$tc class add dev $ext parent 1:1 classid 1:11  htb rate 115kbit ceil ${MAX_UPLOAD}kbit quantum 10000 burst 10000 prio 1
+
+	# smtp,imap
+	$tc class add dev $ext parent 1:1 classid 1:12 htb rate 10kbit ceil ${MAX_UPLOAD}kbit quantum 5000 burst 10000 prio 5
+	
+	# IM
+	$tc class add dev $ext parent 1:1 classid 1:13 htb rate 10kbit ceil ${MAX_UPLOAD}kbit quantum 5000 burst 5000 prio 4
+	
+	# gaming
+	$tc class add dev $ext parent 1:1 classid 1:14 htb rate 30kbit ceil ${MAX_UPLOAD}kbit quantum 5000 burst 10000 prio 3
+	
+	# SSH
+	$tc class add dev $ext parent 1:1 classid 1:15 htb rate 200kbit ceil ${MAX_UPLOAD}kbit quantum 5000 burst 10000 prio 2
+	
+	# BitTorrent and everything else
+	$tc class add dev $ext parent 1:1 classid 1:16 htb rate 5kbit ceil 180kbit quantum 1500 burst 2000 prio 6 
+	
+	# super-restricted
+	$tc class add dev $ext parent 1:1 classid 1:17 htb rate 5kbit ceil 50kbiy quantum 1500 burst 2000 prio 7
+
+	# set it up so that traffic of each class is shared
+	$tc qdisc add dev $ext parent 1:11 handle 110: sfq quantum 10000 perturb 10 
+	$tc qdisc add dev $ext parent 1:12 handle 120: sfq quantum 5000 perturb 10
+	$tc qdisc add dev $ext parent 1:13 handle 130: sfq quantum 5000 perturb 10
+	$tc qdisc add dev $ext parent 1:14 handle 140: sfq quantum 5000 perturb 10
+	$tc qdisc add dev $ext parent 1:15 handle 150: sfq quantum 5000 perturb 10
+	$tc qdisc add dev $ext parent 1:16 handle 160: sfq quantum 1500 perturb 10
+	$tc qdisc add dev $ext parent 1:17 handle 160: sfq quantum 1000 perturb 10
+
+	# internal interfaces
+	$tc class add dev $int parent 2: classid 2:1 htb rate 100000kbit
+	$tc qdisc add dev $int parent 2:1 handle 260: sfq perturb 10
+
+}
+
+start_fw () {
+	# flushing
+	$i -F
+	$i -t nat -F
+	# policies
+	$i -P OUTPUT ACCEPT
+	$i -P INPUT DROP
+	$i -P FORWARD ACCEPT
+	# blankets for safe interfaces
+	$i -A INPUT -s 192.168.10.0/24 -j ACCEPT
+	$i -A INPUT -i lo -j ACCEPT
+	$i -A OUTPUT -o lo -j ACCEPT
+	
+	#mangle
+
+	# masquerading
+	$i -t nat -A POSTROUTING -o $ext -s $LOCALNET -j MASQUERADE
+	echo 1 > /proc/sys/net/ipv4/ip_forward
+	$i -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+	$i -A FORWARD -i $int -o $ext -j ACCEPT
+	#$i -A INPUT -j LOG --log-level DEBUG
+	# redirect incoming 443 to the ssh daemon
+	#$i -t nat -A PREROUTING -p tcp -i $int --dport 443 -j REDIRECT --to-port 22
+	# redirect incoming 12121 to 21 (ftp)
+	$i -A PREROUTING -t nat -i wlan1 -p tcp --dport 12121 -j REDIRECT --to-port 21
+	#unsafe stuff
+	for port in $(echo $EXTERNAL_ACCESS_PORTS); do
+		$i -A INPUT -i $ext -p tcp --dport $port -j ACCEPT
+	#iptables -t nat -A PREROUTING -i $ext -p tcp --dport $WEB_SRV_PORT\
+	#	-j DNAT --to-destination 127.0.0.1:80
+	done
+	return
+	
+	killall -9 l7-filter &> /dev/null
+	# modules required for userspace l7-filter
+	for mod in ip_conntrack_netlink nf_conntrack_netlink; do
+		modprobe $mod
+	done
+	# queue for userspace l7 filter
+	iptables -A FORWARD -j NFQUEUE --queue-num 0
+	#l7-filter -f /etc/l7-filter.conf -z
+
+	#qos
+}
+
+stop_fw () {
+	killall -9 l7-filter &> /dev/null
+	iptables -F
+	for P in INPUT OUTPUT FORWARD; do
+		iptables -P $P ACCEPT
+	done
+}
+
+case "$1" in
+	start)
+		start_fw
+	;;
+	stop)
+		stop_fw
+	;;
+	restart)
+		stop_fw
+		start_fw
+	;;
+	*)
+		echo "usage: $(basename $1) {start|stop|restart}"
+	;;
+esac

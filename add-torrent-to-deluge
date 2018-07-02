@@ -1,0 +1,2 @@
+#!/bin/sh
+deluge-console add "'$1'"

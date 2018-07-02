@@ -1,0 +1,12 @@
+#!/bin/sh
+for f in $1/*; do
+    if test -f "$f"; then
+        filename="$(basename "$f")"
+        name="${filename%.*}"
+        if ! test -d "$1/$name"; then
+            mkdir "$1/$name";
+        fi
+        echo "moving $f to $1/$name"
+        mv "$f" "$1/$name"
+    fi
+done

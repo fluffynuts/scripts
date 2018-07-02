@@ -1,0 +1,64 @@
+#!/usr/bin/python
+# vim: expandtab shiftwidth=2 tabstop=2
+import sys
+import os
+import re
+import time
+
+def ls_R(dir):
+  ls = [dir]
+  os.path.walk(dir, walk_cb, ls)
+  ls = ls[1:]
+  sys.stdout.write("\r                               \r")
+  sys.stdout.flush()
+  ls.sort()
+  return ls
+
+def walk_cb(ls, dirname, fnames):
+  d = dirname[len(ls[0]):]
+  for f in fnames:
+    fpath = os.path.join(dirname, f)
+    if os.path.isfile(fpath):
+      ext = os.path.splitext(fpath)[-1]
+      if ext.lower() != ".mkv":
+        continue
+      ls.append(os.path.join(d, f))
+      items = len(ls) - 1
+      if items % 100 == 0:
+        sys.stdout.write("\r                         \r" + str(items))
+        sys.stdout.flush()
+
+
+def recursively_convert(folder):
+  pre = "HandBrakeCLI -Z \"AppleTV 2\" -i "
+  pattern = re.compile("\\.mkv$", re.IGNORECASE)
+  files = ls_R(folder)
+  print("Queue length: " + len(files))
+  idx = 0
+  total = len(files)
+  for f in files:
+    try:
+      src = folder + f
+      idx += 1
+      time.sleep(1)
+      dst = pattern.sub(".mp4", src)
+      cmd = "%s \"%s\" -o \"%s\"" % (pre, src, dst)
+      print ("\n\n>>> Converting %s (%i/%i)" % (src, idx, total))
+      print("  -- raw cmd: " + cmd)
+      result = os.system(cmd)
+      if result == 0:
+        os.remove(src)
+    except KeyboardInterrupt as e:
+      print "User requests exit"
+      sys.exit(1)
+  
+
+if __name__ == "__main__":
+  if len(sys.argv) == 0:
+    print("Please specify at least one folder on the commandline")
+    sys.exit(1)
+  for folder in sys.argv[1:]:
+    if not os.path.isdir(folder):
+      print(folder + " not a folder or not found; ignoring")
+      continue
+    recursively_convert(folder)

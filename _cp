@@ -1,0 +1,28 @@
+#!/bin/zsh
+function usage()
+{
+  echo $(basename $0) {src file} {dst file/dir}
+  exit 0
+}
+if test -z "$1"; then
+  usage
+fi
+if test -z "$2"; then
+  usage
+fi
+echo "foo"
+if test ! -z "$3"; then
+  usage
+fi
+if test ! -f "$1"; then
+  usage
+fi
+if test -d "$2"; then
+  pv "$1" > "$2/$(basename $1)"
+else
+  if ! test -d "$(dirname $2)"; then
+    echo "directory $(dirname $2) not found"
+    exit 1
+  fi
+  pv "$1" > "$2"
+fi

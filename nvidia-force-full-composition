@@ -1,0 +1,4 @@
+#!/bin/sh
+nvidia-settings --assign "CurrentMetaMode=DFP-0:1920x1080_60 +0+0 { ForceFullCompositionPipeline = On }"
+nvidia-settings --assign "CurrentMetaMode=HDMI-0:1920x1080_60 +0+0 { ForceFullCompositionPipeline = On }"
+nvidia-settings --assign "CurrentMetaMode=DP-1:1920x1080_60 +0+0 { ForceFullCompositionPipeline = On }"

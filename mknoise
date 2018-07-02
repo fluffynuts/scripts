@@ -1,0 +1,70 @@
+#!/bin/zsh
+
+len='8:00:00'
+noisetype="brownnoise"
+outputfile=""
+lastarg=""
+
+function usage {
+	echo "$(basename $0) {-l <len>} {-t <type} {-o <outputfile}"
+	echo "  where <len> is a time spec in hh:mm:ss (eg 00:30:42)"
+	echo "  and <type> is one of:"
+	echo "    pink / pinknoise"
+	echo "		white / whitenoise"
+	echo "    brown / brownnoise"
+	echo "    or one of: sine,square,triangle,sawtooth,trapezium,exp,tdfpnoise"
+	echo "  default output file it <type>.mp3"
+}
+
+while test ! -z "$1"; do
+	case "$1" in
+		"-l"|"-t"|"-o")
+		lastarg="$1"
+	;;
+	*)
+		case "$lastarg" in
+			"-l")
+				len="$1"
+				lastarg=""
+			;;
+			"-t")
+				noisetype="$1"
+				case "$noisetype" in
+					"white"|"brown"|"pink")
+						noisetype="${noisetype}noise"
+					;;
+					"sine"|"square"|"triangle"|"sawtooth"|"trapezium"|"exp"|"whitenoise"|"tdpfnoise"|"pinknoise"|"brownnoise"|"pluck")
+					;;
+					*)
+						echo "Unrecognised noise type $noisetype; sox will most likely barf"
+					;;
+				esac
+				lastarg=""
+			;;
+			"-o")
+				outputfile="$1"
+				lastarg=""
+			;;
+			"-h"|"--help")
+				usage
+				exit 1
+			;;
+		*)
+			usage
+			exit 1
+		;;
+		esac
+	;;
+	esac
+	shift
+done
+
+if test -z "$outputfile"; then outputfile="${noisetype}.mp3"; fi
+ext="$(echo $outputfile | awk -F . '{print $NF}' | tr '[A-Z]' '[a-z]')"
+echo "generating $len of $noisetype noise into $outputfile"
+if test "$ext" = "mp3"; then
+	sox -V1 -c 1 -r 16k -t sl - -t wav - synth $len ${noisetype} band -n 1200 200 tremolo 20 .1 < /dev/zero | lame --preset hifi -s 16 - $outputfile
+else
+	sox -V1 -c 1 -r 16000 -t sl - $outputfile synth $len ${noisetype} band -n 1200 200 tremolo 20 .1 < /dev/zero
+fi
+

@@ -1,0 +1,13 @@
+#!/bin/bash
+active_dev=$1
+mute_headphones="$(dirname $0)/set-headphones-mute"
+mute_speakers="$(dirname $0)/set-speakers-mute"
+if test "$active_dev" = "headphones"; then
+  $mute_speakers true > /dev/null
+  $mute_headphones false > /dev/null
+elif test "$active_dev" = "speakers"; then
+  $mute_speakers false > /dev/null
+  $mute_headphones true > /dev/null
+else
+  echo "Please invoke me with either 'headphones' or 'speakers'."
+fi

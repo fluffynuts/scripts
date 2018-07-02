@@ -1,0 +1,5 @@
+#!/bin/bash
+if test -z "$(pidof deluge)"; then
+  rm -rf ~/.config/deluge/ipc
+  deluge &
+fi

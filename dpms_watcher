@@ -1,0 +1,47 @@
+#!/bin/zsh
+STANDBY_SECS=900
+SUSPEND_SECS=1200
+OFF_SECS=1500
+
+function watched_programs_running ()
+{
+	ret=""
+	for program in mplayer gmplayer totem xine vlc; do
+		if test ! -z "$(pidof $program)"; then
+			echo "1"
+			return
+		fi
+	done
+	echo "0"
+}
+
+function turn_dpms_on ()
+{
+	current_vals="$(xset q | grep -w "Standby" | awk '{print $2 " " $4 " " $6}')"
+	if test "$(echo "$current_vals" | awk '{print $1}')" -eq "0" ||\
+	   test "$(echo "$current_vals" | awk '{print $2}')" -eq "0" ||\
+	   test "$(echo "$current_vals" | awk '{print $3}')" -eq "0"; then
+		echo "Turning on dpms functions"
+		xset dpms $STANDBY_SECS $SUSPEND_SECS $OFF_SECS
+		xset +dpms
+	fi
+
+}
+
+function turn_dpms_off ()
+{
+	xset -dpms
+	if test ! -z "$(pidof gnome-screensaver)"; then
+		gnome-screensaver-command -d
+		gnome-screensaver-command -p
+	fi
+}
+
+while true; do
+	if test "$(watched_programs_running)" = "0"; then
+		turn_dpms_on
+	else
+		turn_dpms_off
+	fi
+	sleep 120
+done

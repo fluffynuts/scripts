@@ -1,0 +1,16 @@
+#!/bin/bash
+SWEEPER="$(which folder-sweeper)"
+if test -z "$SWEEPER"; then
+  echo "No folder-sweeper found in PATH; perhaps you need to 'npm install folder-sweeper'?" | tee "/tmp/$(basename $0).log"
+  exit 1
+fi
+NODE="$(which node)"
+if test -z "$NODE"; then
+  echo "no 'node' found in $PATH; perhaps you need to get you a node?!"
+  exit 2
+fi
+
+for f in /mnt/monolith/movies /mnt/mede8er-smb/movies; do
+  echo "Sweeping ${f}"
+  $NODE $SWEEPER -x -j $f
+done

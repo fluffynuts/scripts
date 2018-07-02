@@ -1,0 +1,19 @@
+#!/usr/bin/python
+import appindicator
+import pygtk
+pygtk.require('2.0')
+import gtk
+
+class AppWrapper:
+  def __init__(self, name, command):
+    self._indicator = appindicator.Indicator(name, 'indicator-messages', appindicator.CATEGORY_APPLICATION_STATUS)
+    self._indicator.set_status(appindicator.STATUS_ACTIVE)
+    self._indicator.set_attention_icon('indicator-messages-new')
+    self._indicator.set_icon('distributor-logo')
+
+    self._menu = gtk.Menu();
+    self._item = gtk.MenuItem('Show TeamViewer')
+
+if __name__ == '__main__':
+  appWrapper = AppWrapper('TeamViewer', 'teamviewer')
+  gtk.main()

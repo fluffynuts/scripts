@@ -1,0 +1,9 @@
+#!/bin/bash
+if test ! -z "$(basename "$0" | grep "^disable")"; then
+  echo "disabling mouse volume"
+  cp ~/.xbindkeysrc-no-mouse-volume ~/.xbindkeysrc
+elif test ! -z "$(basename "$0" | grep "^enable")"; then
+  echo "enabling mouse volume"
+  cp ~/.xbindkeysrc-with-mouse-volume ~/.xbindkeysrc
+fi
+$(dirname $0)/xbindkeys-restart

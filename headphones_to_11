@@ -1,0 +1,2 @@
+#!/bin/sh
+amixer -c 0 set Heaphone 255

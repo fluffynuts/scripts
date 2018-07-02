@@ -1,0 +1,59 @@
+#!/usr/bin/python
+
+import os
+import sys
+import datetime
+
+
+def ls_R(dir):
+  ls = [dir]
+  os.path.walk(dir, walk_cb, ls)
+  ls = ls[1:]
+  ls.sort()
+  return ls
+
+def walk_cb(ls, dirname, fnames):
+  d = dirname[len(ls[0]):]
+  for f in fnames:
+    fpath = os.path.join(dirname, f)
+    ls.append(fpath)
+
+def clean(dir):
+  now = datetime.datetime.now()
+  cutoff = now - datetime.timedelta(days=10)
+  children = ls_R(dir)
+  did_something = False
+  for path in children:
+    if not os.path.isdir(path):
+      continue
+    subs = os.listdir(path)
+    if len(subs) > 1:
+      if subs.count('folder.jpg'):
+        try:
+          os.utime(os.path.join(path, 'folder.jpg'), None)
+        except:
+          pass
+      continue
+    if len(subs) == 0:
+      os.rmdir(path)
+      did_something = True
+      print('rm empty folder: %s' % (path))
+      continue
+    if subs[0] == 'folder.jpg':
+      folderFile = os.path.join(path, 'folder.jpg')
+      st = os.stat(folderFile)
+      lastModified = datetime.datetime.fromtimestamp(st.st_mtime)
+      if lastModified > cutoff:
+        continue
+      os.remove(os.path.join(path, 'folder.jpg'))
+      os.rmdir(path)
+      did_something = True
+      print('removed folder with only show image: %s' % (path))
+      continue
+  return did_something
+
+if __name__ == '__main__':
+  for arg in sys.argv[1:]:
+    while clean(arg):
+      print('yay')
+      pass

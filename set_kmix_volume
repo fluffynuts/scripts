@@ -1,0 +1,2 @@
+#!/bin/sh
+qdbus org.kde.kmix /Mixers/0/combined org.freedesktop.DBus.Properties.Set org.kde.KMix.Control volume 35

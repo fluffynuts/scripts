@@ -1,0 +1,6 @@
+#!/bin/sh
+if test -z "$(ps aux | grep -vw ps | grep -v grep | grep Borderlands)"; then
+  $(dirname $0)/enable-mouse-volume
+else
+  $(dirname $0)/disable-mouse-volume
+fi

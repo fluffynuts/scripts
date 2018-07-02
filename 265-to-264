@@ -1,0 +1,33 @@
+#!/usr/bin/env python3
+import sys
+import os
+from pymediainfo import MediaInfo
+
+PROFILE='ipad-webop-better'
+
+def as_file_list(input):
+    if os.path.isdir(input):
+      return map(lambda f: os.path.join(input, f), os.listdir(input))
+    else:
+      return [input]
+
+def get_media_types_from(info):
+  return [t.internet_media_type for t in info.tracks  if t.internet_media_type != None]
+
+def has_265(lst):
+  return len([i for i in lst if i == 'video/H265']) > 0
+
+def find_265_encoded_files(paths):
+  for path in paths:
+    files = as_file_list(path)
+    for file in files:
+      media_info = MediaInfo.parse(file)
+      media_types = get_media_types_from(media_info)
+      if has_265(media_types):
+        print('should convert: ', file)
+        cmd = 'HandBrakeCLI -Z "' + PROFILE + '" -i "' + file + '" -o "' + os.path.splitext(file)[0] + '.m4v"'
+        os.system(cmd)
+
+if __name__ == "__main__":
+  find_265_encoded_files(sys.argv[1:])
+#  input_files = find_265_encoded_

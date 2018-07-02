@@ -1,0 +1,2 @@
+#!/bin/sh
+NO_REBOOT=1 LOGFILE=stdout $(dirname $0)/update_mede8er.sh series

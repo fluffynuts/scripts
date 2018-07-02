@@ -1,0 +1,10 @@
+#!/bin/sh
+echo "exiting now"
+exit 0
+if test "$(whoami)" = "root"; then
+  su daf -c "$0";
+  exit 0
+fi
+echo "$(date) :: disconnected" >> /tmp/xbox_controller_events
+killall xbox_controller_connected &> /dev/null
+xset +dpms

@@ -1,0 +1,76 @@
+#!/usr/bin/python
+import os
+import sys
+import datetime
+import time
+
+THROTTLE={"slow_down":"2","slow_up":"0","fast_down":"unlimited","fast_up":"5"}
+THROTTLE_MARKER="/tmp/.transmission-throttle"
+TR="transmission-remote"
+WATCH="/var/log/squid/access.log"
+INTERVAL=1
+
+SLACK_PERIOD=60
+UTC_OFFSET=7200
+LAST_UP=""
+LAST_DOWN=""
+
+def set_down_speed(speed):
+	global TR
+	global LAST_DOWN
+	if (LAST_DOWN == speed):
+		return
+	print("Setting down speed to: " + speed)
+	if speed == "unlimited":
+		ret = os.popen(TR + " -D 2>&1").read()
+	else:
+		ret = os.popen(TR + " -d " + speed + " 2>&1").read()
+	ret = ret.lower()
+	if ret.find ("couldn't connect") > -1:
+		print("No connection...")
+		LAST_DOWN = ""
+	else:
+		LAST_DOWN = speed
+
+def set_up_speed(speed):
+	global TR
+	global LAST_UP
+	if (LAST_UP == speed):
+		return
+	print("Setting up speed to: " + speed)
+	if speed == "unlimited":
+		ret = os.popen(TR + " -U 2>&1").read()
+	else:
+		ret = os.popen(TR + " -u " + speed + " 2>&1").read()
+	ret = ret.lower()
+	if (ret.find("couldn't connect") > -1):
+		print("No connection...")
+		LAST_UP = ""
+	else:
+		LAST_UP = speed
+
+def throttle_transmission(type):
+	global THROTTLE
+	down = THROTTLE[type + "_down"]
+	up = THROTTLE[type + "_up"]
+	set_down_speed(down)
+	set_up_speed(up)
+
+def utctime(dt):
+	return (((dt.toordinal()-719163)*24+dt.hour)*60+dt.minute)*60+dt.second
+
+if __name__ == "__main__":
+	while (True):
+		if os.path.isfile(THROTTLE_MARKER):
+			print("throttle via request")
+			throttle_transmission("slow")
+		else:
+			st = os.stat(WATCH)
+			now = utctime(datetime.datetime.now())
+			#print("now: " + str(now) + "   mtime: " + str(st.st_mtime) + "   diff: " + str(now - st.st_mtime - UTC_OFFSET))
+			if ((now - st.st_mtime - UTC_OFFSET) >= SLACK_PERIOD):
+				throttle_transmission("fast")
+			else:
+				print("throttle via web activity (" + str(now - st.st_mtime - UTC_OFFSET) + ")")
+				throttle_transmission("slow")
+		time.sleep(INTERVAL)

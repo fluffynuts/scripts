@@ -1,0 +1,9 @@
+#!/bin/bash
+PA_DEV=alsa_output.1.analog-stereo
+if test -z "$1"; then
+  MUTE=true
+else
+  MUTE=$1
+fi
+
+pacmd set-sink-mute $PA_DEV $MUTE

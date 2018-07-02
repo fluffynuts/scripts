@@ -1,0 +1,5 @@
+#!/bin/sh
+if zenity --question --text "Restart compiz? Are you sure?"; then
+	killall compiz
+	compiz --replace
+fi

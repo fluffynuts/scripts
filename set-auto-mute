@@ -1,0 +1,28 @@
+#!/bin/bash
+AMUTE="Auto-Mute Mode"
+amixer="/usr/bin/amixer -c 0"
+
+function setAutoMute() {
+    toVal=$1
+    echo "---"
+    echo     "$amixer get \"$AMUTE\" | grep Item0 |   awk '{print \$2}' | sed -e \"s/'//g\""
+    CURRENT="$($amixer get "\"$AMUTE\"" | grep Item0 | awk '{print $2}'  | sed -e "s/'//g")"
+    echo $CURRENT
+    echo "---"
+    currentVal="$($amixer get "\"$AMUTE\"" | grep Item0 | awk '{print $2}' | sed -e "s/'//g")"
+    #echo "toVal: $toVal"
+    echo "currentVal: $currentVal"
+    if test "$toVal" != "$currentVal"; then
+        echo "Setting $AMUTE to $toVal"
+        $amixer set "$AMUTE" $toVal
+        setVal "$AMUTE" "$toVal"
+    fi
+}
+
+if test -z "$1"; then
+    echo "Please specify Enabled or Disabled"
+    exit 1
+fi
+
+sleep 1
+setAutoMute "$1"

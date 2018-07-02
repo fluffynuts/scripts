@@ -1,0 +1,16 @@
+#!/bin/bash
+echo -n "Updating hddtemp info"
+nice -n 10 $(dirname $0)/hddtemp-xml.py sda sdb sdc sdd sde -o $(dirname $0)/hddtemp.xml
+nice -n 10 $(dirname $0)/cputemp-xml.py $(dirname $0)/cputemp.xml
+if test "$?" = "0"; then
+	echo " (ok)"
+else
+	echo " (fail)"
+fi
+echo "Start DUG capture cycle"
+nice -n 10 $(dirname $0)/dug -c $(dirname $0)/nea.ini
+let "rem = $(echo $(date +%M) | sed -e 's/^0//') % 5"
+if test "$rem" = "0"; then
+	echo "Start DUG draw cycle"
+	nice -n 15 $(dirname $0)/dug -d $(dirname $0)/nea.ini
+fi

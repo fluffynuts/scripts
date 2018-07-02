@@ -1,0 +1,2 @@
+#!/bin/sh
+adb -d shell pm grant com.oasisfeng.greenify android.permission.DUMP

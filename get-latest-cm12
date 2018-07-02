@@ -1,0 +1,2 @@
+#!/bin/bash
+/home/daf/code/xda-rom-downloader/source/xda-rom-downloader/bin/Debug/xda-rom-downloader.exe -o /mnt/dump/install-src/cm12-i9300/ -p 8923

@@ -1,0 +1,105 @@
+#!/usr/bin/python
+import os
+import sys
+
+config_file = os.path.join(os.path.expanduser("~"), ".g11profiles")
+keycodes = dict()
+keycodes["G1"] = 175
+keycodes["G2"] = 176
+keycodes["G3"] = 177
+keycodes["G4"] = 178
+keycodes["G5"] = 179
+keycodes["G6"] = 180
+keycodes["G7"] = 181
+keycodes["G8"] = 182
+keycodes["G9"] = 183
+keycodes["G10"] = 184
+keycodes["G11"] = 185
+keycodes["G12"] = 186
+keycodes["G13"] = 187
+keycodes["G14"] = 188
+keycodes["G15"] = 189
+keycodes["G16"] = 190
+keycodes["G17"] = 191
+keycodes["G18"] = 192
+
+
+def load_profile(name):
+  global config_file, keycodes
+  in_profile = False
+  gkeynames = list(keycodes.keys())
+  for line in open(config_file, "r"):
+    line = line.strip()
+    if len(line) == 0:
+      continue
+    if in_profile:
+      if line[0] == "[":
+        # new section -- leave
+        return True
+      parts = line.split("=")
+      if len(parts) < 2:
+        print("Bad config line: %s" % (line))
+        continue
+      gkey = parts[0].strip().upper()
+      if not gkeynames.count(gkey) > 0:
+        print("Unknown G key: %s" % (gkey))
+      keycode = keycodes[gkey]
+      bind = "=".join(parts[1:])
+      cmd = "xmodmap -e \"keycode %i = %s\"" % (keycode, bind.strip())
+      if os.system(cmd) != 0:
+        print("xmodmap doesn't like the commandline:")
+        print(cmd)
+    if line == ("[%s]" % (name)):
+      print("in profile: %s" % name)
+      in_profile = True
+      continue
+  if in_profile:
+    return True
+  print("Unable to find profile: %s" % (name))
+  return False
+
+def usage():
+  print("Usage: %s -p <profile>" % (os.path.basename(sys.argv[0])))
+  print(" profiles are read from the ini-style config at:")
+  print("  %s" % (config_file))
+  print(" which has profile names for section names and")
+  print(" <GKey> = <map>")
+  print(" for contents; ie:")
+  print(" [Quake3]")
+  print(" G7=q")
+  print(" G8=w")
+  print("  ... etc ...")
+  print(" map values are valid xmodmap keysym names")
+  print(" see man(1) xmodmap. This script wraps commands like:")
+  print(" \"xmodmap -e 'keycode <g11 code> = <key sym>'\"")
+
+def mkskel():
+  global config_file
+  if os.path.isfile(config_file):
+    return
+  fp = open(config_file, "w")
+  fp.write(";Example g11profiles config file\n")
+  fp.write(";[example_profile]\n")
+  fp.write(";G1 = q\n")
+  fp.write(";G2 = w\n")
+  fp.write(";G3 = Control_R\n")
+  fp.close()
+
+if __name__ == "__main__":
+  if not os.path.isfile(config_file):
+    print("No config file found at %s; bailing out" % (config_file))
+    print(" (a skeleton config file will be created for you)")
+    mkskel()
+    sys.exit(1)
+  profile = "default"
+  last_arg = ""
+  for arg in sys.argv[1:]:
+    if ["-p", "-profile", "--profile"].count(arg) > 0:
+      last_arg = "-p"
+      continue
+    if last_arg == "-p":
+      profile = arg
+    last_arg = ""
+
+  if not load_profile(profile):
+    usage()

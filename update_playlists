@@ -1,0 +1,37 @@
+#!/bin/sh
+BASE=/mnt/dump/muzak
+
+if test -z "$QUIET"; then
+  Q=
+else
+  Q="-q"
+fi
+/home/daf/apps/scripts/fappy $Q -x -o $BASE/muzak.xspf $BASE/muzak
+cp $BASE/muzak.xspf /home/daf/.config/audacious/playlist.xspf
+exit 0
+
+# old method with fapg
+cd ~
+ionice -n 7 fapg -f m3u -r -o $BASE.m3u $BASE
+ionice -n 7 fapg -f xspf -r -o $BASE.xspf.tmp $BASE
+echo " -- fixing relative pathing --"
+cat $BASE.xspf.tmp | sed -e 's/<location>.*\/media/<location>file:\/\/\/media/g' -e 's/<\/trackList>//g' -e 's/<\/playlist>//g' > $BASE.xspf
+MVIDBASE=/media/dump/musicvideo
+for f in $MVIDBASE/*; do
+  if test -f "$f"; then
+    BN="$(basename "$f" | sed -e 's/_//g' -e 's/&/&amp;/g')"
+    echo "Adding music vid: $BN"
+    URL="file://$(echo "$f" | sed -e 's/ /%20/g' -e 's/&/&amp;/g')"
+    echo "<track>\n\t<title>$BN</title>\n\t<location>$URL</location>\n</track>" >> $BASE.xspf
+  fi
+done
+echo "</trackList>\n</playlist>" >> $BASE.xspf
+
+ionice -n 7 fapg -f pls -r -o $BASE.pls $BASE
+for f in /media/dump/musicvideo/*; do 
+	if test -f "$f"; then
+		echo "$f" >> /media/muzak/muzak.m3u
+	fi
+done
+#audacious /media/muzak/muzak.m3u &
+#audacious --stop &

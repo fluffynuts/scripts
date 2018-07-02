@@ -1,0 +1,30 @@
+#!/bin/sh
+
+INTERESTING_APPS="tvtime gmplayer mplayer xine vlc"
+INIHIBIT_CMD="xscreensaver-command -deactivate"
+MANUAL_RESET=false
+
+while true; do
+	for app in $(echo $INTERESTING_APPS); do
+		if test -n "$(pidof $app)"; then
+			echo -n "Inhibiting screensaver for $app"
+			INHIBITING="yes"
+            $INHIBIT_CMD &
+		fi
+		while test -n "$(pidof $app)"; do
+			echo -n "."
+			sleep 1
+		done
+		unset DONE_MSG
+		if test -n "$INHIBITING"; then
+            if $MANUAL_RESET; then
+                killall gnome-screensaver-command
+                echo "Resuming normal operation"
+            fi
+			unset INHIBITING
+			echo
+		fi
+	done
+    echo "Nothing to do"
+    sleep 30
+done

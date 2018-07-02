@@ -1,0 +1,14 @@
+#!/bin/sh
+echo "Exiting now!"
+exit 0
+if test "$(whoami)" = "root"; then
+  su daf -c "$0";
+  exit 0
+fi
+echo "$(date) :: $(whoami) connected" >> /tmp/xbox_controller_events
+while true; do
+  qdbus org.freedesktop.ScreenSaver  /ScreenSaver SimulateUserActivity
+  xset -dpms
+  xdotool keydown Control_L keyup Control_L
+  sleep 10
+done

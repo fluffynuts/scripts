@@ -1,0 +1,14 @@
+#!/bin/sh
+if test -z "$1"; then
+  WORKDIR="."
+else
+  WORKDIR="$1"
+fi
+START="$(pwd)"
+cd "$WORKDIR"
+
+for f in $(find "$WORKDIR" -iname "*.rar"); do
+  unrar x "$f"
+done
+
+cd "$START"

@@ -1,0 +1,166 @@
+#!/usr/bin/python
+import sys
+import os
+import ConfigParser
+import urllib2
+import time
+import datetime
+import signal
+
+CONTROL_FILE="/var/lock/link-watcher.pid"
+class LinkWatcher:
+	def __init__(self, link, interval, mode):
+		self.link = link
+		self.interval = interval
+		self.check_urls = ["http://www.google.co.za", "http://iol.co.za", "http://slashdot.org"]
+		self.bypass_proxy()
+		self.chunk = 64
+
+	def bypass_proxy(self):
+		# stolen from: http://www.voidspace.org.uk/python/articles/urllib2.shtml
+		proxy_support = urllib2.ProxyHandler({})
+		opener = urllib2.build_opener(proxy_support)
+		urllib2.install_opener(opener)
+
+	def check_link(self):
+		for u in self.check_urls:
+			log("Checking: " + u)
+			if self.available(u):
+				log(" -> available")
+				return True
+			else:
+				if u == self.check_urls[-1]:
+					log(" -> fail; bouncing link " + self.link)
+				else:
+					log(" -> fail; trying next in list")
+		self.bounce_link()
+
+	def available(self, url):
+		try:
+			s = urllib2.urlopen(url).read(self.chunk)
+			if (len(s) == self.chunk):
+				return True
+			else:
+				return False
+		except Exception, e:
+			return False
+	
+	def bounce_link(self):
+		os.system("ifdown " + self.link)
+		time.sleep(1)
+		os.system("killall -9 pppd &> /dev/null")
+		time.sleep(1)
+		os.system("ifup " + self.link)
+
+	def watch_link(self):
+		while True:
+			self.check_link()
+			for i in range(self.interval):
+				time.sleep(1)
+
+def usage():
+	print("Usage: " + os.path.basename(sys.argv[0]) + " {stop|start|restart}")
+	sys.exit(1)
+
+def startmsg(s):
+	while (len(s) < 75):
+		s += " "
+	sys.stdout.write(s)
+	sys.stdout.flush()
+
+def okmsg():
+	print("[OK]")
+
+def failmsg():
+	print("[FAIL]")
+
+def log(s):
+	lfile = "/var/log/link-watcher.log"
+	try:
+		st = os.stat(lfile)
+		if (st.st_size > 524288):
+			os.remove(lfile)
+	except Exception, e:
+		pass
+
+	if len(s) == 0:
+		fp = open(lfile, "w")
+		fp.close()
+	else:
+		s = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S :: ") + s
+		open(lfile, "a").write(s + "\n")
+
+def stop_watcher():
+	global CONTROL_FILE
+	if os.path.isfile(CONTROL_FILE):
+		pid = open(CONTROL_FILE, "r").read().strip()
+		if len(pid) == 0:
+			os.remove(CONTROL_FILE)
+			return True
+		try:
+			os.kill(int(pid), 15)
+			try:
+				os.kill(int(pid), 9)
+			except:
+				pass
+		except:
+			pass
+		os.remove(CONTROL_FILE)
+	return True
+
+def mkpidfile():
+	global CONTROL_FILE
+	if not os.path.isfile(CONTROL_FILE):
+		open(CONTROL_FILE, "wb").write(str(os.getpid()))
+		return True
+	else:
+		print(CONTROL_FILE + " already exists... are you sure " \
+			+ os.path.basename(sys.argv[0]) + " isn't already running?")
+		return False
+
+if __name__ == "__main__":
+	if len(sys.argv[1:]) != 1:
+		usage()
+	mode = sys.argv[1]
+	if ["start", "stop", "restart"].count(mode) == 0:
+		usage()
+
+	conf = {"link":"ppp0", "interval":60}
+	cfile = "/etc/link-watcher.conf"
+	if os.path.isfile(cfile):
+		try:
+			c = ConfigParser.ConfigParser()
+			c.read(cfile)
+			if c.has_option("", "link"):
+				conf["link"] = c.get("", "link")
+			if c.has_option("", "interval"):
+				conf["interval"] = c.getint("", opt)
+		except Exception, e:
+			print("Unable to grok config at '" + cfile + "': " + str(e))
+			sys.exit(1)
+
+	if mode == "stop":
+		startmsg("Stopping Link Watcher")
+		log(" -- Stopping Link Watcher --")
+		if stop_watcher():
+			okmsg()
+		else:
+			failmsg()
+	else:
+		if (mode == "restart"):
+			startmsg("Restarting Link Watcher (" + conf["link"] + ")")
+			log(" -- Restarting Link Watcher (" + conf["link"] + ") --")
+			stop_watcher()
+		else:
+			startmsg("Starting Link Watcher (" + conf["link"] + ")")
+			log(" -- Starting Link Watcher (" + conf["link"] + ") --")
+		lw = LinkWatcher(conf["link"], conf["interval"], "start")
+		#lw.watch_link()
+		if (os.fork() == 0):
+			if not mkpidfile():
+				failmsg()
+				sys.exit(1)
+			lw.watch_link()
+		else:
+			signal.signal(signal.SIGCLD, signal.SIG_IGN)
+			okmsg()

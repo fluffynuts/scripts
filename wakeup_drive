@@ -1,0 +1,8 @@
+#!/bin/sh
+for f in $@; do
+  out=$f/.zero_file_for_wakeup
+  echo -n $f ...
+  dd if=/dev/zero of=$out bs=1048576 count=256 conv=fsync > /dev/null
+  rm -f $out
+  echo "(done)"
+done

@@ -1,0 +1,85 @@
+#!/usr/bin/python
+import sys
+import os
+
+audio_quality = 96
+video_quality = 2
+nice = 0
+
+def usage():
+  global audio_quality, video_quality, nice
+  print("Usage: " + os.path.basename(sys.argv[0]) + " {options} [outfile] [infile] {infile} ...")
+  print(" where options are of:")
+  print(" -vq <int>   :: set the video quality (1-9) (def " + str(video_quality)+ ")")
+  print(" -aq <int>   :: set the audio quality (kBps) (def " + str(audio_quality) + ")")
+  print(" -n <int>    :: set the nice level (def: " + str(nice) + ")")
+  print(" -s          :: smaller (fit 640x480)")
+  print(" -o          :: don't prompt to overwrite existing output")
+  sys.exit(0)
+
+lastarg = ""
+
+infiles = []
+outfile = ""
+always_overwrite = False
+scale = False
+for arg in sys.argv[1:]:
+  if ["-vq", "-aq", "-n"].count(arg):
+    lastarg = arg
+    continue
+  if arg == "-o":
+    always_overwrite = True
+    continue
+  if arg == "-h" or arg == "--help":
+    usage()
+  if lastarg == "-vq":
+    try:
+      video_quality = int(arg)
+    except Exception, e:
+      print(arg + " is not a valid integer value")
+      sys.exit(1)
+  elif lastarg == "-aq":
+    try:
+      audio_quality = int(arg)
+    except Exception, e:
+      print(arg + " is not a valid integer value")
+      sys.exit(1)
+  elif lastarg == "-n":
+    try:
+      nice = int(arg)
+    except Exception, e:
+      print(arg + " is not a valid integer value")
+      sys.exit(1)
+  elif lastarg == "-s":
+    scale = True
+  else:
+    if len(outfile) == 0:
+      outfile = arg
+    else:
+      infiles.append(arg)
+
+if (len(outfile)) == 0 or (len(infiles) == 0):
+  usage()
+
+if os.path.isfile(outfile):
+  if not always_overwrite:
+    sys.stdout.write(outfile + " already exists. Overwrite? [y/N]")
+    sys.stdout.flush()
+    ans = sys.stdin.readline().lower()
+    if len(ans) == 0:
+      ans = "n"
+    if ans[0] != "y":
+      sys.exit(0)
+cmd = "nice -n " + str(nice) + " mencoder -o \"" + str(outfile) + "\" -oac mp3lame -lameopts vbr=0:br=" + str(audio_quality) + " -ovc xvid -xvidencopts fixed_quant=" + str(video_quality) + ":vhq=4 "
+if scale:
+    cmd += "-vf scale=640:-3 "
+for f in infiles:
+  if not os.path.isfile(f):
+    print("Can't find file '" + f + "'; bailing out")
+    sys.exit(1)
+  if f == outfile:
+    print("Can't use output file as one of the input files")
+    sys.exit(1)
+  cmd += "\"" + f + "\" "
+  
+os.system(cmd)

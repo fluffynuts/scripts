@@ -1,0 +1,79 @@
+#!/usr/bin/python
+import os
+import sys
+
+def ls_R(dirname, include_dirs=False, prepend_dirname = True): #<<<
+	stack = [dirname]
+	ret = []
+	items = 0
+	while stack:
+		thisdir = stack.pop(0)
+		for f in sorted(os.listdir(thisdir)):
+			items += 1
+			path = os.path.join(thisdir, f)
+			if os.path.isdir(path):
+				if include_dirs:
+					if prepend_dirname:
+						ret.append(path)
+					else:
+						ret.append(path[len(dirname)+1:])
+				stack.append(path)
+				continue
+			if prepend_dirname:
+				ret.append(path)
+			else:
+				ret.append(path[len(dirname)+1:])
+	return ret
+
+if len(sys.argv[1:]) != 2:
+	print("Usage: %s <dir1> <dir2>" % (os.path.basename(sys.argv[0])))
+	sys.exit(1)
+
+d1 = sys.argv[1]
+d2 = sys.argv[2]
+print("Listing %s" % d1)
+d1_files = ls_R(d1)
+print("Listing %s" % d2)
+d2_files = ls_R(d2)
+sys.stdout.write("Comparing...")
+sys.stdout.flush()
+
+# missing from right
+d1_len = len(d1)
+missing = []
+total = len(d1_files)
+idx = 0
+for f in d1_files:
+	idx += 1
+	if idx % 100 == 0:
+		perc = (idx * 100) / total
+		sys.stdout.write("\r%s\rComparing... %i %%" % (60 * " ", perc))
+		sys.stdout.flush()
+	rel = f[d1_len:]
+	d2_check = d2 + rel
+	if d2_check in d2_files:
+		if os.path.isfile(f):
+			d1_size = os.stat(f).st_size
+			d2_size = os.stat(d2_check).st_size
+			if d1_size != d2_size:
+				missing.append(f)
+			else:
+				d2_files.remove(d2_check)
+		else:
+			missing.append(d2_check)
+	else:
+		missing.append(d2_check)
+sys.stdout.write("\r%s\r" % (" " * 60))
+equal = True
+if len(missing) > 0:
+	equal = False
+	print("== Missing files: ==")
+	for f in missing:
+		print(f)
+if len(d2_files) > 0:
+	equal = False
+	print("== Added files ==")
+	for f in d2_files:
+		print(f)
+if equal:
+	print("%s ~ %s" % (d1, d2))

@@ -1,0 +1,50 @@
+#!/bin/bash
+dev="$1"
+if test -z "$dev"; then
+  echo "Usage: $0 <dev> <label>"
+  exit 1
+fi
+label="$(echo $2 | tr -d \"\'\" )"
+if test -z "$label"; then
+  label="$dev"
+fi
+
+dlgref=""
+
+function setDlgProp() {
+      qdbus $(echo $dlgref) org.freedesktop.DBus.Properties.Set org.kde.kdialog.ProgressDialog $1 $2
+}
+
+function status() {
+  if test ! -z "$dlgref"; then
+    perc="$1"
+    if test ! -z "$perc"; then
+      setDlgProp value $perc
+    fi
+    text="$2"
+    if test ! -z "$text"; then
+      qdbus $(echo $dlgref) org.kde.kdialog.ProgressDialog.setLabelText "$text"
+    fi
+  fi
+}
+
+function closeDlg() {
+  if test ! -z "$dlgref"; then
+    qdbus $(echo $dlgref) org.kde.kdialog.ProgressDialog.close
+  fi
+}
+
+function mkDlg() {
+  dlgref=$(kdialog --title "Sorting and removing $label" --progressbar "Please wait..." 100)
+}
+
+if test ! -z "$(file -s $dev | grep FAT)"; then
+(
+  mkDlg
+  status 50 "Sorting $label: Please do not remove device..."
+  fatsort -c $dev
+  status 100 "$label sorted and unmounted: safe to remove"
+  sleep 5
+  closeDlg
+)
+fi

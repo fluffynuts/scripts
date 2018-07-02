@@ -1,0 +1,417 @@
+#!/usr/bin/python -Wignore::DeprecationWarning
+#vim: expandtab shiftwidth=2 tabstop=2
+import sys
+import os
+import tempfile
+import shutil
+import sqlite3
+import datetime
+import time
+
+try:
+  import kaa
+  import kaa.metadata
+except Exception, e:
+  print("You need to have python-kaa-metadata installed to run this script")
+  sys.exit(1)
+
+max_width = 720
+max_height = 576
+debug = True
+target_br=3000
+last_arg = ""
+files = []
+always_reencode = False
+ignore_shared = False
+accepted_codecs = ["divx", "xvid", "div3", "dx50"]
+output = None
+srcdir = None
+video_extensions = [".avi", ".wmv", ".mkv", ".xvid", ".divx", ".mpg"]
+output_set = False
+dummy = False
+fake_it = False
+never_reencode = False
+expire_media = False
+
+def status(s = "\n"):
+  sys.stdout.write("\r%s\r%s" % ((65 * " "), s))
+  sys.stdout.flush()
+
+def ls_R(dir, include_dirs=False):
+  global video_extensions
+  stack = [dir]
+  ret = []
+  items = 0
+  while stack:
+    thisdir = stack.pop(0)
+    for f in sorted(os.listdir(thisdir)):
+      items += 1
+      if items % 100 == 0:
+        status("Listing directory contents... %i" % (items))
+      path = os.path.join(thisdir, f)
+      if os.path.isdir(path):
+        if include_dirs:
+          ret.append(path)
+        stack.append(path)
+        continue
+      if video_extensions.count(os.path.splitext(f)[1].lower()) > 0:
+        ret.append(path)
+  status()
+  return ret
+
+def ensure_dir_exists(dirname):
+  if dirname == "" or dirname == "." or dirname == "..":
+    return True
+  if not os.path.isdir(dirname):
+    try:
+      os.mkdir(dirname)
+      return True
+    except Exception as e:
+      print("\033[01;31mUnable to find or create required dir:\n%s\033[0m" % (dirname))
+      return False
+  return True
+
+def usage():
+  bn = os.path.basename(sys.argv[0])
+  print(bn + ": batch xvid rescaler")
+  print("  rescales one or more files to fit a bitrate and max geometry")
+  print("Usage: " + os.path.basename(sys.argv[0]) + " {opts} file1 {file2 ...}")
+  print(" where opts are of:")
+  print(" -a           always re-encode; if not set, only")
+  print("                files which exceed the max width/height")
+  print("                or aren't xvid/divx are re-encoded")
+  print(" -d           dummy-run: don't actually encode or copy")
+  print(" -e           expire media after it's shared")
+  print(" -f           fake run: don't copy or encode; just register")
+  print("                useful to establish a baseline")
+  print(" -h <int>     set max height (def: " + str(max_height) + ")")
+  print(" -i           ignore saved shared hints from database:")
+  print("                just copy anyway")
+  print(" -n           never re-encode; just copy")
+  print(" -o <path>    output file here (single file run) or output dir")
+  print("                here (when -s specified) (default: scaled)")
+  print(" -r <int>     set bitrate (def: " + str(target_br) + ")")
+  print(" -s <dir>     batch-read all files from this dir (def: not set)")
+  print(" -w <int>     set max width (def: " + str(max_width) + ")")
+
+def copy_or_transcode(src, dst, only_do_copy, idx, qlen, force_transcode = False):
+  global dummy, never_reencode
+  try:
+    st = os.stat(src)
+  except:
+    print("\033[01;31mnable to stat file: '%s'\033[0m" % (src))
+    return False
+
+  if never_reencode:
+    if ensure_dir_exists(os.path.dirname(dst)):
+      try:
+        print("Copying %s" % src)
+        shutil.copyfile(src, dst)
+        return True
+      except Exception as e:
+        print("Copy fails:")
+        print(" (%s)" % str(e))
+        try:
+          os.remove(dst)
+        except:
+          pass
+        sys.exit(1)
+
+  if os.path.isfile(os.path.join(os.getcwd(), src)):
+    src = os.path.join(os.getcwd(), src)
+  if os.path.isfile(dst):
+    st_src = os.stat(src)
+    st_dst = os.stat(dst)
+    if True or st_src.st_size == st_dst.st_size:
+      print("[%i/%i] %s already exists" % (idx,qlen,dst))
+      register_share(src, dst)
+      return True
+  try:
+    info = kaa.metadata.parse(src)
+  except Exception as e:
+    info = None
+
+  if info == None:
+    print("[%i/%i] Unable to parse info for %s" % (idx,qlen))
+    if force_transcode:
+      print(" -> always encode set; ignoring this file")
+      return False
+    print(" -> copying anyway (good luck)")
+    if dummy:
+      return True
+    if ensure_dir_exists(os.path.dirname(dst)):
+      try:
+        shutil.copyfile(src, dst)
+        return True
+      except Exception as e:
+        print("Copy fails:")
+        print(" (%s)" % (str(e)))
+        try:
+          os.remove(dst)
+        except:
+          pass
+        sys.exit(1)
+    else:
+      return False
+
+  if len(info.video) == 0:
+    print("\033[01;31m[%i/%i] Unable to get video info for %s\033[0m" % (idx, qlen, src))
+    return False
+  # if the input fps > 25, set down to PAL (24) so that the divx profile
+  # works
+  ofps = " -ofps 24"
+  if not ensure_dir_exists(os.path.dirname(output)):
+    return False
+  
+  varel = 0.9   # video / audio relative size within stream; guesswork
+  if info.video[0].width > max_width:
+    new_width = max_width
+    new_height = -2
+  elif info.video[0].height > max_height:
+    new_width = -2
+    new_height = max_height
+  elif accepted_codecs.count(str(info.video[0].fourcc).lower()) == 0:
+    new_width = info.video[0].width
+    new_height = info.video[0].height
+  else:
+    # TODO: handle videos which are in the right size range, passing
+    #   through XVID for profile=dxnhtpal with the same output size
+    if not force_transcode:
+      sys.stdout.write("\033[01;33m[%i/%i] %s => %s\033[0m" % (idx, qlen, src, dst)) 
+      sys.stdout.flush()
+      try:
+        if not dummy:
+          ensure_dir_exists(os.path.dirname(dst))
+          shutil.copyfile(src, dst)
+        print("\033[01;32m [ OK ]\033[0m\n")
+        return True
+      except Exception as e:
+        print("\033[31m [FAIL]\033[0m")
+        print(" (%s)" % (str(e)))
+        # copy failure is probably catastrophic
+        os.remove(dst)
+        sys.exit(1)
+    print("\033[01;34mVideo %s acceptable; re-encoding as per cmdline request\033[0m")
+    new_width = info.video[0].width
+    new_height = info.video[0].height
+
+  if only_do_copy:
+    print("\033[01;35m[%i/%i] %s to be put on transcode stack...\033[0m" % (idx, qlen, src))
+    return False
+
+  audio_override = ""
+  afile = "/tmp/shared_media_audio.wav"
+  if False and os.path.splitext(src)[-1].lower() == ".mkv":
+    # pre-process audio out
+    print("\033[01;33m[%i/%i] MKV workaround: getting audio for %s" % (idx,qlen,src))
+    cmd = "mplayer \"%s\" -nocorrect-pts -ao pcm:fast:file=%s -vc null -vo null" % (src, afile)
+    print("cmd: %s" % (cmd))
+    audio_override = " -audiofile %s" % (afile)
+    if dummy:
+      pass
+    elif os.system(cmd):
+      print("failed cmd: %s" % (cmd))
+      return False
+
+  print("audio_override: %s" % (audio_override))
+  print("\033[01;33m[%i/%i] Transcoding: (%s)...\033[0m" % (idx, qlen, src))
+  cmd = ("mencoder \"%s\" -o \"%s\" -ovc xvid -xvidencopts " \
+    + "fixed_quant=2:vhq=4:qpel:gmc:threads=1:rc_buffer=65536:" \
+    + "profile=dxnhtpal -af resample=44100:0:2 -srate 44100 " \
+    + "-oac mp3lame -lameopts vbr=4:q=2:aq=2:mode=1 "\
+    + "-sid 999 -vf scale=%s:%s:1%s %s") % (src, dst, str(new_width), str(new_height), ofps, audio_override)
+  ensure_dir_exists(os.path.dirname(dst))
+  if dummy:
+    print("cmd: %s" % cmd)
+    return True
+  elif os.system(cmd):
+    print("failed cmd: %s" % (cmd))
+    return False
+  else:
+    if os.path.isfile(afile):
+      try:
+        os.remove(afile)
+      except:
+        pass
+    return True
+
+if (len(sys.argv) == 1):
+  usage()
+  sys.exit(1)
+
+db = os.path.join(os.path.expanduser("~"), "shared_media.db")
+create_db = False
+if not os.path.isfile(db):
+  create_db = True
+
+conn = sqlite3.connect(db)
+if create_db:
+  print ("\033[01;31mCreating shared db at %s\033[0m" % db)
+  cur = conn.cursor()
+  cur.execute("create table tb_shared (src text, dst text, date text);")
+  conn.commit()
+
+def register_share(src, dst):
+  global dummy, fake_it, expire_media
+  if dummy:
+    return
+  global conn
+  if fake_it:
+    sys.stdout.write("Faking share: %s" % dst)
+    sys.stdout.flush()
+  cur = conn.cursor()
+  cur.execute("insert into tb_shared (src, dst, date) values ('%s', '%s', '%s');"\
+    % (src.replace("'", "''"), dst.replace("'", "''"), datetime.datetime.today().strftime("%Y-%m-%d %H:%M:%S")))
+  conn.commit()
+  if fake_it:
+    print("  [OK]")
+  if expire_media:
+    print("Expiring #1 %s" % src)
+    if not dummy:
+      os.remove(src)
+
+def already_shared(src, dst, idx, qlen):
+  global conn, ignore_shared, fake_it, dummy, expire_media
+  if ignore_shared:
+    return False
+  cur = conn.cursor()
+  cur.execute("select src, dst, date from tb_shared where dst='%s'" %\
+    (dst.replace("'", "''")))
+  rows = cur.fetchall()
+  if len(rows):
+    if not fake_it:
+      print("\033[01;36m[%i/%i] %s probably already shared:" % (idx, qlen, src))
+      for r in rows:
+        print("%s: %s -> %s" % (r[2], r[0], r[1]))
+      print("\033[0m")
+      if expire_media:
+        print("Expiring #2 %s" % src)
+        if not dummy:
+          os.remove(src)
+    return True
+  return False
+
+if __name__ == "__main__":
+  try:
+    # renice ourselves
+    cmd = "renice -n 19 %i" % os.getpid()
+    os.system(cmd)
+    cmd = "ionice -c 3 -p %i" % os.getpid()
+    os.system(cmd)
+
+    for arg in sys.argv[1:]:
+      if arg == "-e":
+        expire_media = True
+      elif arg == "-f":
+        fake_it = True
+      elif arg == "-n":
+        never_reencode = True
+      elif arg == "-i" or arg == "--ignore-shared":
+        ignore_shared = True
+      elif arg == "-h" or arg == "--help":
+        usage()
+        sys.exit(0)
+      elif ["-r", "-w", "-h", "-s", "-o"].count(arg) > 0:
+        last_arg = arg
+      elif arg == "-a":
+        always_reencode = True
+      elif arg == "-d":
+        dummy = True
+      else:
+        if last_arg == "-w":
+          try:
+            max_width = int(arg)
+          except:
+            print("-w requires an integer argument")
+            sys.exit(1)
+        elif last_arg == "-h":
+          try:
+            max_height = int(arg)
+          except:
+            print("-h requires an integer argument")
+          sys.exit(1)
+        elif last_arg == "-r":
+          try:
+            target_br = int(arg)
+          except:
+            print("-r requires an integer argument")
+        elif last_arg == "-s":
+          srcdir = arg
+        elif last_arg == "-o":
+          output = arg
+        else:
+          if os.path.isdir(arg):
+            if srcdir == None:
+              srcdir = arg
+            elif output == None:
+              output = arg
+            else:
+              print("srcdir already set; bad arg %s" % (arg))
+              sys.exit(1)
+          else:
+            files.append(arg)
+
+    if output == None:
+      print("Output directory must be specified")
+      usage()
+      sys.exit(0)
+    srcdir_files = []
+    if srcdir != None:
+      srcdir_files = ls_R(srcdir)
+    if len(files) == 0 and len(srcdir_files) == 0:
+      print("Please specify at least one source file or directory containing files")
+      usage()
+      sys.exit(1)
+    to_transcode = []
+    idx = 0
+    qlen = len(files)
+    for f in files:
+      idx += 1
+      dstfile = os.path.join(output, os.path.basename(f))
+      if not never_reencode:
+        dstfile = ".".join(dstfile.split(".")[:-1]) + ".avi"
+      if not already_shared(f, dstfile, idx, qlen):
+        if fake_it:
+          register_share(f, dstfile)
+        elif not copy_or_transcode(f, dstfile, True, idx, qlen):
+          to_transcode.append([f, dstfile])
+        else:
+          register_share(f, dstfile)
+
+    idx = 0
+    qlen = len(srcdir_files)
+    for f in srcdir_files:
+      idx += 1
+      basename = f[len(srcdir) + len(os.sep):]
+      dstfile = os.path.join(output, os.path.basename(f))
+      dstfile = ".".join(dstfile.split(".")[:-1]) + ".avi"
+      if not already_shared(f, dstfile, idx, qlen):
+        if fake_it:
+          register_share(f, dstfile)
+        elif not copy_or_transcode(f, dstfile, True, idx, qlen):
+          to_transcode.append([f, dstfile])
+        else:
+          register_share(f, dstfile)
+
+    idx = 0
+    qlen = len(to_transcode)
+    if len(to_transcode):
+      print("Plain copies complete; starting transcode operations")
+      print(" -> %i items on the transcode stack" % (qlen))
+      for t in to_transcode:
+        idx += 1
+        if copy_or_transcode(t[0], t[1], False, idx, qlen):
+          register_share(t[0], t[1])
+        else:
+          try:
+            os.remove(t[1])
+          except:
+            pass
+          print("Transcode fails; press ctrl-c to exit")
+          # give a moment to catch another ctrl-c if that's what happened
+          time.sleep(3)
+    
+    conn.close()
+  except KeyboardInterrupt:
+    print(" (aborted)")
+

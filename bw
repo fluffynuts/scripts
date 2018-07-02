@@ -1,0 +1,51 @@
+#!/usr/bin/python
+import sys
+import os
+import sqlite3
+import datetime
+
+def utctime(dt):
+	return (((dt.toordinal()-719163)*24+dt.hour)*60+dt.minute)*60+dt.second
+
+now = datetime.datetime.now()
+start = datetime.datetime(now.year, now.month, 1)
+
+ttstart = utctime(start)
+ttcend = utctime(now)
+
+conn = sqlite3.connect("/opt/ham/nea.db")
+c = conn.execute("select oidid, value, created from tbldata where oidid in (1,2) order by oidid, created asc")
+
+totals = dict()
+totals[1] = 0
+totals[2] = 0
+last_val = 0.0
+got_first = False
+for row in c:
+	if len(str(row[1])) == 0:
+		continue
+	if not got_first:
+		got_first = True
+		last_val = float(row[1])
+		continue
+
+	val = float(row[1])
+	if (val >= last_val):
+		diff = val - last_val
+		#print("*" + str(row[0]) + "  " + str(last_val) + "  " + str(val) + "  "\
+		#	+ str(row[2]) + "  "+ str(diff))
+		totals[row[0]] += diff
+	else:
+		#print("#" + str(row[0]) + "  " + str(last_val) + "  " + str(val) + "  "\
+		#	+ str(row[2]))
+		totals[row[0]] += val
+	last_val = val
+
+for i in [1,2]:
+	totals[i] = totals[i] / (1024.0 * 1024.0)
+
+
+print("Bandwidth: In: %.1f MB" % totals[1]\
+	+ "  Out: %.1f MB" % totals[2] \
+	+ "  Total: %.1f MB" % (totals[1] + totals[2])\
+	+ "  Rem: %.1f MB" % ((1024 * 10) - (totals[1] + totals[2])))

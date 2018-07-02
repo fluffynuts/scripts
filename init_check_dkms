@@ -1,0 +1,24 @@
+#!/bin/bash
+
+function reconfigure() {
+  module="$1"
+  pkg="$2"
+  if modinfo $module &> /dev/null; then
+    return
+  fi
+  echo -n "Reconfiguring $1"
+  if dpkg-reconfigure $1 &> /dev/null; then
+    echo " (ok)"
+  else
+    echo " (fail)"
+  fi
+}
+
+case "$1" in
+  start|reload|restart|force-reload)
+  reconfigure nvidia nvidia-kernel-dkms
+  reconfigure vboxdrv virtualbox-dkms
+  ;;
+  stop)
+  ;;
+esac

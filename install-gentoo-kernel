@@ -1,0 +1,9 @@
+#!/bin/bash
+if test ! -e /usr/src/linux/.config; then
+  echo "Please copy in a .config and try again"
+  exit 1
+fi
+
+genkernel --oldconfig all
+emerge @module-rebuild
+grub-mkconfig -o /boot/grub/grub.cfg

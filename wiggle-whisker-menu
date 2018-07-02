@@ -1,0 +1,5 @@
+#!/bin/sh
+sleep 60
+xfce4-popup-whiskermenu
+sleep 1
+xfce4-popup-whiskermenu

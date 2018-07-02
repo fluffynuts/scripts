@@ -1,0 +1,21 @@
+#!/usr/bin/python
+import os
+import sys
+
+for f in sys.argv[1:]:
+	if os.path.isfile(f) or os.path.isdir(f):
+		pathparts = os.path.split(f)
+		fparts = pathparts[1].split("-")
+		gotnum = False
+		try:
+			num = int(fparts[0])
+			gotnum = True
+		except:
+			pass
+
+		if gotnum:
+			newname = "-".join(fparts[1:])
+			os.rename(f, os.path.join(pathparts[0], newname))
+		else:
+			print f,"doesn't seem to have a leading number in the file name?"
+

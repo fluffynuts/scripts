@@ -1,0 +1,5 @@
+#!/bin/bash
+cd ~/apps
+tar zxf ViewPower-working.tar.gz
+./ViewPower/__start__ &
+cd -

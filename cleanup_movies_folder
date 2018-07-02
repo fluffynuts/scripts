@@ -1,0 +1,7 @@
+#!/bin/bash
+BASE=/mnt/piggy/movies/new
+rm -f $BASE/*.idx
+rm -f $BASE/*.nfo
+rm -f $BASE/*.NFO
+rm -f $BASE/*.sub
+rm -f $BASE/*.srt

@@ -1,0 +1,3 @@
+#!/bin/bash
+xvkbd -text "\[XF86AudioLowerVolume]"
+xvkbd -text "\[XF86AudioRaiseVolume]"

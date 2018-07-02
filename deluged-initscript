@@ -1,0 +1,108 @@
+#!/bin/bash
+
+. /lib/lsb/init-functions
+
+OPTS=/etc/default/deluged
+runas=""
+port=""
+configdir=""
+deluged=deluged
+pidfile=/var/lock/deluged.pid
+startdelay=30
+
+if test -f $OPTS; then
+	source $OPTS
+fi
+
+err=0
+for var in runas port; do
+	eval tmp=\$$var
+	if test -z "$tmp"; then
+		echo "No $var set in $OPTS"
+		err=1
+	fi
+done
+
+if test -z "$configdir"; then
+	configdir=/home/$runas/.config/deluge
+fi
+
+if test $err = 1; then
+	exit 1
+fi
+
+
+function stop_deluged()
+{
+	log_daemon_msg "Stopping torrent daemon" "deluged"
+	if test -f $pidfile; then
+		pid=$(cat $pidfile)
+		if test -d /proc/$pid; then
+			su $runas -c "kill -15 $pid"
+		fi
+		for ((i = 0; $i < 15; i++)); do
+			if test -d /proc/$pid; then
+				if test $i = 0; then
+					echo -n "waiting "
+				fi
+				echo -n "."
+				sleep 1
+			else
+				break
+			fi
+		done
+		if test -d /proc/$pid; then
+			su $runas -c "kill -9 $pid"
+		fi
+		for ((i = 0; $i < 5; i++)); do
+			if test -d /proc/$pid; then
+				echo -n .
+				su $runas -c "kill -9 $pid"
+				sleep 1
+			else
+				break
+			fi
+		done
+		if test -d /proc/$pid; then
+			echo "$pid won't die -- are you sure $runas can stop it?"
+			log_end_msg 1
+		else
+			su $runas -c "rm $pidfile"
+			log_end_msg 0
+		fi
+	else
+		log_end_msg 0
+	fi
+}
+
+function start_deluged ()
+{
+	log_daemon_msg "Starting torrent daemon" "deluged"
+	if test -f $pidfile; then
+		pid=$(cat $pidfile)
+		if test -d /proc/$pid; then
+			log_end_msg 1
+			echo "deluged already running with pid $pid"
+			exit 1
+		fi
+		echo "Removing stale pidfile at $pidfile"
+		rm $pidfile
+	fi
+	su $runas -c "$deluged --port=$port --config=$configdir --pidfile=$pidfile"
+	log_end_msg 0
+}
+
+case "$1" in
+	start)
+		start_deluged
+	;;
+	stop)
+		stop_deluged
+	;;
+	restart)
+		stop_deluged
+		start_deluged
+	;;
+	*)
+		echo "Usage: $(basename $0) {start|stop|restart}"
+esac

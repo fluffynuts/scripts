@@ -1,0 +1,5 @@
+#!/bin/sh
+
+for f in $(find . -iname '*.mp4' | sed -e 's/^/"' | sed -e 's/$/"/'); do
+    echo HandbrakeCLI -p "AppleTV 3" -i "$f" -o "$(echo "$f" | sed -e 's/\.mkv/.mp4/g')"
+done

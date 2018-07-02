@@ -1,0 +1,146 @@
+#!/bin/bash
+STICKY_FILE=/tmp/select_sound_output.sticky
+HEADPHONES_DEFAULT_LEVEL=63
+SPEAKERS_DEFAULT_LEVEL=48
+HEADPHONES=Headphone
+SPEAKERS=Front
+AMUTE="Auto-Mute Mode"
+AUTO_SET_SOUND="$(dirname $0)/autoset-sound"
+KMIX_SCRIPT="$(dirname $0)/set-kmix-master"
+
+if test -e $STICKY_FILE; then
+  if test ! -z "$FORCE"; then
+    echo "Unsticking sound selection..."
+    rm -f $STICKY_FILE
+  elif test ! -z "$1" && test -z "$STICKY"; then
+    echo "Sticky sound selection set to $(cat $STICKY_FILE); not changing"
+    exit
+  fi
+fi
+
+if test -z "$1"; then
+  OUTPUT=""
+else
+  OUTPUT="$1"
+fi
+amixer="/usr/bin/amixer -c PCH"
+amixer_headphones="/usr/bin/amixer -c V2000"
+
+function unmuteEverything {
+    declare -a channels=("Master" "Headphone" "Surround" "Center" "LFE" "Side")
+    for channel in "${channels[@]}"; do
+        $amixer set "$channel" unmute
+    done
+}
+
+
+function setVal() {
+    TARGET=$1
+    TO_VAL=$2
+    LOCAL_AMIXER=$3
+    if test -z "$AMIXER"; then
+      LOCAL_AMIXER=$amixer
+    fi
+    CURRENT_VAL=$($LOCAL_AMIXER get "$TARGET" | grep "Left: Playback" | awk '{print $4}')
+    if test "$TO_VAL" != "$CURRENT_VAL"; then
+        echo $LOCAL_AMIXER set "$TARGET" "$TO_VAL"
+        $LOCAL_AMIXER set "$TARGET" "$TO_VAL"
+    else
+        echo "$TARGET already set to $TO_VAL"
+    fi
+}
+
+function setAutoMute() {
+    toVal=$1
+    currentVal="$($amixer get "\"$AMUTE\"" | grep Item0 | awk '{print $2}' | sed -e "s/'//g")"
+    if test "$toVal" != "$currentVal"; then
+        echo "Setting $AMUTE to $toVal"
+        $amixer set "$AMUTE" $toVal
+        setVal "$AMUTE" "$toVal"
+    else
+        echo "$AMUTE already set to $toVal"
+    fi
+}
+
+function muteDevice() {
+  $amixer set "$1" mute
+}
+
+function unMuteDevice() {
+  $amixer set "$1" unmute
+}
+
+
+
+function mute_headphones() {
+    setAutoMute Disabled
+    setVal $HEADPHONES 0
+    muteDevice $HEADPHONES
+}
+
+function unmute_headphones() {
+    setAutoMute Enabled
+    setVal $HEADPHONES $HEADPHONES_DEFAULT_LEVEL
+    unMuteDevice $HEADPHONES
+}
+function mute_speakers() {
+    setVal $SPEAKERS 0
+    muteDevice $SPEAKERS
+}
+function unmute_speakers() {
+    setVal $SPEAKERS $SPEAKERS_DEFAULT_LEVEL
+    unMuteDevice $SPEAKERS
+}
+function save_sticky_state() {
+  if test ! -z "$STICKY"; then
+    echo $OUTPUT > $STICKY_FILE
+  fi
+}
+function echoSelection() {
+  if ! test -z "$STICKY"; then
+    echo "Selecting STICKY output device: $OUTPUT"
+  else
+    echo "Selecting output device: $OUTPUT"
+  fi
+}
+if  test "$OUTPUT" = "headphones"; then
+  echoSelection
+  unmute_headphones
+  mute_speakers
+  save_sticky_state
+  $KMIX_SCRIPT $OUTPUT
+elif test "$OUTPUT" = "speakers"; then
+  echoSelection
+  mute_headphones
+  unmute_speakers
+  save_sticky_state
+  $KMIX_SCRIPT $OUTPUT
+elif test "$OUTPUT" = "auto"; then
+    if test -e "$STICKY_FILE"; then
+      echo "Setting auto-selection for audio output device"
+      rm -f $STICKY_FILE
+    else
+      echo "Auto-selection already enabled"
+    fi
+else
+  echo "Please select a sound output device:"
+  echo "(a) headphones"
+  echo "(b) speakers"
+  echo "(c) auto-select"
+  echo -n "> "
+  read selection discarded
+  if test -z "$selection"; then
+    $0
+  elif test "$selection" = "a" || test "$selection" = "A" || test ! -z "$(echo headphones | grep -i "$selection")"; then
+    STICKY=1 $0 headphones
+  elif test "$selection" = "b" || test "$selection" = "B" || test ! -z "$(echo speakers | grep -i "$selection")"; then
+    STICKY=1 $0 speakers
+  elif test "$selection" = "c" || test "$selection" = "C" || test ! -z "$(echo auto-select | grep -i "$selection")"; then
+    STICKY=1 $0 auto
+  else
+    $0
+  fi
+fi
+# lastly, unmute all channels - currently we "mute" with a zero volume
+# and the sound card is being retarded: muting any one of the channels mutes everything
+unmuteEverything

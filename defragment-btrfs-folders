@@ -1,0 +1,5 @@
+#!/bin/sh
+for f in /home /usr /bin /etc /lib32 /lib64 /opt /root /run /sbun /usr /var; do
+    echo "defragging $f..."
+    /sbin/btrfs filesystem defragment -r -f $f
+done

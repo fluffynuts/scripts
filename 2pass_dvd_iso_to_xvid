@@ -1,0 +1,164 @@
+#!/usr/bin/python
+
+import time
+import sys
+import os
+
+class Encoder:
+	def __init__(self):
+		self.inputfile = ""
+		self.outputfile = ""
+		self.workingdir = ""
+		self.startingdir = os.getcwd()
+		self.title = 1
+		self.bitrate = 800
+
+	def cleanup(self):
+		if os.path.isdir(self.startingdir):
+			os.chdir(self.startingdir)
+		if os.path.isdir(self.workingdir):
+			for file in os.listdir(self.workingdir):
+				os.remove(os.path.join(self.workingdir, file))
+			os.rmdir(self.workingdir)
+
+	def __del__(self):
+		self.cleanup()
+
+	def make_temp_script(self, cmd):
+		ret = os.path.join(self.workingdir, ".tmp-script")
+		fp = open(ret, "w")
+		fp.write("#!/bin/bash\n" + cmd + "\n")
+		fp.close()
+		os.chmod(ret, 0777)
+		return ret
+	def build_fixed_quant_cmd(self):
+		ret = "nice -n 19 mencoder dvd://" + str(self.title) + " -dvd-device "\
+			+ self.inputfile + " -oac mp3lame -lameopts q=5 -ovc xvid "\
+			+ " -xvidencopts fixed_quant=4 -vf pp=ci -o " + self.outputfile\
+			+ " &> " + self.outputfile + ".log1"
+		return ret
+		
+	def build_first_pass_cmd(self):
+		ret = "nice -n 19 mencoder dvd://" + str(self.title) + " -dvd-device "\
+			+ self.inputfile + " -oac mp3lame -lameopts q=5 -ovc xvid "\
+			+ " -xvidencopts pass=1 -vf pp=ci -o " + self.outputfile\
+			+ " &> " + self.outputfile + ".log1"
+		return ret
+
+	def build_second_pass_cmd(self):
+		ret = "nice -n 19 mencoder dvd://" + str(self.title) + " -dvd-device "\
+			+ self.inputfile + " -oac mp3lame -lameopts q=5 -ovc xvid "\
+			+ " -xvidencopts pass=2:bitrate=" + str(self.bitrate) + " -vf pp=ci -o "\
+			+ self.outputfile + " &> " + self.outputfile + ".log2"
+		return ret
+
+	def do_encode(self):
+		ret = 0
+		if len(self.outputfile) == 0:
+			self.outputfile = os.path.splitext(self.inputfile)[0] + ".avi"
+		if len(self.workingdir) == 0:
+			self.workingdir = os.path.splitext(self.inputfile)[0] + "_working"
+			parts = os.path.split(self.workingdir)
+			self.workingdir = os.path.join(parts[0], "." + parts[1])
+
+		if not os.path.isdir(self.workingdir):
+			os.mkdir(self.workingdir)
+
+		os.chdir(self.workingdir)
+
+		#cmd = self.make_temp_script(self.build_fixed_quant_cmd())
+		#ret = os.system(cmd)
+		cmd = self.make_temp_script(self.build_first_pass_cmd())
+		ret = os.system(cmd)
+		if ret:
+			return ret
+		cmd = self.make_temp_script(self.build_second_pass_cmd())
+		return os.system(cmd)
+
+
+def usage():
+	print "Usage: " + os.path.basename(sys.argv[0])\
+		+ " -i <input iso file> {-o output file} {-w working dir}"
+	print " -t {title} -lf {listfile} -j {jobs}"
+	print "  if not specified, output file name and working dir"
+	print "  are determined from the input file name"
+	sys.exit(0)
+
+def rip_dvd():
+	lastarg = ""
+	knownargs = ["-i", "-o", "-w", "-h", "-t", "-lf", "-j", "-br"]
+	e = Encoder()
+	listfile = ""
+	jobs = 1
+	if (len(sys.argv[1:]) == 0):
+		usage()
+	for arg in sys.argv[1:]:
+		if len(lastarg):
+			if lastarg == "-i":
+				e.inputfile = os.path.abspath(arg)
+			elif lastarg == "-o":
+				e.outputfile = os.path.abspath(arg)
+			elif lastarg == "-w":
+				e.workingdir = os.path.abspath(arg)
+			elif lastarg == "-t":
+				e.title = arg
+			elif lastarg == "-lf":
+				listfile = arg
+			elif lastarg == "-j":
+				jobs = arg
+			elif lastarg == "-br":
+				e.bitrate = arg
+			lastarg = ""
+		elif arg == "-h":
+			usage()
+		elif knownargs.count(arg):
+			lastarg = arg
+		else:
+			print "Unknown argument: " + arg
+			sys.exit(1)
+	if len(listfile):
+		if os.path.isfile(listfile):
+			try:
+				fp = open(listfile, "r")
+			except:
+				print "Unable to open '" + listfile + "' for reading"
+				print os.getcwd()
+				sys.exit(3)
+
+			running = 0
+			procs = dict()
+			pid = 0
+			for line in fp:
+				e = Encoder()
+				line = line.replace("\t", " ").strip(" \n")
+				while line.find("  ") > -1:
+					line = line.replace("  ", " ")
+				parts = line.split(" ")
+				e.title = int(parts[-1])
+				e.inputfile = os.path.abspath(" ".join(parts[0:-1]))
+				fp = open(listfile + ".log", "w")
+				print time.strftime("%Y-%m-%d %H:%M:%S"),\
+					":: Encoding: " + e.inputfile
+				res = e.do_encode()
+				if res == 0:
+					fp.write(time.strftime("%Y-%m-%d %H:%M:%S")\
+						+ " :: Encode of " + e.inputfile\
+						+ " successful\n")
+				else:
+					fp.write(time.strftime("%Y-%m-%d %H:%M:%S")\
+						+ " :: Encode of " + e.inputfile\
+						+ " failed\n")
+				fp.close()
+				del e
+
+		else:
+			print listfile + " is not a file"
+	else:
+		if not os.path.isfile(e.inputfile):
+			print "Can't read from file: " +e.inputfile
+			sys.exit(2)
+
+		e.do_encode()
+
+if __name__ == "__main__":
+	rip_dvd()

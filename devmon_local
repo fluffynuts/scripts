@@ -1,0 +1,10 @@
+#!/bin/bash
+app=$0
+while test ! -z "$(readlink $app)"; do
+  app="$(readlink $app)"
+done
+if test ! -z "$(ps ux | grep devmon | grep -v grep)"; then
+  exit 1
+fi
+mydir=$(dirname $app)
+$mydir/devmon --exec-on-unmount "$mydir/sort_on_unmount \"%f\" \"%l\"" --no-mount --no-unmount -g &>/tmp/devmon.log &

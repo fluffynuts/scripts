@@ -1,0 +1,21 @@
+#!/bin/bash
+
+function fix_dir ()
+{
+	if test -z "$1"; then
+		return
+	fi
+	for f in "$1/*"; do
+		echo "$f"
+		if test -d "$f"; then
+			chmod 775 "$f"
+			fix_dir "$f"
+		else
+			if test -f "$f"; then
+				chmod 664 "$f"
+			fi
+		fi
+	done
+}
+
+fix_dir $1

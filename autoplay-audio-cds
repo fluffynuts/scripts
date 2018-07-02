@@ -1,0 +1,12 @@
+#!/bin/bash
+RUNNING_PID=$(pidof autorun)
+if test ! -z "$RUNNING_PID"; then
+  echo "autorun already running with pid $RUNNING_PID; terminating..."
+  killall -15 autorun
+  sleep 1
+  if test ! -z "$(pidof autorun)"; then
+    echo "autorun not stopping nicely... terminating!"
+    killall -9 autorun
+  fi
+fi
+/usr/bin/autorun -d -c $(dirname $0)/play-audio-cd /dev/sr0

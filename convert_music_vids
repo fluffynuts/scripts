@@ -1,0 +1,74 @@
+#!/usr/bin/python
+import os
+import sys
+
+input_files = []
+video_list = []
+lastarg = ""
+outputdir = ""
+
+
+def convert_video(src):
+	cmd = "nice -n 19 mencoder \"" + src + "\" "
+	cmd += "-ovc xvid -xvidencopts fixed_quant=4 "
+	cmd += "-oac mp3lame -lameopts q=5:aq=0 "
+	fn = os.path.splitext(os.path.split(src)[1])[0]
+	outfile = outputdir + "/" + fn + ".avi"
+	print "Converting '" + src + "'  to  '" + outfile + "'" 
+	cmd += "-o \"" + outfile + "\""
+	#print cmd
+	#sys.exit(0)
+	ret = os.system(cmd)
+	if ret != 0:
+		print "Can't execute mencoder command: "
+		print cmd
+		sys.exit(4)
+
+
+def get_video_list(filename):
+	try:
+		fp = open(filename, "r")
+	except:
+		print "Unable to open '" + filename + "' for reading"
+		sys.exit(3)
+	
+	for line in fp:
+		line = line.strip("\n")
+		if os.path.isfile(line):
+			video_list.append(line)
+		else:
+			print "Unable to find file: '" + line + "'"
+			sys.exit(3)
+
+if len(sys.argv) > 1:
+	for arg in sys.argv[1:]:
+		if arg == "-i" or\
+			arg == "-o":
+			lastarg = arg
+			continue
+		if lastarg == "-o":
+			if not os.path.isdir(arg):
+				print arg, "is not a directory; -o requires an output directory"
+				sys,exit(2)
+			outputdir = arg
+			lastarg = ""
+			continue
+		if lastarg == "-i":
+			if os.path.isfile(arg):
+				input_files.append(arg)
+			else:
+				print "Can't find file '" + arg + "' for file list"
+				sys.exit(2)
+			continue
+		if os.path.isfile(arg):
+			video_list.append(arg)
+
+if not os.path.isdir(outputdir):
+	print "Please specify an output dir for the files (-o switch)"
+	sys.exit(3)
+
+for infile in input_files:
+	get_video_list(infile)
+
+for vidfile in video_list:
+	convert_video(vidfile)

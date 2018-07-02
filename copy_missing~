@@ -1,0 +1,21 @@
+#!/bin/bash
+SRC="$1"
+DST="$2"
+if test -z "$SRC" || test -z "$DST"; then
+  echo "Usage: $0 {dst} {src}"
+  exit 1
+fi
+
+while read -r d; do
+  if test ! -d "$d"; then
+    continue
+  fi
+  $TARGET="$DST/$(basename "$d")"
+  if test ! -d "$TARGET"; then
+    continue
+  fi
+  echo "should sync"
+  echo "$d"
+  echo " =>"
+  echo "$TARGET"
+done < <(find "$DST" -type d -maxdepth 1)

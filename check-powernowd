@@ -1,0 +1,8 @@
+#!/bin/zsh
+
+BASE=/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+if test "$(cat $BASE)" != "userspace"; then
+	echo "Fixing guvner"
+	echo "userspace" > $BASE
+	/etc/init.d/powernowd restart
+fi

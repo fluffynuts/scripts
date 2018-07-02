@@ -1,0 +1,6 @@
+#!/bin/zsh
+for f in /tmp/osd-pipe*; do
+	if test -e $f; then
+		rm -rf $f
+	done
+done

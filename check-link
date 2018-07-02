@@ -1,0 +1,68 @@
+#!/bin/bash
+# checks a connection's activity via an nslookup; bounces if needs be
+
+dev=ppp0
+if test -n "$1"; then
+	dev=$1
+fi
+if test "$2" = "quiet"; then
+	QUIET=1
+fi
+
+let "fail=0"
+# set the env variable SERVERS to override this easily
+if test -z "$SERVERS"; then
+	SERVERS="www.iol.co.za www.google.co.za www.google.com"
+fi
+
+SERVER_COUNT=0
+# count the servers we're going to check -- makes conf easier
+for serv in $(echo $SERVERS); do
+	let "SERVER_COUNT = $SERVER_COUNT + 1"
+done
+
+for serv in $(echo $SERVERS); do
+	if test -z "$(echo "junk" | nc $serv 80 -w 10)"; then
+		let "fail+=1"
+	else
+		break
+	fi
+done
+
+if test "$fail" -lt "$SERVER_COUNT"; then
+	if test -z "$QUIET"; then
+		echo "link $dev is active"
+	fi
+	exit 0
+fi
+
+echo "Bouncing link $dev"
+ifdown $dev
+echo -n "Waiting for ppp0 to go down"
+while ifconfig ppp0 &> /dev/null; do
+	echo -n "."
+	sleep 1
+	killall -9 pppd
+done
+echo
+echo -n "Waiting on pppd processes"
+while test ! -z "$(/bin/pidof pppd)"; do
+	echo -n "."
+	sleep 1
+	killall -9 pppd
+done
+echo
+
+echo "Bringing up $dev"
+ifup $dev
+
+for ((i=0; $i < 10; i++)); do
+	if ifconfig $dev &> /dev/null; then
+		echo "Link $dev is active again"
+		exit 0
+	fi
+	sleep 1
+done
+
+echo "Unable to re-establish link $dev"
+exit 1

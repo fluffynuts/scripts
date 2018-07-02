@@ -1,0 +1,17 @@
+#!/bin/bash
+
+if test "$(whoami)" != "root"; then
+    echo "You must be root to run this... BY THE POWER OF GREYSKULL!"
+    sudo $0
+else
+    #apt-get install curl libunwind8 gettext
+    TMPFILE=/tmp/dotnet.tar.gz
+    DEPLOY_TARGET=/opt/dotnet
+    #curl -# -sSL -o /tmp/dotnet.tar.gz https://go.microsoft.com/fwlink/?LinkID=827530
+    wget -O $TMPFILE https://go.microsoft.com/fwlink/?LinkID=827530
+    mkdir -p /opt/dotnet 
+    sudo tar zxf $TMPFILE -C $DEPLOY_TARGET
+    ln -s $DEPLOY_TARGET/dotnet /usr/local/bin
+fi
+
+

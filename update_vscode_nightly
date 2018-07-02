@@ -1,0 +1,11 @@
+#!/bin/bash
+if test "$(whoami)" != "root"; then
+    echo "Need to be root to install! sudo'ing now..."
+    sudo $0
+    exit 0
+fi
+OUTFILE=/tmp/vscode-insider-nightly$(date "+%Y-%m-%d_%H.%M.%S").deb
+echo Downloading...
+wget 'https://go.microsoft.com/fwlink/?LinkID=760865' -O $OUTFILE
+echo Installing...
+dpkg -i $OUTFILE

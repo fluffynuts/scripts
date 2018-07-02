@@ -1,0 +1,21 @@
+#!/sbin/openrc-run
+# Copyright 1999-2017 Gentoo Foundation
+# Distributed under the terms of the GNU General Public License v2
+
+MONO=$(which mono)
+DAEMON=/home/daf/apps/Radarr/Radarr.exe
+PIDFILE=/var/run/radarr.pid
+USER=daf
+
+depend() {
+	need net
+	need localmount
+}
+
+start() {
+	start-stop-daemon --background --start --exec $MONO --make-pidfile --pidfile $PIDFILE --user $USER -- $DAEMON
+}
+
+stop() {
+	start-stop-daemon --stop --pidfile $PIDFILE
+}

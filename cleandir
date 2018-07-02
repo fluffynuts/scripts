@@ -1,0 +1,23 @@
+#!/bin/bash
+
+function do_clean_dir ()
+{
+	for f in ${1}/*; do
+		if test ! -e ${f}; then
+			return
+		fi
+		if test -d "$f"; then
+			do_clean_dir ${f}
+		else
+			rm "$f"
+		fi
+	done
+}
+
+for d in $@; do
+	if test -d "$d"; then
+		do_clean_dir "$d"
+	else
+		echo "$d not a dir"
+	fi
+done

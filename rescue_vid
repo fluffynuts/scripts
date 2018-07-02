@@ -1,0 +1,43 @@
+#!/bin/bash
+if test -z "$MOUNT"; then
+	MOUNT=/media/DVD
+fi
+if test -z "$MAX_ERRORS"; then
+	MAX_ERRORS=200
+fi
+while true; do
+	if test ! -d $MOUNT; then
+		if test -z "$DONE_ECHO"; then
+			echo -e "\033[1;35m$(date +"%Y-%m-%d %H:%M:%S") :: Waiting for optical media at $MOUNT\033[0m"
+			DONE_ECHO="yes"
+		fi
+		sleep 1
+		continue
+	fi
+	FILES="$(find $MOUNT -iname "*.avi")"
+	echo "$FILES" | while read f; do
+		unset DONE_ECHO
+		if test -f "$f"; then
+			echo -ne "\033[1;33m* $(date +"%Y-%m-%d %H:%M:%S") :: rescuing: $(basename "$f")\033[0m"
+			if test -f "$(basename "$f")"; then
+				if test "$(stat -c "%s" "$f")" -eq "$(stat -c "%s" "$(basename "$f")")"; then
+					echo " (already done)"
+					continue
+				fi
+			fi
+			ddrescue --max-errors=${MAX_ERRORS} -n "$f" "$(basename "$f")"
+		else
+			echo "$f is not a file"
+		fi
+	done
+	while test -d $MOUNT; do
+		if test -z "$DONE_ECHO"; then
+			echo -e "\033[1;36m$(date +"%Y-%m-%d %H:%M:%S") :: Waiting for removal of optical media\033[0m\a"
+			DONE_ECHO="yes"
+		fi
+		sleep 1
+	done
+	unset DONE_ECHO
+	sleep 1
+done
+		

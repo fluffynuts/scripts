@@ -1,0 +1,14 @@
+# example config
+[conf]
+DELAY=90
+
+[start]
+audacious
+transmission-qt
+firefox
+#xbindkeys
+dropbox
+/home/daf/apps/scripts/watchdog-plasmashell
+/home/daf/apps/scripts/watchdog-krunner
+/home/daf/apps/scripts/watchdog-kmix
+steam

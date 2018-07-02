@@ -1,0 +1,22 @@
+#!/usr/bin/python
+import os
+import sys
+
+def runpacmd(args):
+  args.insert(0, "/usr/bin/pacmd")
+  args.append("> /dev/null")
+  os.system(" ".join(args))
+  
+vol = 0x10000 * 0.9
+vol = "0x%x" % (vol)
+cvol = 0x10000 * 0.15;
+cvol = "0x%x" % cvol;
+runpacmd(["set-default-sink", "combined"])
+runpacmd(["set-sink-volume", "alsa_output.usb-Logitech_Logitech_USB_Headset-00-Headset.analog-stereo", vol])
+runpacmd(["set-sink-volume", "alsa_output.pci-0000_00_14.2.analog-stereo", vol])
+runpacmd(["set-sink-volume", "combined", cvol])
+
+fp = os.popen("qdbus org.kde.kmix /Mixers/0/combined org.kde.KMix.Control.absoluteVolumeMax", "r")
+max = int(fp.read().strip())
+desired = max * 0.40
+os.system("qdbus org.kde.kmix /Mixers/0/combined org.kde.KMix.Control.absoluteVolume %i" % (desired))

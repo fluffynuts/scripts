@@ -1,0 +1,33 @@
+#!/bin/bash
+DST="$1"
+shift
+SYNC="$(dirname $0)/medesync.py"
+if test ! -e "$SYNC"; then
+  echo "$SYNC not found"
+  exit 2
+fi
+
+if test -z "$1" || test -z "$DST"; then
+  echo "Usage: $0 [dst] [src1] ... {srcN}"
+  exit 1
+fi
+
+SRC="$1"
+while test ! -z "$SRC"; do
+  while read -r d; do
+    if test ! -d "$d"; then
+      continue
+    fi
+    FULLSRC="$SRC/$(basename "$d")"
+    if test ! -d "$FULLSRC"; then
+      continue
+    fi
+    echo "Sync: [$(basename "$d")] from [$SRC]"
+    "$SYNC" -s "$FULLSRC" -d "$d" -n -l /tmp/$(basename $0)-$$.log
+    # give a chance to break out
+    sleep 1
+  done < <(find "$DST" -maxdepth 1 -type d)
+
+  shift
+  SRC="$1"
+done

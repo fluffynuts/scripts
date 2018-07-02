@@ -1,0 +1,8 @@
+#!/bin/bash
+PREFIX="transmission-remote localhost:9091 -n daf:h4xx0r"
+let "removed = 0"
+for id in $($PREFIX -l | grep 100% | grep -v Downloading | cut -c 1-5 | grep -v ID | grep -v Sum); do
+  $PREFIX -t $id -r
+  let "removed += 1"
+done
+echo "Removed: $removed"

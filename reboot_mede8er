@@ -1,0 +1,11 @@
+#!/usr/bin/expect -f
+spawn telnet mede8er-w
+expect {
+  "login:" { 
+    send "root\r" 
+  }
+}
+expect "#" {
+  send "reboot\r\n"
+}
+interact

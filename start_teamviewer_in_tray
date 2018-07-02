@@ -1,0 +1,5 @@
+#!/bin/bash
+cmd=/opt/teamviewer8/tv_bin/script/teamviewer
+$cmd &
+exit 0
+#ksystraycmd --hidden $cmd &

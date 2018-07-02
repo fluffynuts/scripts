@@ -1,0 +1,2 @@
+#!/bin/bash
+wmsystemtray --non-wmaker --bgcolor gray 

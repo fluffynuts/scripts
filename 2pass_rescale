@@ -1,0 +1,164 @@
+#!/usr/bin/python -Wignore::DeprecationWarning
+#vim: expandtab shiftwidth=2 tabstop=2
+import sys
+import os
+try:
+  import kaa.metadata
+except Exception, e:
+  print("You need to have python-kaa-metadata installed to run this script")
+  sys.exit(1)
+
+max_width = 624
+max_height = 352
+debug = True
+to_remove = []
+target_br=1800
+last_arg = ""
+files = []
+always_reencode = False
+
+def ensure_dir_exists(dirname):
+  if not os.path.isdir(dirname):
+    os.mkdir(dirname)
+def usage():
+  bn = os.path.basename(sys.argv[0])
+  print(bn + ": batch 2-pass xvid rescaler")
+  print("  rescales one or more files to fit a bitrate and max geometry")
+  print("Usage: " + os.path.basename(sys.argv[0]) + " {opts} file1 {file2 ...}")
+  print(" where opts are of:")
+  print(" -a           always re-encode; if not set, only")
+  print("                files which exceed the max width/height")
+  print("                are re-encoded")
+  print(" -h <int>     set max height (def: " + str(max_height) + ")")
+  print(" -w <int>     set max width (def: " + str(max_width) + ")")
+  print(" -r <int>     set bitrate (def: " + str(target_br) + ")")
+
+if (len(sys.argv) == 1):
+  usage()
+  sys.exit(1)
+
+for arg in sys.argv[1:]:
+  if arg == "-h" or arg == "--help":
+    usage()
+    sys.exit(0)
+  if ["-r", "-w", "-h"].count(arg) > 0:
+    last_arg = arg
+  elif arg == "-a":
+    always_reencode = True
+  else:
+    if last_arg == "-w":
+      try:
+        max_width = int(arg)
+      except:
+        print("-w requires an integer argument")
+        sys.exit(1)
+    elif last_arg == "-h":
+      try:
+        max_height = int(arg)
+      except:
+        print("-h requires an integer argument")
+      sys.exit(1)
+    elif last_arg == "-r":
+      try:
+        target_br = int(arg)
+      except:
+        print("-r requires an integer argument")
+    else:
+      files.append(arg)
+
+to_remove = []
+
+for arg in files:
+  try:
+    st = os.stat(arg)
+  except:
+    print "\033[01;31mnable to stat file: '" +  arg + "'\033[0m"
+    continue
+
+  if os.path.isfile(os.path.join(os.getcwd(), arg)):
+    arg = os.path.join(os.getcwd(), arg)
+  print "examining:", arg
+  info = kaa.metadata.parse(arg)
+
+  if len(info.video) == 0:
+    print("\033[01;31mUnable to get video info for " + arg + " \033[0m")
+    continue
+
+  ensure_dir_exists("scaled")
+  
+  plogfile = "divx2pass-" + str(os.getpid()) + ".log"
+  to_remove.append(plogfile)
+  varel = 0.9   # video / audio relative size within stream; guesswork
+  if info.video[0].width > max_width:
+    new_width = max_width
+    new_height = -2
+    #target_size = int(((st.st_size * max_width * varel) / info.video[0].width) / 1024)
+  elif info.video[0].height > max_height:
+    new_width = -2
+    new_height = max_height
+    #target_size = int(((st.st_size * max_height * varel) / info.video[0].height) / 1024)
+  else:
+    # TODO: handle videos which are in the right size range, passing
+    #   through XVID for profile=dxnhtpal with the same output size
+    if not always_reencode:
+      print("\033[01;32mVideo " + arg + " is within accepted size range (max " + str(max_width) + "x" + str(max_height) + ")\033[0m")
+      continue
+    print("\033[01;34mVideo " + arg + " within accepted size; re-encoding as per cmdline request\033[0m")
+    new_width = info.video[0].width
+    new_height = info.video[0].height
+
+  outdir = os.path.dirname(arg) + os.sep + "scaled"
+  if not os.path.isdir(outdir):
+    os.mkdir(outdir)
+  # older commands
+  outfile = os.path.join(outdir, os.path.basename(arg))
+  # force avi extension
+  outfile = os.path.splitext(outfile)[0] + ".avi"
+	# single-pass encoder
+# mencoder The\ Mutant\ Chronicles\ \[2008\].mkv -ovc xvid -xvidencopts fixed_quant=2:vhq=4:qpel:gmc:threads=1:rc_buffer=65536:profile=dxnhtpal -af resample=44100:0:2 -srate 44100 -oac mp3lame -lameopts vbr=4:q=2:aq=2:mode=1 -o /mnt/dump/output.avi -sid 999 -vf scale=720:-2:1
+# check out without profile= on remote player; dxnhtpal hurts quality
+
+  cmd1 = "nice -n 10 mencoder -oac mp3lame -ovc xvid "\
+      + "-xvidencopts vhq=4:threads=0:pass=1:profile=dxnhtpal \""\
+      + arg + "\" -vf scale=" + str(new_width) + ":" + str(new_height)\
+      + ":1 -o /dev/null -passlogfile " + plogfile
+  cmd2 = "nice -n 10 mencoder -oac mp3lame -ovc xvid -xvidencopts "\
+      + "vhq=4:threads=0:pass=1:profile=dxnhtpal:bitrate="\
+      + str(target_br) + " -vf scale=" + str(new_width) + ":"\
+      + str(new_height) + ":1 -o \"" + outfile\
+      + "\" -passlogfile " + plogfile + " \"" + arg + "\""
+  # new, all-lavc commands
+  #cmd1 = "nice -n 10 mencoder -oac lavc -ovc lavc -sid 999 " \
+  #  + "-lavcopts acodec=libmp3lame:vcodec=mpeg4" \
+  #  + ":vme=4:mbd=1:v4mv:vpass=1:vbitrate=" + str(int(target_br)) \
+  #  + ":qpel -vf scale=" + str(new_width) + ":"\
+  #  + str(new_height) + ":1 -o \"/dev/null" \
+  #  + "\" -passlogfile \"" + plogfile\
+  #  + "\" \"" + arg + "\""
+  #cmd2 = "nice -n 10 mencoder -oac lavc -ovc lavc -sid 999 " \
+	#	+ "-lavcopts acodec=libmp3lame:vcodec=mpeg4" \
+  #  + ":vme=4:mbd=1:v4mv:vpass=2:vbitrate=" + str(int(target_br)) \
+  #  + ":qpel -forceidx -vf scale=" + str(new_width) + ":"\
+  #  + str(new_height) + ":1 -o \"" + outfile \
+  #  + "\" -passlogfile \"" + plogfile\
+  #  + "\" \"" + arg + "\""
+  if (debug):
+    print("cmd1: " + cmd1)
+    print("cmd2: " + cmd2)
+    print("")
+  print("\033[01;33m=> Doing first pass...\033[0m")
+  os.system(cmd1)
+  print("\033[01;33m=> Doing second pass... (" + str(int(target_br)) + "kbps)\033[0m")
+  os.system(cmd2)
+
+  if (debug):
+    print("cmd1: " + cmd1)
+    print("cmd2: " + cmd2)
+    print("")
+
+sys.exit(0)
+for f in to_remove:
+  try:
+    os.remove(f)
+  except:
+    pass

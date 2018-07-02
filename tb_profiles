@@ -1,0 +1,4 @@
+#!/bin/sh
+export MOZ_NO_REMOTE=1
+/usr/bin/thunderbird -ProfileManager
+export MOZ_NO_REMOTE=0
