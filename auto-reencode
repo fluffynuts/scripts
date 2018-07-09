@@ -1,0 +1,58 @@
+#!/bin/zsh
+
+function clear_line()
+{
+    echo -n "\r                                                                                                          \r"
+}
+
+function process_one()
+{
+  CODEC=$(mediainfo "$f" | grep -A5 Video | grep Format | grep -v Info | grep -v profile | awk '{print $3}' | tr '[:upper:]' '[:lower:]')
+  SHORT=$(echo $f | cut -d'/' -f5-)
+  if test -z "$QUIET"; then
+    clear_line
+    echo -en "inspect: $SHORT"
+  fi
+  if test "$CODEC" = "hevc"; then
+    clear_line
+    echo "Re-encode: \"$SHORT\""
+    TMPFILE="/tmp/$(basename $f | sed -e 's/mkv$/mp4/')"
+    TARGET="$(dirname $f)/$(basename $TMPFILE)"
+    if test -f "$TARGET"; then
+      echo "$TARGET already exists... skipping"
+      continue
+    fi
+    if nice -n 19 $HANDBRAKE -Z "Fast 720p30" -i "$f" -o "$TMPFILE" &> "$TMPFILE.log"; then
+      mv "$TMPFILE" "$(dirname $f)"
+      rm $f
+    else
+      echo "Re-encode for $f fails!"
+    fi
+  fi
+  sleep 1
+}
+
+HANDBRAKE=$(which HandBrakeCLI)
+DID_SOMETHING=0
+while test $# -gt 0; do
+  DID_SOMETHING=1
+  if test -f "$1"; then
+    if process_one $1; then
+      exit 0
+    else
+      exit 1
+    fi
+  elif test -d "$1"; then
+    for f in $1/**/*.mkv; do
+      process_one $f
+    done
+  else
+    echo "Error: please supply a dir or file to work with (not $1)"
+    exit 1
+  fi
+  shift
+done
+
+if test $DID_SOMETHING = "0"; then
+  echo "Please invoke with a dir or file to work with"
+fi
