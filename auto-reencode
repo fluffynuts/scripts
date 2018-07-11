@@ -1,4 +1,11 @@
 #!/bin/zsh
+if test -z "$PROFILE"; then
+  PROFILE="Vimeo YouTube 720p30"
+fi
+
+if test -z "$HANDBRAKE"; then
+  HANDBRAKE=$(which HandBrakeCLI)
+fi
 
 function clear_line()
 {
@@ -7,37 +14,56 @@ function clear_line()
 
 function process_one()
 {
-  CODEC=$(mediainfo "$f" | grep -A5 Video | grep Format | grep -v Info | grep -v profile | awk '{print $3}' | tr '[:upper:]' '[:lower:]')
-  SHORT=$(echo $f | cut -d'/' -f5-)
+  filepath="$1"
+  CODEC=$(mediainfo "$filepath" | grep -A5 Video | grep Format | grep -v Info | grep -v profile | awk '{print $3}' | tr '[:upper:]' '[:lower:]')
+  SHORT=$(echo $filepath | cut -d'/' -f5-)
+  if test -z "$SHORT"; then
+    SHORT="$filepath"
+  fi
   if test -z "$QUIET"; then
     clear_line
     echo -en "inspect: $SHORT"
   fi
-  if test "$CODEC" = "hevc"; then
+  if test "$CODEC" = "hevc" || test ! -z "$FORCE"; then
     clear_line
-    echo "Re-encode: \"$SHORT\""
-    TMPFILE="/tmp/$(basename $f | sed -e 's/mkv$/mp4/')"
-    TARGET="$(dirname $f)/$(basename $TMPFILE)"
+    if test -z "$FORCE"; then
+      echo "Re-encode: \"$SHORT\""
+    else
+      echo "Re-encode (forced): \"$SHORT\""
+    fi
+    TMPFILE="/tmp/$(basename $filepath | sed -e 's/mkv$/mp4/')"
+    TARGET="$(dirname $filepath)/$(basename $TMPFILE)"
     if test -f "$TARGET"; then
       echo "$TARGET already exists... skipping"
-      continue
+      return 0
     fi
-    if nice -n 19 $HANDBRAKE -Z "Fast 720p30" -i "$f" -o "$TMPFILE" &> "$TMPFILE.log"; then
-      mv "$TMPFILE" "$(dirname $f)"
-      rm $f
+    if nice -n 19 $HANDBRAKE -Z "$PROFILE" -i "$filepath" -o "$TMPFILE" &> "$TMPFILE.log"; then
+      if mv "$TMPFILE" "$(dirname $filepath)"; then
+        if rm $filepath; then
+          return 0
+        fi
+        RET=$?
+        echo "Cannot remove $filepath"
+        return $RET
+      else
+        RET=$?
+        echo "Cannot move $TMPFILE to $(dirname $filepath)"
+        return $RET
+      fi
     else
-      echo "Re-encode for $f fails!"
+      RET=$?
+      echo "Re-encode for $filepath fails!"
+      return $RET
     fi
   fi
-  sleep 1
 }
 
-HANDBRAKE=$(which HandBrakeCLI)
 DID_SOMETHING=0
 while test $# -gt 0; do
   DID_SOMETHING=1
   if test -f "$1"; then
-    if process_one $1; then
+    echo "process one: $1"
+    if process_one "$1"; then
       exit 0
     else
       exit 1
