@@ -1,18 +1,11 @@
 #!/bin/zsh
-if test -z "$PROFILE"; then
-  PROFILE="Vimeo YouTube 720p30"
-fi
-
-if test -z "$HANDBRAKE"; then
-  HANDBRAKE=$(which HandBrakeCLI)
-fi
 
 function clear_line()
 {
     echo -n "\r                                                                                                          \r"
 }
 
-function process_one()
+function reencode()
 {
   filepath="$1"
   CODEC=$(mediainfo "$filepath" | grep -A5 Video | grep Format | grep -v Info | grep -v profile | awk '{print $3}' | tr '[:upper:]' '[:lower:]')
@@ -55,38 +48,15 @@ function process_one()
       echo "Re-encode for $filepath fails!"
       return $RET
     fi
+  else
+    if test -z "$LEAVE_STATUS"; then
+      clear_line
+    fi
   fi
 }
 
-DID_SOMETHING=0
-RE_ENCODE="$(dirname $0)/auto-reencode-one";
-
-while test $# -gt 0; do
-  DID_SOMETHING=1
-  if test -f "$1"; then
-    echo "process one: $1"
-    if $RE_ENCODE "$1"; then
-      exit 0
-    else
-      exit 1
-    fi
-  elif test -d "$1"; then
-    if test -z "$MAX_AGE_DAYS"; then
-      for f in $1/**/*.mkv; do
-        $RE_ENCODE $f
-      done
-    else
-      export LEAVE_STATUS=1
-      find "$1" -iname "*.mkv" -mtime -$MAX_AGE_DAYS -exec $RE_ENCODE {} \;
-      clear_line
-    fi
-  else
-    echo "Error: please supply a dir or file to work with (not $1)"
-    exit 1
-  fi
-  shift
-done
-
-if test $DID_SOMETHING = "0"; then
-  echo "Please invoke with a dir or file to work with"
+if test ! -f "$1"; then
+  echo "$1 is not a file )':"
+  exit 1
 fi
+reencode "$1"
