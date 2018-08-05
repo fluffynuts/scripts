@@ -1,4 +1,16 @@
 #!/bin/zsh
+if test -z "$PROFILE"; then
+  PROFILE="Vimeo YouTube 720p30"
+fi
+
+if test -z "$HANDBRAKE"; then
+  HANDBRAKE=$(which HandBrakeCLI)
+fi
+
+if test ! -f "$HANDBRAKE"; then
+  echo "Can't find HandBrakeCLI in the path )':"
+  exit 1
+fi
 
 function clear_line()
 {
@@ -24,12 +36,16 @@ function reencode()
     else
       echo "Re-encode (forced): \"$SHORT\""
     fi
-    TMPFILE="/tmp/$(basename $filepath | sed -e 's/mkv$/mp4/')"
-    TARGET="$(dirname $filepath)/$(basename $TMPFILE)"
+    FILENAME="$(basename $filepath)"
+    OUTFILE="${FILENAME%.*}.mp4"
+    TMPFILE="/tmp/$OUTFILE"
+    LOGFILE="/tmp/re-encode__${FILENAME%.*}.log"
+    TARGET="$(dirname $filepath)/$OUTFILE"
     if test -f "$TARGET"; then
       echo "$TARGET already exists... skipping"
       return 0
     fi
+    CMD="nice -n 19 $HANDBRAKE -Z \"$PROFILE\" -i \"$filepath\" -o \"$TMPFILE\" &> \"$LOGFILE\""
     if nice -n 19 $HANDBRAKE -Z "$PROFILE" -i "$filepath" -o "$TMPFILE" &> "$TMPFILE.log"; then
       if mv "$TMPFILE" "$(dirname $filepath)"; then
         if rm $filepath; then
@@ -46,6 +62,9 @@ function reencode()
     else
       RET=$?
       echo "Re-encode for $filepath fails!"
+      echo "Logfile at $LOGFILE contains:"
+      cat "$LOGFILE"
+      echo "cmdline was: $CMD"
       return $RET
     fi
   else
