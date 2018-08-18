@@ -15,4 +15,4 @@ if test -z "$ZCAT"; then
   exit 3
 fi
 
-nice -n 19 $ZCAT $CONFIG | genkernel all --kernel-config=/dev/stdin --oldconfig && emerge @module-rebuild && $UPDATE_GRUB
+nice -n 19 $ZCAT $CONFIG | genkernel all --kernel-config=/dev/stdin --oldconfig --makeopts=-j$(nproc) --loglevel=2 && emerge @module-rebuild && $UPDATE_GRUB
