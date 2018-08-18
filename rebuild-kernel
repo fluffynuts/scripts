@@ -15,4 +15,60 @@ if test -z "$ZCAT"; then
   exit 3
 fi
 
+RED="\033[1;31m"
+GREEN="\033[1;32m"
+RESET="\033[0m"
+
+function find_latest_kernel()
+{
+  eselect kernel list | tail -n 1 | sed -e 's/^.*linux-//' | sed -e 's/\s\\*.*//'
+}
+
+function find_selected_kernel()
+{
+  eselect kernel list | grep "\*$" | sed -e 's/^.*linux-//' | sed -e 's/\s\\*.*//'
+}
+
+function find_running_kernel()
+{
+  uname -r
+}
+
+function red()
+{
+  echo "${RED}$1${RESET}"
+}
+
+function green()
+{
+  echo "${GREEN}$1${RESET}"
+}
+
+LATEST=$(find_latest_kernel)
+ESELECTED=$(find_selected_kernel)
+RUNNING=$(uname -r)
+if test "$ESELECTED" != "$LATEST"; then
+  echo -e "The current selected kernel is $(red ${ESELECTED}), however $(green ${LATEST}) is available."
+  echo -n " Select newer kernel? (Y/n) "
+  read ANSWER
+  ANSWER=$(echo $ANSWER | tr [:upper:] [:lower:])
+  if test -z "$ANSWER" || 
+     test "$ANSWER" = "y" ||
+     test "$ANSWER" = "yes"; then
+    eselect kernel set $LATEST
+    ESELECTED=$(find_selected_kernel)
+
+    if test "$ESELECTED" != "$LATEST"; then
+      echo "kernel selection fails; please manually run eselect"
+      exit 1
+    fi
+  else
+    echo "Continuing rebuild with $RUNNING"
+  fi
+fi
+
 nice -n 19 $ZCAT $CONFIG | genkernel all --kernel-config=/dev/stdin --oldconfig --makeopts=-j$(nproc) --loglevel=2 && emerge @module-rebuild && $UPDATE_GRUB
+
+if test "$ESELECTED" != "$RUNNING"; then
+  echo "Remember to reboot to switch from $(red ${RUNNING}) to $(green ${ESELECTED})"
+fi
