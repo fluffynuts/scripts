@@ -7,8 +7,17 @@ fi
 START="$(pwd)"
 cd "$WORKDIR"
 
+FOUND=0
 for f in $(find "$WORKDIR" -iname "*.rar"); do
-  unrar x "$f"
+  ((FOUND=FOUND+1))
+  unrar -o+ x "$f"
 done
+
+if test "$FOUND" -eq "0"; then
+  echo "No rars found )':"
+  exit 1
+fi
+
+echo "Unrared $FOUND things"
 
 cd "$START"
