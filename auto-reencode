@@ -72,9 +72,7 @@ while test $# -gt 0; do
     fi
   elif test -d "$1"; then
     if test -z "$MAX_AGE_DAYS"; then
-      for f in $1/**/*.mkv; do
-        $RE_ENCODE $f
-      done
+      find "$1" -iname "*.mkv" -exec $RE_ENCODE {} \;
     else
       export LEAVE_STATUS=1
       find "$1" -iname "*.mkv" -mtime -$MAX_AGE_DAYS -exec $RE_ENCODE {} \;
