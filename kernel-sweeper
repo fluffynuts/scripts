@@ -9,6 +9,9 @@ def would(str):
   print("Would: %s" % (str))
 
 def purge(version):
+  # TODO: assist on non-debian distros by having a looky
+  #       under /usr/src for linux* & offering to delete
+  #       the one(s) not symlinked to `linux`
   if not on_debian():
     return
   print("Purging headers for %s" % (version))
