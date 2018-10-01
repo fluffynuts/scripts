@@ -67,7 +67,9 @@ if test "$ESELECTED" != "$LATEST"; then
   fi
 fi
 
-nice -n 19 $ZCAT $CONFIG | genkernel all --kernel-config=/dev/stdin --oldconfig --makeopts=-j$(nproc) --loglevel=2 && emerge @module-rebuild && $UPDATE_GRUB
+if ! nice -n 19 $ZCAT $CONFIG | genkernel all --kernel-config=/dev/stdin --oldconfig --makeopts=-j$(nproc) --loglevel=2 && emerge @module-rebuild && $UPDATE_GRUB; then
+  exit $?
+fi
 
 if test "$ESELECTED" != "$RUNNING"; then
   echo "Remember to reboot to switch from $(red ${RUNNING}) to $(green ${ESELECTED})"
