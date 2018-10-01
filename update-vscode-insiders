@@ -1,0 +1,88 @@
+#!/bin/sh
+# use the below if you'd rather have the current stable channel
+#APP="code"
+#SRC_URL="https://go.microsoft.com/fwlink/?LinkID=620884"
+
+APP="code-insiders"
+SRC_URL="https://go.microsoft.com/fwlink/?LinkId=723968"
+TMPDIR=/tmp/vscode-insiders-updater-$$
+DL=~/.cache/${APP}.tar.gz
+MAX_ATTEMPTS=3
+START=$(pwd)
+if test -z "$INSTALL_DIR"; then
+  INSTALL_DIR=~/apps/vscode
+fi
+
+function remove_old_dl() {
+  # insiders should be updated daily -- remove any
+  #  downloaded artifact > 1 day old, leaving any
+  #  younger one for resuming
+  find "$DL" -mtime 1 -exec rm {} \;
+}
+
+function test_attempts() {
+  if test -z "$ATTEMPTS"; then
+    let "ATTEMPTS = 0"
+  elif test "$ATTEMPTS" -gt $MAX_ATTEMPTS; then
+    echo "Too many attempts... giving up";
+    exit 42
+  fi
+  let "ATTEMPTS = $ATTEMPTS + 1"
+  export ATTEMPTS
+  if test "$ATTEMPTS" -gt 1; then
+    log "Retrying... ($ATTEMPTS / $MAX_ATTEMPTS)"
+  fi
+}
+
+function test_if_app_is_running() {
+  if ! test -z "$(pidof app)"; then
+    echo "code-insiders currently running; deferring update"
+    exit 1 
+  fi
+}
+
+function attempt_download() {
+  remove_old_dl
+  if ! wget -c "$SRC_URL" -O $DL --progress=dot:mega; then
+    $0
+    exit $?
+  fi
+}
+
+function extract_download_to_temp_location() {
+  mkdir $TMPDIR
+  cd $TMPDIR
+  if ! tar zxf $DL; then
+    log "download error: extraction fails"
+    rm $DL
+    $0
+    exit $?
+  fi
+}
+
+function copy_extracted_to_install_location() {
+  cd $TMPDIR/VSCode*
+  if test ! -d "$INSTALL_DIR"; then
+    mkdir -p "$INSTALL_DIR"
+  fi
+  log "Copying to $INSTALL_DIR"
+  cp -Rf * "$INSTALL_DIR"
+}
+
+function clean_up() {
+  log "Cleaning up..."
+  cd "$START"
+  rm -rf $TMPDIR
+}
+
+function log() {
+  echo "== $(date +"%Y-%M-%d %H:%m:%S")  $1"
+}
+
+test_if_app_is_running
+test_attempts
+attempt_download
+extract_download_to_temp_location
+copy_extracted_to_install_location
+clean_up
+
