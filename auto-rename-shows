@@ -1,0 +1,14 @@
+#!/bin/sh
+if test -z "$1"; then
+  $0 .
+  exit $?
+fi
+while test ! -z "$1"; do
+  DONE_SOMETHING="yes"
+  filebot --format "{s00e00} {t}" -rename "$1"
+  shift
+done
+
+if test -z "$DONE_SOMETHING"; then
+  echo "usage: $0 <path> [ ... <path> ]"
+fi
