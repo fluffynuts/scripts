@@ -76,9 +76,16 @@ function check_target_is_mounted() {
 }
 
 function attempt_target_remount() {
+    if test ! -z "$SKIP_REMOUNT"; then
+      return
+    fi
     puts "Attempting remount of $DST_BASE"
     umount $DST_BASE
     mount $DST_BASE
+}
+
+function log_complete() {
+  puts "Sync complete."
 }
 
 check_single
@@ -88,3 +95,4 @@ update_target series /mnt/piggy/series/watched
 update_target movies /mnt/piggy/movies/watched
 update_target keep
 clear_pidfile
+log_complete
