@@ -1,5 +1,5 @@
 #!/bin/bash
-STICKY_FILE=/tmp/select_sound_output.sticky
+STICKY_FILE=/tmp/$(basename $0).sticky
 HEADPHONES_DEFAULT_LEVEL=63
 SPEAKERS_DEFAULT_LEVEL=48
 HEADPHONES=Headphone
