@@ -1,0 +1,58 @@
+#!/bin/bash
+# checks if the network has been properly brought up
+#   if not:
+#    - attempts to restart via rc-service
+#    - then attempts restart on all services in default runlevel
+# this is useful for example after a power outage, if your
+#  gentoo machine comes up faster than your local wifi/router
+#  - for this, add the following to crontab:
+#  @reboot  sleep 60 && /path/to/check-network
+
+if test "$(whoami)" != "root"; then
+    echo "$0 must be run by root"
+    exit 1
+fi
+
+function find-first-ether-device() {
+    RESULT=""
+    while read -r line; do
+        test="$(echo "$line" | grep mtu)"
+        if test ! -z "$test"; then
+            RESULT="$(echo "$line" | awk '{print $1}' | sed -e 's/:$//')"
+            if test ! -z "$(ls -l /sys/class/net/$RESULT | grep virtual)"; then
+                RESULT=""
+            fi
+            if test ! -f /etc/init.d/net.$RESULT; then
+                RESULT=""
+            fi
+            continue
+        fi
+        if test -z "$RESULT"; then
+            continue
+        fi
+        if test ! -z "$(echo "$line" | grep txqueuelen)"; then
+            TYPE="$(echo "$line" | awk '{print $1}')"
+            if test "$TYPE" = "ether"; then
+                echo $RESULT
+                return 0
+            fi
+        fi
+    done < <(ifconfig -a)
+
+    echo "Unable to determine ethernet device; please set INTERFACE before running"
+    exit 2
+}
+
+if test -z "$INTERFACE"; then
+    INTERFACE="$(find-first-ether-device)"
+fi
+
+CURRENT_IP="$(ifconfig $INTERFACE | grep "^\s*inet " | grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')"
+if test -z "$CURRENT_IP"; then
+    while read svc; do
+        if test ! -z "$(grep "need net" /etc/init.d/$svc)"; then
+            rc-service $svc restart
+        fi
+    done < <(rc-update show default | awk '{print $1}')
+fi
+exit 0
