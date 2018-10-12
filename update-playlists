@@ -6,6 +6,12 @@ if test -z "$QUIET"; then
 else
   Q="-q"
 fi
+if test "$1" = "-q"; then
+  Q="-q"
+fi
+if test "$1" = "-qq"; then
+  Q="-qq"
+fi
 /home/daf/apps/scripts/fappy $Q -x -o $BASE/muzak.xspf $BASE/muzak
 cp $BASE/muzak.xspf /home/daf/.config/audacious/playlist.xspf
 exit 0
