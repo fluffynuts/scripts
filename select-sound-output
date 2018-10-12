@@ -8,21 +8,26 @@ AMUTE="Auto-Mute Mode"
 AUTO_SET_SOUND="$(dirname $0)/autoset-sound"
 KMIX_SCRIPT="$(dirname $0)/set-kmix-master"
 
-if test -e $STICKY_FILE; then
-  if test ! -z "$FORCE"; then
-    echo "Unsticking sound selection..."
-    rm -f $STICKY_FILE
-  elif test ! -z "$1" && test -z "$STICKY"; then
-    echo "Sticky sound selection set to $(cat $STICKY_FILE); not changing"
-    exit
-  fi
-fi
-
 if test -z "$1"; then
   OUTPUT=""
 else
   OUTPUT="$1"
 fi
+
+if test -e $STICKY_FILE; then
+  CURRENT_STICKY="$(cat $STICKY_FILE)"
+  if test "$OUTPUT" = "auto"; then
+    echo "Sticky selection set to '$CURRENT_STICKY'; resetting back to auto..."
+    rm -f $STICKY_FILE
+  elif test ! -z "$FORCE"; then
+    echo "Unsticking sound selection by force..."
+    rm -f $STICKY_FILE
+  elif test ! -z "$OUTPUT" && test -z "$STICKY"; then
+    echo "Sticky sound selection set to '$CURRENT_STICKY'; not changing"
+    exit
+  fi
+fi
+
 amixer="/usr/bin/amixer -c PCH"
 amixer_headphones="/usr/bin/amixer -c V2000"
 
@@ -119,7 +124,7 @@ elif test "$OUTPUT" = "auto"; then
     if test -e "$STICKY_FILE"; then
       echo "Setting auto-selection for audio output device"
       rm -f $STICKY_FILE
-    else
+    elif test "$1" != "auto"; then
       echo "Auto-selection already enabled"
     fi
 else
