@@ -32,7 +32,7 @@ def on_debian():
     proc = subprocess.Popen(["which", "dpkg"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return proc.returncode == 0
 
-def rm_rf(version, base):
+def rm_rf_modules(version, base):
   print(yellow("Picking off straggling modules for %s" % (version)))
   contents = sorted(ls_R(os.path.join(base, version)), reverse=True)
   blankstr = 75 * " "
@@ -133,6 +133,13 @@ def white(s):
 def color(s, c):
   return "\033[1;%im%s\033[1;0m" % (c, s)
 
+def tryConvertToInt(s):
+  try:
+    return int(s)
+  except:
+    print("%s is not a valid number" % (s))
+    sys.exit(1)
+
 if __name__ == "__main__":
   global DRY_RUN
   DRY_RUN=False
@@ -149,6 +156,15 @@ if __name__ == "__main__":
       sys.exit(0)
     if ["-d", "--dryrun"].count(arg) > 0:
       DRY_RUN=True
+    if [ "-k", "--keep", "-keep"].count(last_arg) > 0:
+      keep = tryConvertToInt(arg)
+      last_arg = arg
+    if [ "-md", "--modulesdir", "-modulesdir"].count(last_arg) > 0:
+      basedir = arg
+      last_arg = arg
+  if not os.path.isdir(basedir):
+    print("Can't find modules base at %s; specify with -md" % (basedir))
+    sys.exit(2)
 
   available_kernels = sorted(os.listdir(basedir), reverse=True, key=version)
 
@@ -156,7 +172,7 @@ if __name__ == "__main__":
     print("You only have %i kernel images: nothing to do" % (len(available_kernels)))
     sys.exit(0)
 
-  to_remove = available_kernels[2:]
+  to_remove = available_kernels[keep:]
 
   if DRY_RUN:
     print(cyan("DRY RUN ONLY - NON-DESTRUCTIVE"))
@@ -178,7 +194,7 @@ if __name__ == "__main__":
 
   for k in to_remove:
     purge(k)
-    rm_rf(k, basedir)
+    rm_rf_modules(k, basedir)
     remove_boot_detritus(k)
   print(yellow("Update GRUB"))
   if DRY_RUN:
