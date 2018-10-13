@@ -20,7 +20,7 @@ def purge(version):
     would(cmd)
   else:
     os.system(cmd)
-  
+
   print("Purging image for %s" % (version))
   cmd = "dpkg --purge linux-headers-%s" % (version)
   if DRY_RUN:
@@ -47,7 +47,7 @@ def rm_rf(version, base):
     sys.stdout.write("\r%s\r%s" % (blankstr, short))
     sys.stdout.flush()
 
-    if os.path.isdir(f):
+    if os.path.isdir(f) and not os.path.islink(f):
       os.rmdir(f)
     else:
       try:
@@ -104,7 +104,7 @@ def version(path):
         result = result + (part * mul)
         mul = mul * step
     return result
-    
+
 
 def usage():
   print("Usage: %s {opts}" % (os.path.basename(sys.argv[0])))
@@ -172,7 +172,7 @@ if __name__ == "__main__":
   sys.stdout.write("Are you sure you want to continue ? (y/N) ")
   sys.stdout.flush()
   ans = sys.stdin.readline().strip().lower()
-  if ans[0] != "y":
+  if len(ans) == 0 or ans[0] != "y":
     print("Bailing out")
     sys.exit(0)
 
