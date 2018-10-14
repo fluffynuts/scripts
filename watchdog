@@ -1,5 +1,9 @@
 #!/bin/sh
 WATCH="$1";
+function get_runlevel() {
+  runlevel | awk '{print $2}'
+}
+START_RUNLEVEL="$(get_runlevel)"
 if test -z "$WATCH"; then
   WATCH="$(basename $0 | sed -e 's/watchdog-//')"
 fi
@@ -10,9 +14,14 @@ fi
 echo "watching $WATCH"
 
 while true; do
+  CURRENT_RUNLEVEL="$(get_runlevel)"
+  if test "$CURRENT_RUNLEVEL" != "$START_RUNLEVEL"; then
+    echo "runlevel changed from $START_RUNLEVEL to $CURRENT_RUNLEVEL; exiting"
+    exit 0
+  fi
   if test -z "$(pidof $WATCH)"; then
     $WATCH &
     sleep 5
   fi
-  sleep 1
+  sleep 2
 done
