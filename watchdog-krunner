@@ -1,18 +1,1 @@
-#!/bin/sh
-WATCH="$1";
-if test -z "$WATCH"; then
-  WATCH="$(basename $0 | sed -e 's/watchdog-//')"
-fi
-if test -z "$WATCH"; then
-  echo "Nothing to watch; try giving a command or making a link like $0-[command]"
-  exit 1
-fi
-echo "watching $WATCH"
-
-while true; do
-  if test -z "$(pidof $WATCH)"; then
-    $WATCH &
-    sleep 5
-  fi
-  sleep 1
-done
+watchdog
