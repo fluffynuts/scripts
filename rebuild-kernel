@@ -67,9 +67,19 @@ if test "$ESELECTED" != "$LATEST"; then
   fi
 fi
 
-if ! nice -n 19 $ZCAT $CONFIG | genkernel all --kernel-config=/dev/stdin --oldconfig --makeopts=-j$(nproc) --loglevel=2 && emerge @module-rebuild && $UPDATE_GRUB; then
-  exit $?
+if ! nice -n 19 $ZCAT $CONFIG | genkernel all --kernel-config=/dev/stdin --oldconfig --makeopts=-j$(nproc) --loglevel=2; then
+  STATUS=$?
+  echo "genkernel exits with status $STATUS; modules not rebuilt!"
+  exit $STATUS
 fi
+
+if ! emerge @module-rebuild; then
+  STATUS=$?
+  echo "module rebuild exits with status $STATUS"
+  exit $STATUS
+fi
+
+$UPDATE_GRUB
 
 if test "$ESELECTED" != "$RUNNING"; then
   echo "Remember to reboot to switch from $(red ${RUNNING}) to $(green ${ESELECTED})"
