@@ -80,8 +80,14 @@ function attempt_target_remount() {
       return
     fi
     puts "Attempting remount of $DST_BASE"
-    umount $DST_BASE
+    attempt_target_dismount
     mount $DST_BASE
+}
+
+function attempt_target_dismount() {
+    if test ! -z "$(mount | grep $DST_BASE)"; then
+      umount $DST_BASE
+    fi
 }
 
 function log_complete() {
@@ -93,6 +99,8 @@ attempt_target_remount
 check_target_is_mounted
 update_target series /mnt/piggy/series/watched
 update_target movies /mnt/piggy/movies/watched
+SRC_BASE=/mnt/archive
 update_target keep
 clear_pidfile
 log_complete
+attempt_target_dismount
