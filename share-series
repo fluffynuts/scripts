@@ -17,7 +17,7 @@ for folder in *; do
   if ! test -d "$folder"; then
     continue
   fi
-  for src in /mnt/monolith/series /mnt/piggy/series/watched /mnt/archive/series; do
+  for src in /mnt/monolith/series /mnt/piggy/series/watched; do
       this_src="$src/$folder"
       if ! test -d "$this_src"; then
         continue
