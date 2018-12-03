@@ -12,25 +12,30 @@ if test -z "$WATCH"; then
   exit 1
 fi
 LAST=$(echo $WATCH | sed -e 's/-/ /g' | awk '{print $(NF)}')
-CHECK_SECONDS=2
+RESTART_DELAY=2
 if test ! -z "$LAST"; then
   if test -z "$(echo $LAST | sed -e 's/[0-9]*//g')"; then
-    CHECK_SECONDS="$LAST"
+    RESTART_DELAY="$LAST"
     WATCH="$(echo $WATCH | sed -e 's/-[0-9]*$//g')"
   fi
 fi
 
-echo "watching $WATCH every $CHECK_SECONDS seconds"
-
-while true; do
+echo "watching $WATCH every $RESTART_DELAY seconds"
+function check_runlevel_changed() {
   CURRENT_RUNLEVEL="$(get_runlevel)"
   if test "$CURRENT_RUNLEVEL" != "$START_RUNLEVEL"; then
     echo "runlevel changed from $START_RUNLEVEL to $CURRENT_RUNLEVEL; exiting"
     exit 0
   fi
+}
+
+while true; do
+  check_runlevel_changed
   if test -z "$(pidof $WATCH)"; then
+    sleep $RESTART_DELAY
+    check_runlevel_changed
     $WATCH &
     sleep 5
   fi
-  sleep $CHECK_SECONDS
+  sleep 2
 done
