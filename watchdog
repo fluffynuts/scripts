@@ -11,7 +11,16 @@ if test -z "$WATCH"; then
   echo "Nothing to watch; try giving a command or making a link like $0-[command]"
   exit 1
 fi
-echo "watching $WATCH"
+LAST=$(echo $WATCH | sed -e 's/-/ /g' | awk '{print $(NF)}')
+CHECK_SECONDS=2
+if test ! -z "$LAST"; then
+  if test -z "$(echo $LAST | sed -e 's/[0-9]*//g')"; then
+    CHECK_SECONDS="$LAST"
+    WATCH="$(echo $WATCH | sed -e 's/-[0-9]*$//g')"
+  fi
+fi
+
+echo "watching $WATCH every $CHECK_SECONDS seconds"
 
 while true; do
   CURRENT_RUNLEVEL="$(get_runlevel)"
@@ -23,5 +32,5 @@ while true; do
     $WATCH &
     sleep 5
   fi
-  sleep 2
+  sleep $CHECK_SECONDS
 done
