@@ -5,7 +5,7 @@ if test -z "$1"; then
 fi
 while test ! -z "$1"; do
   DONE_SOMETHING="yes"
-  filebot --format "{s00e00} {t}" -rename "$1"
+  filebot --format "{s00e00} {t}" -rename "$1" --conflict override
   shift
 done
 

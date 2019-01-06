@@ -1,6 +1,10 @@
 #!/bin/zsh
 if test -z "$PROFILE"; then
-  PROFILE="Vimeo YouTube 720p30"
+  if test ! -z "$SMALLER"; then
+    PROFILE="Vimeo YouTube 720p30"
+  else
+    PROFILE="High Profile"
+  fi
 fi
 
 if test -z "$HANDBRAKE"; then

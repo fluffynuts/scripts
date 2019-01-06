@@ -4,6 +4,9 @@ if test -z "$SWEEPER"; then
   echo "No folder-sweeper found in PATH; perhaps you need to 'npm install folder-sweeper'?" | tee "/tmp/$(basename $0).log"
   exit 1
 fi
+if test -z "$(mount | grep mede8er)"; then
+  mount /mnt/mede8er-smb/
+fi
 for f in /mnt/monolith/series /mnt/mede8er-smb/series; do
   echo "Sweeping ${f}"
   $SWEEPER -x -j $f

@@ -21,7 +21,9 @@ function check_single() {
     if test ! -z "$OTHER"; then
         if test -e /proc/$OTHER; then
             if test ! -z "$(cat /proc/$OTHER/cmdline | grep $0)"; then
-                echo "Already running with pid $OTHER"
+                if test -z "$IN_CRON"; then
+                  echo "Already running with pid $OTHER"
+                fi
                 exit 1
             fi
         fi
