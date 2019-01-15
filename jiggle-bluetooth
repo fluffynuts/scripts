@@ -1,0 +1,13 @@
+#!/bin/bash
+if test -z "$(which rfkill)"; then
+    echo "No rfkill found"
+    exit 1
+fi
+
+ID=$(rfkill | grep bluetooth | awk '{print $1}')
+if test -z "$ID"; then
+    echo "Unable to determine bluetooth device"
+    exit 2
+fi
+rfkill block $ID
+rfkill unblock $ID
