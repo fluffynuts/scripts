@@ -1,0 +1,140 @@
+#!/bin/bash
+# vim foldmethod=marker foldmarker=<<<,>>>
+
+CONFIGURE=0
+COMPILE=0
+BACKUP=0
+INSTALL_KERNEL=0
+INSTALL_MODULES=0
+DATE=$(date +"%Y-%m-%d_%H.%M")
+BACKUPDIR=/boot/backup/$DATE
+if test -z "$SRCDIR"; then
+    SRCDIR=/usr/src/linux
+fi
+LOGFILE=/tmp/build-kernel-$$.log
+
+function prompt_user() { #<<<
+    if ! whiptail --title "Options" --checklist --separate-output "Select tasks: " 15 32 8 \
+    "Configure kernel" "" off \
+    "Compile kernel" "" off \
+    "Backup current" "" on \
+    "Install kernel" "" on \
+    "Install modules" "" on 2>results; then
+        exit 2
+    fi
+
+    while read choice
+    do
+        case $choice in
+            "Configure kernel") CONFIGURE=1
+            ;;
+            "Compile kernel") COMPILE=1
+            ;;
+            "Backup current") BACKUP=1
+            ;;
+            "Install kernel") INSTALL_KERNEL=1
+            ;;
+            "Install modules") INSTALL_MODULES=1
+            ;;
+            *) echo WAT
+            ;;
+        esac
+    done < results
+}
+#>>>
+function die() { #<<<
+    echo "$*" 1>&2
+    exit 42
+}
+#>>>
+function configure_kernel() { #<<<
+    cd $SRCDIR
+    make nconfig || die Unable to configure kernel
+    cd -
+}
+#>>>
+function compile_kernel() { #<<<
+    cd $SRCDIR
+    if test ! -e .config; then
+        echo "Running default config generation (bcmrpi3_defconfig)"
+        make bcmrpi3_defconfig
+    fi
+    echo "Building the kernel (tail $LOGFILE for more info)"
+    nice -n 19 make -j4 > $LOGFILE || die Unable to build kernel
+    cd -
+}
+#>>>
+function backup_current_kernel() { #<<<
+    if test -e "$BACKUPDIR"; then
+        echo ERROR: $BACKUPDIR already exists... bailing out.
+        exit 1
+    fi
+
+    echo "Backing up current kernel to $BACKUPDIR"
+    mkdir -p $BACKUPDIR
+    cp /boot/kernel8.img $BACKUPDIR || die Unable to back up kernel image
+    cp /boot/*.dtb $BACKUPDIR || die unable to back up firmware
+}
+#>>>
+function install_new_kernel() { #<<<
+    echo Installing new kernel
+    PREFIX=$SRCDIR/arch/arm64/boot
+    echo "copying out new kernel artifacts"
+    cp -v $PREFIX/Image /boot/kernel8.img || die Unable to copy kernel image
+    MSG="Unable to copy firmware"
+    cp -v $PREFIX/dts/broadcom/bcm2837-rpi-3-b.dtb /boot || die $MSG
+    cp -v $PREFIX/dts/broadcom/bcm2710-rpi-3-b.dtb /boot || die $MSG
+    cp -v $PREFIX/dts/broadcom/bcm2710-rpi-3-b-plus.dtb /boot || die $MSG
+}
+#>>>
+function install_modules() { #<<<
+    echo Installing kernel modules
+    cd $SRCDIR
+    make modules_install > $LOGFILE || die Unable to install modules
+    cd -
+}
+#>>>
+function confirm() { #<<<
+    whiptail --yesno "$*" --defaultno --title Confirm
+}
+#>>>
+function validate_options() { #<<<
+    if test $INSTALL_KERNEL = 1; then
+        if test $BACKUP = 0; then
+            if ! confirm "Install kernel without backing up?"; then
+                die
+            fi
+        fi
+        if test $INSTALL_MODULES = 0; then
+            if ! confirm "Install kernel without modules?"; then
+                die
+            fi
+        fi
+    fi
+}
+#>>>
+function run_tasks() { #<<<
+    if test $CONFIGURE = 1; then
+        configure_kernel
+    fi
+    if test $COMPILE = 1; then
+        compile_kernel
+    fi
+    if test $BACKUP = 1; then
+        backup_current_kernel
+    fi
+    if test $INSTALL_KERNEL; then
+        install_new_kernel
+    fi
+    if test $INSTALL_MODULES; then
+        install_modules
+    fi
+}
+#>>>
+
+
+prompt_user
+validate_options
+run_tasks
+
+echo "All done!"
