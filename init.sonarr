@@ -2,8 +2,8 @@
 # Copyright 1999-2017 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 
-DAEMON=/home/daf/apps/Radarr/Radarr.exe
-PIDFILE=/var/run/radarr.pid
+DAEMON=/home/daf/apps/Sonarr/NzbDrone.exe
+PIDFILE=/var/run/sonarr.pid
 USER=daf
 
 depend() {
@@ -12,14 +12,14 @@ depend() {
 }
 
 start() {
-	ebegin "Starting Radarr"
-	chmod 755 $DAEMON
+	ebegin "Starting Sonarr"
+	chmod 775 $DAEMON
 	start-stop-daemon --background --start --exec $DAEMON --make-pidfile --pidfile $PIDFILE --user $USER
 	eend $?
 }
 
 stop() {
-	ebegin "Stopping Radarr"
+	ebegin "Stopping Sonarr"
 	start-stop-daemon --stop --pidfile $PIDFILE
 	eend $?
 }
