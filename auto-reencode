@@ -12,52 +12,6 @@ function clear_line()
     echo -n "\r                                                                                                          \r"
 }
 
-function process_one()
-{
-  filepath="$1"
-  CODEC=$(mediainfo "$filepath" | grep -A5 Video | grep Format | grep -v Info | grep -v profile | awk '{print $3}' | tr '[:upper:]' '[:lower:]')
-  SHORT=$(echo $filepath | cut -d'/' -f5-)
-  if test -z "$SHORT"; then
-    SHORT="$filepath"
-  fi
-  if test -z "$QUIET"; then
-    clear_line
-    echo -en "inspect: $SHORT"
-  fi
-  if test "$CODEC" = "hevc" || test ! -z "$FORCE"; then
-    clear_line
-    if test -z "$FORCE"; then
-      echo "Re-encode: \"$SHORT\""
-    else
-      echo "Re-encode (forced): \"$SHORT\""
-    fi
-    TMPFILE="/tmp/$(basename $filepath | sed -e 's/mkv$/mp4/')"
-    TARGET="$(dirname $filepath)/$(basename $TMPFILE)"
-    if test -f "$TARGET"; then
-      echo "$TARGET already exists... skipping"
-      return 0
-    fi
-    if nice -n 19 $HANDBRAKE -Z "$PROFILE" -i "$filepath" -o "$TMPFILE" &> "$TMPFILE.log"; then
-      if mv "$TMPFILE" "$(dirname $filepath)"; then
-        if rm $filepath; then
-          return 0
-        fi
-        RET=$?
-        echo "Cannot remove $filepath"
-        return $RET
-      else
-        RET=$?
-        echo "Cannot move $TMPFILE to $(dirname $filepath)"
-        return $RET
-      fi
-    else
-      RET=$?
-      echo "Re-encode for $filepath fails!"
-      return $RET
-    fi
-  fi
-}
-
 DID_SOMETHING=0
 RE_ENCODE="$(dirname $0)/auto-reencode-one";
 
