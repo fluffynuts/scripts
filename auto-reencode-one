@@ -52,6 +52,9 @@ function reencode()
     CMD="nice -n 19 $HANDBRAKE -Z \"$PROFILE\" -i \"$filepath\" -o \"$TMPFILE\" &> \"$LOGFILE\""
     if nice -n 19 $HANDBRAKE -Z "$PROFILE" -i "$filepath" -o "$TMPFILE" &> "$TMPFILE.log"; then
       if mv "$TMPFILE" "$(dirname $filepath)"; then
+        if test ! -z "$KEEP_ORIGINAL"; then
+          return 0
+        fi
         if rm $filepath; then
           return 0
         fi
