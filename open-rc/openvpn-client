@@ -1,0 +1,46 @@
+#!/sbin/openrc-run
+# Copyright 2019 Gentoo Authors
+# Distributed under the terms of the GNU General Public License v2
+
+name="openvpn-client daemon"
+description="OpenVPN client"
+command=/usr/sbin/openvpn
+PIDDIR=/var/run/openvpn-client/
+CONFDIR=/etc/openvpn/clients
+
+mkdir -p $PIDDIR
+
+depend() {
+	need net
+	need localmount
+}
+
+start() {
+	CLIENTS=0
+	for conf in $CONFDIR/*; do
+		if test "$CLIENTS" = "0"; then
+			CLIENTS=1
+		fi
+		ebegin "Starting OpenVPN client ($(basename $conf)) (${PIDDIR}$(basename $conf).pid)"
+
+		if ! start-stop-daemon --background --start --pidfile "${PIDDIR}$(basename $conf).pid" --make-pidfile  --exec $command -- --config $conf; then 
+			eend $?
+			break
+		fi
+	done
+	if test "$CLIENTS" = "0"; then
+		echo "No configurations in $CONFDIR"
+	fi
+}
+
+stop() {
+	CLIENTS=0
+	for pidfile in ${PIDDIR}/*; do
+		if test "$CLIENTS" = "0"; then
+			CLIENTS=1
+		fi
+		ebegin "Stopping OpenVPN client ($pidfile)"
+		start-stop-daemon --stop --pidfile $pidfile
+		eend $?
+	done
+}
