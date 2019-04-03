@@ -25,13 +25,13 @@ while test $# -gt 0; do
       exit 1
     fi
   elif test -d "$1"; then
+    export LEAVE_STATUS=1
     if test -z "$MAX_AGE_DAYS"; then
       find "$1" -iname "*.mkv" -exec $RE_ENCODE {} \;
     else
-      export LEAVE_STATUS=1
       find "$1" -iname "*.mkv" -mtime -$MAX_AGE_DAYS -exec $RE_ENCODE {} \;
-      clear_line
     fi
+    clear_line
   else
     echo "Error: please supply a dir or file to work with (not $1)"
     exit 1

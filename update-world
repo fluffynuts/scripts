@@ -1,2 +1,51 @@
 #!/bin/bash
-emerge --sync && emerge --update --newuse --deep @world @preserved-rebuild -a
+NO_SYNC=""
+ASK="-a"
+HELP=""
+PRETEND=""
+function check_is_root()
+{
+  if test "$(whoami)" != "root"; then
+    echo "You must be root to continue";
+    exit -1
+  fi
+}
+
+for arg in "$@"; do
+  if test "$arg" = "--no-sync" || test "$arg" = "-n"; then
+    NO_SYNC=1
+    continue
+  fi
+  if test "$arg" = "--yes" || test "$arg" = "-y"; then
+    ASK=""
+    continue
+  fi
+  if test "$arg" = "-p" || test "$arg" = "--pretend"; then
+    PRETEND="-p"
+  fi
+  if test "$arg" = "-h" || test "$arg" = "--help"; then
+    HELP=1
+  fi
+done
+if test ! -z "$HELP"; then
+  echo "Usage: $(dirname $0) [options]"
+  echo "OPTIONS:"
+  echo " -h, --help          show this screeen and exit"
+  echo " -n, --no-sync       skip sync, just emerge updates"
+  echo " -p, --pretend       pretend to emerge (-p)"
+  echo " -y, --yes           skip emerge confirmation (-a)"
+  exit 0
+fi
+if test -z "$NO_SYNC"; then
+  check_is_root
+  if ! emerge --sync; then
+    exit $?
+  fi
+fi
+if test -z "$PRETEND"; then
+  if test "$(whoami)" != "root"; then
+    echo "Requesting 'pretend' mode (you are not root)"
+    PRETEND="-p"
+  fi
+fi
+emerge --update --newuse --deep @world @preserved-rebuild $ASK $PRETEND

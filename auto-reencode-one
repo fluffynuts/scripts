@@ -21,17 +21,31 @@ function clear_line()
     echo -n "\r                                                                                                          \r"
 }
 
+function truncate_to_fit()
+{
+  SHORT=$(echo $1 | cut -d'/' -f5-)
+  let SPACE="$COLUMNS-12"
+  TEST=${SHORT:0:$SPACE}
+  if test "$SHORT" != "$TEST"; then
+    echo "${TEST}"
+  else
+    echo "$SHORT"
+  fi
+}
+
+
 function reencode()
 {
   filepath="$1"
   CODEC=$(mediainfo "$filepath" | grep -A5 Video | grep Format | grep -v Info | grep -v profile | awk '{print $3}' | tr '[:upper:]' '[:lower:]')
-  SHORT=$(echo $filepath | cut -d'/' -f5-)
+  # SHORT=$(echo $filepath | cut -d'/' -f5-)
+  SHORT=$(truncate_to_fit $filepath)
   if test -z "$SHORT"; then
     SHORT="$filepath"
   fi
   if test -z "$QUIET"; then
     clear_line
-    echo -en "inspect: $SHORT"
+    echo -n "inspect: $SHORT"
   fi
   if test "$CODEC" = "hevc" || test ! -z "$FORCE"; then
     clear_line

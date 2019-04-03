@@ -55,4 +55,11 @@ if test -z "$CURRENT_IP"; then
         fi
     done < <(rc-update show default | awk '{print $1}')
 fi
+
+for mnt in monolith piggy archive; do 
+	if test -z "$(mount | grep $mnt)"; then
+		mount /mnt/$mnt
+	fi
+done
+
 exit 0
