@@ -2,7 +2,9 @@
 MEDESYNC="ionice -c idle /home/daf/apps/scripts/medesync.py"
 SPECIFIED_TARGET="$1"
 SRC_BASE=/mnt/monolith
-DST_BASE=/mnt/mede8er-smb
+if test -z "$DST_BASE"; then
+  DST_BASE=/mnt/mede8er-smb
+fi
 PIDFILE=/tmp/update-mede8er.pid
 
 if test -z "$LOGFILE"; then
@@ -87,6 +89,9 @@ function attempt_target_remount() {
 }
 
 function attempt_target_dismount() {
+    if test ! -z "$SKIP_REMOUNT"; then
+      return
+    fi
     if test ! -z "$(mount | grep $DST_BASE)"; then
       umount $DST_BASE
     fi
