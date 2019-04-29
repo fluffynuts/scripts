@@ -3,6 +3,8 @@ NO_SYNC=""
 ASK="-a"
 HELP=""
 PRETEND=""
+RECEIVING_EMERGE_ARGS=""
+EMERGE_ARGS=""
 function check_is_root()
 {
   if test "$(whoami)" != "root"; then
@@ -12,6 +14,14 @@ function check_is_root()
 }
 
 for arg in "$@"; do
+  if test "$arg" = "--"; then
+    RECEIVING_EMERGE_ARGS="yes"
+    continue
+  fi
+  if test ! -z "$RECEIVING_EMERGE_ARGS"; then
+    EMERGE_ARGS="$EMERGE_ARGS $arg"
+    continue
+  fi
   if test "$arg" = "--no-sync" || test "$arg" = "-n"; then
     NO_SYNC=1
     continue
@@ -32,8 +42,8 @@ if test ! -z "$HELP"; then
   echo "OPTIONS:"
   echo " -h, --help          show this screeen and exit"
   echo " -n, --no-sync       skip sync, just emerge updates"
-  echo " -p, --pretend       pretend to emerge (-p)"
-  echo " -y, --yes           skip emerge confirmation (-a)"
+  echo " -y, --yes           skip emerge confirmation (opposite of default -a)"
+  echo " --                  options provided after this are passed to emerge"
   exit 0
 fi
 if test -z "$NO_SYNC"; then
@@ -48,4 +58,4 @@ if test -z "$PRETEND"; then
     PRETEND="-p"
   fi
 fi
-emerge --update --newuse --deep @world @preserved-rebuild $ASK $PRETEND
+emerge --update --newuse --deep @world @preserved-rebuild $ASK $EMERGE_ARGS
