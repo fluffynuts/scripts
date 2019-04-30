@@ -32,10 +32,14 @@ for arg in "$@"; do
   fi
   if test "$arg" = "-p" || test "$arg" = "--pretend"; then
     PRETEND="-p"
+    continue
   fi
   if test "$arg" = "-h" || test "$arg" = "--help"; then
     HELP=1
+    continue
   fi
+  # assume left-over args are to emerge
+  EMERGE_ARGS="$EMERGE_ARGS $arg"
 done
 if test ! -z "$HELP"; then
   echo "Usage: $(dirname $0) [options]"
