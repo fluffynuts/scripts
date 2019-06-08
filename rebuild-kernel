@@ -67,7 +67,7 @@ if test "$ESELECTED" != "$LATEST"; then
   fi
 fi
 
-if ! nice -n 19 $ZCAT $CONFIG | genkernel all --kernel-config=/dev/stdin --oldconfig --makeopts=-j$(nproc) --loglevel=2; then
+if ! nice -n 19 $ZCAT $CONFIG | genkernel all --microcode --kernel-config=/dev/stdin --oldconfig --makeopts=-j$(nproc) --loglevel=2; then
   STATUS=$?
   echo "genkernel exits with status $STATUS; modules not rebuilt!"
   exit $STATUS
