@@ -2,6 +2,8 @@
 if test -z "$1"; then
     watch -n 1 "$0 once"
 else
-    ROWS=$(stty size | cut -f 1 --delimiter=' ')
+    # watch takes up the first two lines
+    let HEAD=2
+    let ROWS="$(stty size | cut -f 1 --delimiter=' ') - $HEAD"
     dmesg | tail -n $ROWS
 fi
