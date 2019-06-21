@@ -1,4 +1,10 @@
 #!/bin/bash
+SAKAKI_BUILDKERNEL=/usr/sbin/buildkernel
+if test -e $SAKAKI_BUILDKERNEL; then
+    echo "Using Sakaki's buildkernel..."
+    $SAKAKI_BUILDKERNEL
+    exit $?
+fi
 UPDATE_GRUB="$(dirname $0)/update-grub"
 CONFIG=/proc/config.gz
 if test ! -e "$CONFIG"; then
