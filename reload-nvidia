@@ -1,0 +1,20 @@
+#!/bin/bash
+function unload()
+{
+  echo -en "unload $1..."
+  if ! rmmod $1; then
+    echo "fail"
+    exit 1;
+  fi
+  echo "ok"
+}
+unload nvidia_drm
+unload nvidia_modset
+unload nvidia
+echo -en "reload..."
+if modprobe nvidia; then
+  echo "ok"
+  exit 0
+fi
+echo "fail"
+exit 2;
