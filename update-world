@@ -62,4 +62,6 @@ if test -z "$PRETEND"; then
     PRETEND="-p"
   fi
 fi
-emerge --update --newuse --deep @world @preserved-rebuild $ASK $EMERGE_ARGS
+if emerge --update --newuse --deep @world @preserved-rebuild $ASK $EMERGE_ARGS; then
+  emerge --depclean $ASK
+fi
