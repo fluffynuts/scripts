@@ -62,6 +62,11 @@ if test -z "$PRETEND"; then
     PRETEND="-p"
   fi
 fi
-if emerge --update --newuse --deep @world @preserved-rebuild $ASK $EMERGE_ARGS; then
+# set io niceness; if you want to set cpu niceness, you should
+#  set PORTAGE_NICENESS in /etc/portage/make.conf
+if test ! -z "$(which ionice)"; then
+  IONICE="ionice -c idle"
+fi
+if $IONICE emerge --update --newuse --deep @world @preserved-rebuild $ASK $EMERGE_ARGS; then
   emerge --depclean $ASK
 fi

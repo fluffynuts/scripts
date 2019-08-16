@@ -142,6 +142,7 @@ else
     STICKY=1 $0 speakers
   elif test "$selection" = "c" || test "$selection" = "C" || test ! -z "$(echo auto-select | grep -i "$selection")"; then
     STICKY=1 $0 auto
+    $(dirname $0)/autoset-sound
   else
     $0
   fi

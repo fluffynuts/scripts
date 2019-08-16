@@ -1,0 +1,32 @@
+#!/bin/sh
+# this script is necessary because a bug in steam occasionally stops the
+# system screensaver from coming on. ever.
+exit 0
+if test -z "$LOGFILE"; then
+  LOGFILE=/tmp/restart-steam.log
+fi
+function log()
+{
+  TO_LOG="$(date) $1"
+  if test "$LOGFILE" = "stdout"; then
+    echo $TO_LOG
+  else
+    echo $TO_LOG >> $LOGFILE
+  fi
+}
+while true; do
+  let "time=$(date +'%H%M')"
+  if test $time -ne 0; then
+    log "waiting...."
+    sleep 60
+    continue
+  fi
+  while test ! -z "$(pidof steam)"; do
+    log "kill steam!"
+    killall steam >> $LOGFILE
+    log "waiting for steam to exit..."
+    sleep 1
+  done
+  log "start steam..."
+  steam >> $LOGFILE &
+done
