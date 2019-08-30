@@ -1,0 +1,18 @@
+#!/bin/bash
+HEADPHONES_MAC=D0:8A:55:63:48:61
+function attempt_connect () {
+    bluetoothctl --timeout 5 connect $HEADPHONES_MAC
+}
+
+if test -z "$SILENT"; then
+  echo "Running in SILENT mode. Set env var SILENT to anything to see output..."
+fi
+
+while true; do
+  if test -z "$SILENT"; then
+    attempt_connect &> /dev/null
+  else
+    attempt_connect
+  fi
+  sleep 5
+done

@@ -1,0 +1,30 @@
+#!/bin/bash
+if test -z "$1"; then
+  echo "Please specify a device, or enough of a mount identifier"
+  exit 1
+fi
+if test "$(whoami)" != "root"; then
+  echo -en "Elevated privileges required to fatsort. SUDO now? (Y/n) "
+  read ANSWER discarded
+  ANSWER=$(echo $ANSWER | tr [:upper:] [:lower:])
+  if test -z "$ANSWER"; then
+    ANSWER="y"
+  fi
+  if test "$ANSWER" != "y"; then
+    exit 2
+  fi
+  sudo $0 $1
+  exit $?
+fi
+
+DEVICE=$(mount | grep -i "^$1")
+if test -z "$DEVICE"; then
+  DEVICE=$(mount | grep -i $1 | awk '{ print $1 }')
+fi
+if test -z "$DEVICE"; then
+  echo "Can't find a device match for $1";
+  exit 127
+fi
+
+umount $DEVICE
+fatsort -c $DEVICE
