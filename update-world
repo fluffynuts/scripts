@@ -8,8 +8,8 @@ EMERGE_ARGS=""
 function check_is_root()
 {
   if test "$(whoami)" != "root"; then
-    echo "You must be root to continue";
-    exit -1
+    sudo -p "Your password is required to continue: " $0
+    exit $?
   fi
 }
 
@@ -57,10 +57,7 @@ if test -z "$NO_SYNC"; then
   fi
 fi
 if test -z "$PRETEND"; then
-  if test "$(whoami)" != "root"; then
-    echo "Requesting 'pretend' mode (you are not root)"
-    PRETEND="-p"
-  fi
+  check_is_root
 fi
 # set io niceness; if you want to set cpu niceness, you should
 #  set PORTAGE_NICENESS in /etc/portage/make.conf
