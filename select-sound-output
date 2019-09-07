@@ -6,7 +6,7 @@ HEADPHONES=Headphone
 SPEAKERS=Front
 AMUTE="Auto-Mute Mode"
 AUTO_SET_SOUND="$(dirname $0)/autoset-sound"
-KMIX_SCRIPT="$(dirname $0)/set-kmix-master"
+#KMIX_SCRIPT="$(dirname $0)/set-kmix-master"
 
 if test -z "$1"; then
   OUTPUT=""
@@ -113,13 +113,13 @@ if  test "$OUTPUT" = "headphones"; then
   unmute_headphones
   mute_speakers
   save_sticky_state
-  $KMIX_SCRIPT $OUTPUT
+  #$KMIX_SCRIPT $OUTPUT
 elif test "$OUTPUT" = "speakers"; then
   echoSelection
   mute_headphones
   unmute_speakers
   save_sticky_state
-  $KMIX_SCRIPT $OUTPUT
+  #$KMIX_SCRIPT $OUTPUT
 elif test "$OUTPUT" = "auto"; then
     if test -e "$STICKY_FILE"; then
       echo "Setting auto-selection for audio output device"
