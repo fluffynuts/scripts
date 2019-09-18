@@ -1,0 +1,8 @@
+#!/bin/sh
+if test "$(whoami)" != "root"; then
+  sudo -p "Your password is required to continue: " $0
+  exit $?
+fi
+emerge --sync riru
+emerge www-client/firefox
+

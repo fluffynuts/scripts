@@ -1,0 +1,16 @@
+#!/bin/sh
+# automatically restart firefox at 4am
+# - useful if, eg, you're auto-installing a nightly at 00:00
+#   - ensure that by the time regular people are up, we have a shiney new FF running
+let "time=$(date +'%H%M' | sed -e 's/^0//')"
+logfile=/tmp/restart-firefix.log
+# should be run from your DE so that it's able to spawn FF 
+while true; do
+  if test $time -eq 400; then
+    echo "$(date) Restarting Firefox" >> $logfile
+    killall firefox
+    firefox &
+  fi
+  sleep 60
+done
+  
