@@ -6,10 +6,11 @@ let "time=$(date +'%H%M' | sed -e 's/^0//')"
 logfile=/tmp/restart-firefix.log
 # should be run from your DE so that it's able to spawn FF 
 while true; do
-  if test $time -eq 400; then
+  if test $time -eq 400 || test ! -z "$FORCE"; then
+    FORCE=""
     echo "$(date) Restarting Firefox" >> $logfile
     killall firefox
-    firefox &
+    firefox &>/dev/null & 
   fi
   sleep 60
 done
