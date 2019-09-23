@@ -1,8 +1,51 @@
 #!/bin/sh
 if test "$(whoami)" != "root"; then
-  sudo -p "Your password is required to continue: " $0
+  sudo -p "Your password is required to continue: " $0 $*
   exit $?
 fi
-emerge --sync riru
-emerge www-client/firefox
+
+QUIET="0"
+SHOW_HELP="0"
+
+for arg in $*; do
+  if test "$arg" = "-q" || test "$arg" = "--quiet"; then
+    QUIET="1"
+    continue
+  fi
+  if test "$arg" = "-h" || test "$arg" = "--help"; then
+    SHOW_HELP="1"
+    continue
+  fi
+  echo "Unknown option $arg";
+  exit 1
+done
+
+if test "$SHOW_HELP" = "1"; then
+  echo "Usage: $(filename $0) <options>"
+  echo "  where options are:"
+  echo "  -q | --quiet      run quietly (log to file only)"
+  echo "  -h | --help       show this help"
+  exit 0
+fi
+
+logfile=/tmp/update-firefox.log
+rm -f $logfile
+touch $logfile
+# anyone in root group can read / del
+chmod 660 $logfile
+function log()
+{
+  if test "'$QUIET'" = "'1'"; then
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')]  $*"  >> $logfile
+  else
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')]  $*" | tee -a $logfile
+  fi
+}
+log "Starting sync from riru..."
+emerge --sync riru &>> $logfile
+if test $? -ne 0; then
+  exit $?
+fi
+log "Starting emerge of www-client/firefox"
+emerge www-client/firefox &>> $logfile
 
