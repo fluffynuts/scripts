@@ -60,7 +60,7 @@ function update_target() {
     if ! test -d $DST_BASE/$TARGET; then
         mkdir $DST_BASE/$TARGET
     fi
-    CMD="$MEDESYNC -s $SRC_BASE/$TARGET -d $DST_BASE/$TARGET -l $LOGFILE $DUMMY"
+    CMD="ionice -c idle $MEDESYNC -s $SRC_BASE/$TARGET -d $DST_BASE/$TARGET -l $LOGFILE $DUMMY"
     if test -z "$ARCHIVE"; then
         $MEDESYNC -s $SRC_BASE/$TARGET -d $DST_BASE/$TARGET -l $LOGFILE $DUMMY
     else
