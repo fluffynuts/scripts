@@ -1,0 +1,16 @@
+#!/bin/sh
+SWEEPER=$(which folder-sweeper)
+if test -z "$SWEEPER"; then
+  echo "folder-sweeper not found int path"
+  exit 1
+fi
+
+MNT=/mnt/mede8er-smb
+
+if test -z "$(mount | grep $MNT)"; then
+  AUTOMOUNTED=1
+  mount $MNT
+fi
+
+$SWEEPER -j -x  $MNT/series
+$SWEEPER -j -x  $MNT/movies

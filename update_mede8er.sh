@@ -7,9 +7,11 @@ if test -z "$DST_BASE"; then
 fi
 PIDFILE=/tmp/update-mede8er.pid
 
-if test -z "$LOGFILE"; then
+if test ! -z "$LOG_TO_FILE"; then
     LOGFILE=/tmp/update-mede8er.log
     echo "PID $$ started at: $(date "+%Y-%m-%d_%H.%M.%S")" >> $LOGFILE
+else
+    LOGFILE=stdout
 fi
 if test ! -z "$DUMMY"; then
     DUMMY="-dummy"
@@ -101,6 +103,10 @@ function log_complete() {
   puts "Sync complete."
 }
 
+function sweep_target() {
+  $(dirname $0)/sweep-mede8er
+}
+
 check_single
 attempt_target_remount
 check_target_is_mounted
@@ -110,4 +116,5 @@ SRC_BASE=/mnt/archive
 update_target keep
 clear_pidfile
 log_complete
+sweep_target
 attempt_target_dismount
