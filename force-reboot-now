@@ -1,12 +1,18 @@
-!#/bin/sh
-echo 1 > /proc/sys/kernel/sysrq
-echo Request emergency sync...
-echo s > /proc/sysrq-trigger
-sleep 5
-echo Hard reboot now... Ctrl-c to exit
-echo Reboot in 
-for ((i = 0; i < 5; i++)) do
+#!/bin/sh
+function wait()
+{
+  echo -n "$1"
+  for ((i = $2; i > 0; i--)) do
     echo -n " $i"
-    sleep
-done
+    sleep 1
+  done
+  echo
+}
+
+echo 1 > /proc/sys/kernel/sysrq
+echo "Request emergency sync..."
+echo s > /proc/sysrq-trigger
+wait "Wait for sync..." 5
+echo "Hard reboot now... Ctrl-c to exit"
+wait "Reboot in... " 5
 echo b > /proc/sysrq-trigger
