@@ -23,7 +23,31 @@ fi
 
 RED="\033[1;31m"
 GREEN="\033[1;32m"
+YELLOW="\033[1;33m"
 RESET="\033[0m"
+
+function red()
+{
+  echo "${RED}$1${RESET}"
+}
+
+function green()
+{
+  echo "${GREEN}$1${RESET}"
+}
+
+function yellow()
+{
+  echo "${YELLOW}$1${RESET}"
+}
+
+SKIP_MODULE_REBUILD="n"
+while test ! -z "$1"; do
+  if test "$1" = "--no-module-rebuild" || test "$1" = "-n"; then
+    SKIP_MODULE_REBUILD="y"
+  fi
+  shift
+done
 
 function find_latest_kernel()
 {
@@ -38,16 +62,6 @@ function find_selected_kernel()
 function find_running_kernel()
 {
   uname -r
-}
-
-function red()
-{
-  echo "${RED}$1${RESET}"
-}
-
-function green()
-{
-  echo "${GREEN}$1${RESET}"
 }
 
 LATEST=$(find_latest_kernel)
@@ -79,10 +93,14 @@ if ! nice -n 19 $ZCAT $CONFIG | genkernel all --microcode --kernel-config=/dev/s
   exit $STATUS
 fi
 
-if ! emerge @module-rebuild; then
-  STATUS=$?
-  echo "module rebuild exits with status $STATUS"
-  exit $STATUS
+if test "$SKIP_MODULE_REBUILD" = "n"; then
+  if ! emerge @module-rebuild; then
+    STATUS=$?
+    echo "module rebuild exits with status $STATUS"
+    exit $STATUS
+  fi
+else
+  yellow "Skipping @module-rebuild" 
 fi
 
 $UPDATE_GRUB
