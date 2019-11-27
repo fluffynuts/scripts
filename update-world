@@ -64,6 +64,7 @@ fi
 if test ! -z "$(which ionice)"; then
   IONICE="ionice -c idle"
 fi
-if $IONICE emerge --update --newuse --deep --changed-deps @world @preserved-rebuild $ASK $EMERGE_ARGS; then
+if $IONICE emerge --update --newuse --deep --changed-deps --keep-going @world $ASK $EMERGE_ARGS; then
+  emerge @preserved-rebuild $ASK
   emerge --depclean $ASK
 fi
