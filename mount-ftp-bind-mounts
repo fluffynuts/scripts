@@ -1,0 +1,10 @@
+#!/bin/sh
+BASE=/var/ftp/pub
+for m in $BASE/*; do
+  umount $m &> /dev/null
+  if test -z "$(mount | grep $m)"; then
+    mount $m
+  else
+    echo "Unable to (re-)mount $m: already mounted and umount denied"
+  fi
+done
