@@ -1,5 +1,23 @@
 #!/bin/sh
 BASE=/var/ftp/pub
+LAST=""
+DELAY=0
+while test ! -z "$1"; do
+  if test -z "$LAST"; then
+    LAST="$1"
+  else
+    if test "$LAST" = "-d"; then
+      DELAY="$1"
+    fi
+    LAST=""
+  fi
+  shift
+done
+
+if test "$DELAY" != "0"; then
+  echo "delaying by $DELAY seconds"
+  sleep $DELAY
+fi
 for m in $BASE/*; do
   umount $m &> /dev/null
   if test -z "$(mount | grep $m)"; then
