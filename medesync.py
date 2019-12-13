@@ -700,7 +700,7 @@ class SmartSync:
     return False
 
   def humanreadable_size(self, byteCount):
-    suf = ["b", "Kb", "Mb", "Gb", "Pb"]
+    suf = ["b", "Kb", "Mb", "Gb", "Tb", "Pb"]
     for i in range(len(suf)):
       if byteCount < 1024:
         return "%.2f%s" % (byteCount, suf[i])
@@ -708,7 +708,7 @@ class SmartSync:
     return "%.2f%s" % (byteCount, suf[-1])
 
   def humanreadable_rate(self, b, s):
-    suf = ["b", "Kb", "Mb", "Gb", "Pb"]
+    suf = ["b", "Kb", "Mb", "Gb", "Tb", "Pb"]
     rate = float(b) / float(s)
     return "%s/s" % (self.humanreadable_size(rate))
 
