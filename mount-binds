@@ -1,0 +1,38 @@
+#!/sbin/openrc-run
+
+depend() {
+  need localmount
+}
+
+start() {
+  for MOUNT_POINT in $(find_bind_mounts); do
+    if test -z "$(mount | grep -E "\s$MOUNT_POINT\s")"; then
+      echo "  mount $MOUNT_POINT"
+      mount $MOUNT_POINT
+    else
+      echo "  already mounted: $MOUNT_POINT"
+    fi
+  done
+}
+
+stop() {
+  for MOUNT_POINT in $(find_bind_mounts); do
+    if test -z "$(mount | grep -E "\s$MOUNT_POINT\s")"; then
+      echo "  already unmounted: $MOUNT_POINT"
+    else
+      echo "  umount $MOUNT_POINT"
+      mount $MOUNT_POINT
+    fi
+  done
+}
+
+find_bind_mounts() {
+  while read LINE; do
+    OPTS="$(echo $LINE | awk '{print $4}' | grep -E '(,)?bind(,)?')"
+    if test -z "$OPTS"; then
+      continue
+    fi
+    echo $LINE | awk '{print $2}'
+  done < /etc/fstab
+}
+
