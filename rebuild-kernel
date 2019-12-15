@@ -83,7 +83,7 @@ if test "$ESELECTED" != "$LATEST"; then
       exit 1
     fi
   else
-    echo "Continuing rebuild with $RUNNING"
+    echo "Continuing rebuild with $ESELECTED"
   fi
 fi
 
@@ -106,5 +106,5 @@ fi
 $UPDATE_GRUB
 
 if test "$ESELECTED" != "$RUNNING"; then
-  echo "Remember to reboot to switch from $(red ${RUNNING}) to $(green ${ESELECTED})"
+  echo -e "Remember to reboot to switch from $(red ${RUNNING}) to $(green ${ESELECTED})"
 fi
