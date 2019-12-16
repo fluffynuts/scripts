@@ -5,21 +5,8 @@ if test -e $SAKAKI_BUILDKERNEL; then
     $SAKAKI_BUILDKERNEL
     exit $?
 fi
-UPDATE_GRUB="$(dirname $0)/update-grub"
-CONFIG=/proc/config.gz
-if test ! -e "$CONFIG"; then
-  echo "Current kernel was not built with /proc/config.gz support"
-  exit 1
-fi
-if test ! -e "$UPDATE_GRUB"; then
-  echo "Unable to find $UPDATE_GRUB"
-  exit 2
-fi
-ZCAT="$(which zcat)"
-if test -z "$ZCAT"; then
-  echo "No zcat in path"
-  exit 3
-fi
+RUNNING_CONFIG=/proc/config.gz
+KERNEL_CONFIG=/usr/src/linux/.config
 
 RED="\033[1;31m"
 GREEN="\033[1;32m"
@@ -28,83 +15,116 @@ RESET="\033[0m"
 
 function red()
 {
-  echo "${RED}$1${RESET}"
+  echo -e "${RED}$*${RESET}"
 }
 
 function green()
 {
-  echo "${GREEN}$1${RESET}"
+  echo -e "${GREEN}$*${RESET}"
 }
 
 function yellow()
 {
-  echo "${YELLOW}$1${RESET}"
+  echo -e "${YELLOW}$*${RESET}"
 }
 
-SKIP_MODULE_REBUILD="n"
-while test ! -z "$1"; do
-  if test "$1" = "--no-module-rebuild" || test "$1" = "-n"; then
-    SKIP_MODULE_REBUILD="y"
-  fi
-  shift
-done
-
-function find_latest_kernel()
-{
+function find_latest_kernel() {
   eselect kernel list | tail -n 1 | sed -e 's/^.*linux-//' | sed -e 's/\s\\*.*//'
 }
 
-function find_selected_kernel()
-{
+function find_selected_kernel() {
   eselect kernel list | grep "\*$" | sed -e 's/^.*linux-//' | sed -e 's/\s\\*.*//'
 }
 
-function find_running_kernel()
-{
+function find_running_kernel() {
   uname -r
 }
 
-LATEST=$(find_latest_kernel)
-ESELECTED=$(find_selected_kernel)
-RUNNING=$(uname -r)
-if test "$ESELECTED" != "$LATEST"; then
-  echo -e "The current selected kernel is $(red ${ESELECTED}), however $(green ${LATEST}) is available."
-  echo -n " Select newer kernel? (Y/n) "
-  read ANSWER
-  ANSWER=$(echo $ANSWER | tr [:upper:] [:lower:])
-  if test -z "$ANSWER" || 
-     test "$ANSWER" = "y" ||
-     test "$ANSWER" = "yes"; then
-    eselect kernel set $LATEST
-    ESELECTED=$(find_selected_kernel)
-
-    if test "$ESELECTED" != "$LATEST"; then
-      echo "kernel selection fails; please manually run eselect"
-      exit 1
-    fi
+function create_config_if_missing() {
+  if test -e $KERNEL_CONFIG; then
+    echo "$(yellow using config at $KERNEL_CONFIG)"
   else
-    echo "Continuing rebuild with $ESELECTED"
+    ZCAT="$(which zcat)"
+    if test -z "$ZCAT"; then
+      echo "No zcat in path"
+      exit 3
+    fi
+    if test -e $RUNNING_CONFIG; then
+      echo "$(green "creating $KERNEL_CONFIG from current running kernel")"
+      $ZCAT $RUNNING_CONFIG > $KERNEL_CONFIG
+    else
+      echo "$(red "unable to generate new $KERNEL_CONFIG: current kernel does not support $RUNNING_CONFIG")"
+      exit 2
+    fi
   fi
-fi
+}
 
-if ! nice -n 19 $ZCAT $CONFIG | genkernel all --microcode --kernel-config=/dev/stdin --oldconfig --makeopts=-j$(nproc) --loglevel=2; then
-  STATUS=$?
-  echo "genkernel exits with status $STATUS; modules not rebuilt!"
-  exit $STATUS
-fi
+function validate_selected_kernel() {
+  LATEST=$(find_latest_kernel)
+  ESELECTED=$(find_selected_kernel)
+  RUNNING=$(uname -r)
+  if test "$ESELECTED" != "$LATEST"; then
+    echo "The current selected kernel is $(red ${ESELECTED}), however $(green ${LATEST}) is available."
+    echo -n " Select newer kernel? (Y/n) "
+    read ANSWER
+    ANSWER=$(echo $ANSWER | tr [:upper:] [:lower:])
+    if test -z "$ANSWER" || 
+       test "$ANSWER" = "y" ||
+       test "$ANSWER" = "yes"; then
+      eselect kernel set $LATEST
+      ESELECTED=$(find_selected_kernel)
 
-if test "$SKIP_MODULE_REBUILD" = "n"; then
-  if ! emerge @module-rebuild; then
+      if test "$ESELECTED" != "$LATEST"; then
+        echo "kernel selection fails; please manually run eselect"
+        exit 1
+      fi
+    else
+      echo "Continuing rebuild with $ESELECTED"
+    fi
+  fi
+}
+
+function build_with_genkernel() {
+  if ! nice -n 19 genkernel all --microcode --kernel-config=/usr/src/linux/.config --oldconfig --makeopts=-j$(nproc) --loglevel=2; then
     STATUS=$?
-    echo "module rebuild exits with status $STATUS"
+    echo "genkernel exits with status $STATUS; modules not rebuilt!"
     exit $STATUS
   fi
-else
-  yellow "Skipping @module-rebuild" 
-fi
 
-$UPDATE_GRUB
+  if test "$SKIP_MODULE_REBUILD" = "n"; then
+    if ! emerge @module-rebuild; then
+      STATUS=$?
+      echo "module rebuild exits with status $STATUS"
+      exit $STATUS
+    fi
+  else
+    yellow "Skipping @module-rebuild" 
+  fi
+}
 
-if test "$ESELECTED" != "$RUNNING"; then
-  echo -e "Remember to reboot to switch from $(red ${RUNNING}) to $(green ${ESELECTED})"
-fi
+function update_grub() {
+  grub-mkconfig -o /boot/grub/grub.cfg
+}
+
+function grok_args() {
+  SKIP_MODULE_REBUILD="n"
+  while test ! -z "$1"; do
+    if test "$1" = "--no-module-rebuild" || test "$1" = "-n"; then
+      SKIP_MODULE_REBUILD="y"
+    fi
+    shift
+  done
+}
+
+function remind_reboot() {
+  if test "$ESELECTED" != "$RUNNING"; then
+    echo "Remember to reboot to switch from $(red ${RUNNING}) to $(green ${ESELECTED})"
+  fi
+}
+
+grok_args
+validate_selected_kernel
+create_config_if_missing
+build_with_genkernel
+update_grub
+remind_reboot
