@@ -85,7 +85,7 @@ function validate_selected_kernel() {
 }
 
 function build_with_genkernel() {
-  if ! nice -n 19 genkernel all --microcode --kernel-config=/usr/src/linux/.config --oldconfig --makeopts=-j$(nproc) --loglevel=2; then
+  if ! nice -n 19 ionice -c idle genkernel all --microcode --kernel-config=/usr/src/linux/.config --oldconfig --makeopts=-j$(nproc) --loglevel=2; then
     STATUS=$?
     echo "genkernel exits with status $STATUS; modules not rebuilt!"
     exit $STATUS
