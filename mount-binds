@@ -6,24 +6,32 @@ depend() {
 
 start() {
   for MOUNT_POINT in $(find_bind_mounts); do
-    if test -z "$(mount | grep -E "\s$MOUNT_POINT\s")"; then
-      echo "  mount $MOUNT_POINT"
-      mount $MOUNT_POINT
-    else
-      echo "  already mounted: $MOUNT_POINT"
-    fi
+    do_mount $MOUNT_POINT
   done
 }
 
 stop() {
   for MOUNT_POINT in $(find_bind_mounts); do
-    if test -z "$(mount | grep -E "\s$MOUNT_POINT\s")"; then
-      echo "  already unmounted: $MOUNT_POINT"
-    else
-      echo "  umount $MOUNT_POINT"
-      mount $MOUNT_POINT
-    fi
+    do_umount $MOUNT_POINT
   done
+}
+
+do_mount() {
+    if test -z "$(mount | grep -E "\s$1\s")"; then
+      echo "  mount $1"
+      mount $1
+    else
+      echo "  already mounted: $1"
+    fi
+}
+
+do_umount() {
+    if test -z "$(mount | grep -E "\s$1\s")"; then
+      echo "  already unmounted: $1"
+    else
+      echo "  umount $1"
+      umount $1
+    fi
 }
 
 find_bind_mounts() {
