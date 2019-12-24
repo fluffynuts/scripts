@@ -1,0 +1,4 @@
+#!/bin/sh
+# from https://forums.gentoo.org/viewtopic-t-1105534.html
+# rebuilds all installed dev-qt/* packages
+emerge -1vqu $(qlist -CI dev-qt/*)
