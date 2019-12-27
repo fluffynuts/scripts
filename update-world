@@ -64,7 +64,9 @@ fi
 if test ! -z "$(which ionice)"; then
   IONICE="ionice -c idle"
 fi
-if $IONICE emerge --update --newuse --deep --changed-deps --keep-going @world $ASK $EMERGE_ARGS; then
+if $IONICE emerge --update --newuse --changed-use --deep --changed-deps --keep-going @world $ASK $EMERGE_ARGS; then
+  echo "Checking for @preserved-rebuild actions..."
   emerge @preserved-rebuild $ASK
+  echo "Cleaning out unnecessary dependencies..."
   emerge --depclean $ASK
 fi
