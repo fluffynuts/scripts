@@ -1,0 +1,35 @@
+#!/sbin/openrc-run
+# Copyright 2019 Gentoo Authors
+# Distributed under the terms of the GNU General Public License v2
+
+name="io-scheduler-setter"
+description="Sets IO Scheduling on all sd* block devices"
+
+if test -e /etc/default/IO_SCHEDULER; then
+  source /etc/default/IO_SCHEDULER
+fi
+
+if test -z "$SCHEDULER"; then
+  SCHEDULER="bfq"
+fi
+
+depend() {
+	need localmount
+}
+
+start() {
+  for dev in /sys/block/sd*; do
+    ebegin "Selecting $SCHEDULER scheduler for $(basename $dev)"
+    echo $SCHEDULER > $dev/queue/scheduler
+    eend $?
+  done
+}
+
+stop() {
+  for dev in /sys/block/sd*; do
+    DEFAULT_SCHEDULER=$(cat $dev/queue/scheduler | awk '{print $1}')
+    ebegin "Selecting default scheduler $DEFAULT_SCHEDULER for $(basename $dev)"
+    echo $DEFAULT_SCHEDULER > $dev/queue/scheduler
+    eend $?
+  done
+}
