@@ -2,11 +2,20 @@
 # Copyright 2019 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
+# sets IO scheduler for all scsi block devices
+# defaults to BFQ (good for desktop interactivity)
+# but this behavior can be changed by editing the file
+# /etc/default/set-scheduler
+# and adding, eg:
+# SCHEDULER=kyber
+# (kyber would probably be better in a server situation)
+
 name="io-scheduler-setter"
 description="Sets IO Scheduling on all sd* block devices"
+CONFIG_FILE=/etc/default/set-scheduler
 
-if test -e /etc/default/IO_SCHEDULER; then
-  source /etc/default/IO_SCHEDULER
+if test -e $CONFIG_FILE; then
+  source $CONFIG_FILE
 fi
 
 if test -z "$SCHEDULER"; then
