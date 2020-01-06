@@ -1,5 +1,7 @@
 #!/bin/bash
-MEDESYNC="ionice -c idle /home/daf/apps/scripts/medesync.py"
+MEDESYNC="ionice -c idle $(dirname $0)/medesync.py"
+BITSPLAT="ionice -c idle $(dirname $0)/bitsplat"
+
 SPECIFIED_TARGET="$1"
 SRC_BASE=/mnt/monolith
 if test -z "$DST_BASE"; then
@@ -10,8 +12,6 @@ PIDFILE=/tmp/update-mede8er.pid
 if test ! -z "$LOG_TO_FILE"; then
     LOGFILE=/tmp/update-mede8er.log
     echo "PID $$ started at: $(date "+%Y-%m-%d_%H.%M.%S")" >> $LOGFILE
-else
-    LOGFILE=stdout
 fi
 if test ! -z "$DUMMY"; then
     DUMMY="-dummy"
@@ -42,14 +42,14 @@ function clear_pidfile() {
 }
 
 function puts() {
-    if test "$LOGFILE" = "stdout"; then
+    if test -z "$LOGFILE"; then
         echo $1
     else
         echo $1 >> "$LOGFILE"
     fi
 }
 
-function update_target() {
+function update_target_with_bitsplat() {
     TARGET="$1"
     ARCHIVE="$2"
     if test ! -z "$SPECIFIED_TARGET"; then
@@ -62,15 +62,59 @@ function update_target() {
     if ! test -d $DST_BASE/$TARGET; then
         mkdir $DST_BASE/$TARGET
     fi
-    CMD="ionice -c idle $MEDESYNC -s $SRC_BASE/$TARGET -d $DST_BASE/$TARGET -l $LOGFILE $DUMMY"
+
+    CMD="$BITSPLAT -s $SRC_BASE/$TARGET -t $DST_BASE/$TARGET"
+    if test ! -z "$QUIET"; then
+      CMD="$CMD -q"
+    fi
+    if test ! -z "$ARCHIVE"; then
+      if ! test -d "$ARCHIVE"; then
+        mkdir -p "$ARCHIVE"
+      fi
+      CMD="$CMD -a $ARCHIVE"
+    fi
+    if test ! -z "$LOGFILE"; then
+      CMD="$CMD >> $LOGFILE"
+    fi
+    $CMD
+}
+
+function update_target_with_medesync() {
+    TARGET="$1"
+    ARCHIVE="$2"
+    if test ! -z "$SPECIFIED_TARGET"; then
+        if test ! "$SPECIFIED_TARGET" = "$TARGET"; then
+            puts "Skipping $TARGET"
+            return
+        fi
+    fi
+    puts "=== Syncing: $TARGET ==="
+    if ! test -d $DST_BASE/$TARGET; then
+        mkdir $DST_BASE/$TARGET
+    fi
+    CMD="$MEDESYNC -s $SRC_BASE/$TARGET -d $DST_BASE/$TARGET $DUMMY"
+    if test ! -z "$LOGFILE"; then
+      CMD="$CMD -l $LOGFILE"
+    fi
     if test -z "$ARCHIVE"; then
-        $MEDESYNC -s $SRC_BASE/$TARGET -d $DST_BASE/$TARGET -l $LOGFILE $DUMMY
+        $CMD
     else
         if ! test -d "$ARCHIVE"; then
             mkdir -p "$ARCHIVE"
         fi
         $CMD -a $ARCHIVE
     fi
+}
+
+function update_target() {
+  if test -z "$NO_BITSPLAT"; then
+    puts "Attempt update with bitsplat"
+    update_target_with_bitsplat $*
+  fi
+  if test -z "$NO_MEDESYNC"; then
+    puts "Attempt update with medesync"
+    update_target_with_medesync $*
+  fi
 }
 
 function check_target_is_mounted() {

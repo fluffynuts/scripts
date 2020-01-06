@@ -1,0 +1,7 @@
+#!/bin/sh
+BIN=$HOME/.local/bin/bitsplat
+if test ! -f $BIN; then
+  echo "bitsplat not found at $BIN"
+  exit 1
+fi
+$BIN $*
