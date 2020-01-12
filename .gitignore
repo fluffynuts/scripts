@@ -4,3 +4,4 @@ node_modules
 datagrip
 rider
 webstorm
+*.pyc
