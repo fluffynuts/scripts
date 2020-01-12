@@ -1,6 +1,10 @@
 #!/bin/bash
 MEDESYNC="ionice -c idle $(dirname $0)/medesync.py"
-BITSPLAT="ionice -c idle $(dirname $0)/bitsplat"
+BITSPLAT="ionice -c idle $(dirname $0)/bitsplat --no-history"
+
+# fixme: bitsplat is not moving source files to the archive folder
+#NO_BITSPLAT=1
+NO_MEDESYNC=1
 
 SPECIFIED_TARGET="$1"
 SRC_BASE=/mnt/monolith
@@ -73,10 +77,21 @@ function update_target_with_bitsplat() {
       fi
       CMD="$CMD -a $ARCHIVE"
     fi
+    if test ! -z "$NO_HISTORY"; then
+      CMD="$CMD --no-history"
+    fi
+    if test "$TARGET" = "keep"; then
+      CMD="$CMD --keep-stale"
+    fi
     if test ! -z "$LOGFILE"; then
       CMD="$CMD >> $LOGFILE"
     fi
-    $CMD
+    puts "Run bitsplat: $CMD"
+    if test -z "$LOGFILE"; then
+      $CMD
+    else
+      $CMD >> $LOGFILE
+    fi
 }
 
 function update_target_with_medesync() {

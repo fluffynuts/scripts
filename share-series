@@ -4,36 +4,18 @@ if test -z "$1"; then
   echo "eg: $0 /run/media/daf/Target"
   exit 1
 fi
-MEDESYNC=$(which medesync.py)
-if test -z "$MEDESYNC"; then
-  echo "Unable to find medesync.py in the path";
+BITSPLAT=$(which bitsplat)
+if test -z "$BITSPLAT"; then
+  echo "Unable to find bitsplat in the path";
   return 2;
 fi
+CMD="$BITSPLAT --sync-strategy targetoptin"
 
 SYNCED=0
-TARGET="$1"
-cd "$TARGET"
-for folder in *; do
-  if ! test -d "$folder"; then
-    continue
-  fi
-  for src in /mnt/monolith/series /mnt/piggy/series/watched; do
-      this_src="$src/$folder"
-      if ! test -d "$this_src"; then
-        continue
-      fi
-      echo "checking on $folder from $src"
-      ionice -c idle $MEDESYNC -n -s "$this_src" -d "$folder"
-      if test "$?" -ne 0; then
-        exit 2
-      fi
-      let "SYNCED=SYNCED+1"
-  done
+for src in /mnt/monolith/series /mnt/piggy/series/watched; do
+    $CMD -s $src -t $1/series
+    if test "$?" -ne 0; then
+      exit 2
+    fi
+    let "SYNCED=SYNCED+1"
 done
-cd - &> /dev/null
-if test $SYNCED -eq 0; then
-  TEST="$TARGET/series"
-  if test -d "$TEST"; then
-    "$0" "$TEST"
-  fi
-fi
