@@ -13,6 +13,14 @@ GREEN="\033[1;32m"
 YELLOW="\033[1;33m"
 RESET="\033[0m"
 
+function check_is_root()
+{
+   if test "$(whoami)" != "root"; then
+     sudo -p "Your password is required to continue: " $0 $@
+     exit $?
+   fi
+}
+
 function red()
 {
   echo -e "${RED}$*${RESET}"
@@ -122,6 +130,7 @@ function remind_reboot() {
   fi
 }
 
+check_is_root
 grok_args
 validate_selected_kernel
 create_config_if_missing
