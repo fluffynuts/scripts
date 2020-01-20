@@ -62,7 +62,7 @@ function update_target_with_bitsplat() {
             return
         fi
     fi
-    puts "=== Syncing: $TARGET ==="
+    puts "=== Syncing: $TARGET $(date -Iseconds) ==="
     if ! test -d $DST_BASE/$TARGET; then
         mkdir $DST_BASE/$TARGET
     fi
