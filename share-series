@@ -9,7 +9,7 @@ if test -z "$BITSPLAT"; then
   echo "Unable to find bitsplat in the path";
   return 2;
 fi
-CMD="$BITSPLAT --sync-strategy targetoptin"
+CMD="$BITSPLAT --mode opt-in --keep-stale"
 
 SYNCED=0
 for src in /mnt/monolith/series /mnt/piggy/series/watched; do
