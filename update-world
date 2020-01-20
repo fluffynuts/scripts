@@ -38,6 +38,9 @@ for arg in "$@"; do
     HELP=1
     continue
   fi
+  if test "$arg" = "-v" || test "$arg" = "--verbose"; then
+    VERBOSE=1
+  fi
   # assume left-over args are to emerge
   EMERGE_ARGS="$EMERGE_ARGS $arg"
 done
@@ -47,6 +50,7 @@ if test ! -z "$HELP"; then
   echo " -h, --help          show this screeen and exit"
   echo " -n, --no-sync       skip sync, just emerge updates"
   echo " -y, --yes           skip emerge confirmation (opposite of default -a)"
+  echo " -v, --verbose       more verbose output (and build logs)"
   echo " --                  options provided after this are passed to emerge"
   exit 0
 fi
@@ -58,6 +62,11 @@ if test -z "$NO_SYNC"; then
 fi
 if test -z "$PRETEND"; then
   check_is_root $@
+fi
+if test ! -z "$VERBOSE"; then
+  EMERGE_ARGS="$EMERGE_ARGS -v"
+else
+  EMERGE_ARGS="$EMERGE_ARGS --quiet-build"
 fi
 # set io niceness; if you want to set cpu niceness, you should
 #  set PORTAGE_NICENESS in /etc/portage/make.conf
