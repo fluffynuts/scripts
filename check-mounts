@@ -1,0 +1,7 @@
+#!/bin/bash
+
+for f in piggy monolith; do
+  if test -z "$(mount | grep /mnt/$f)"; then
+    mount /mnt/$f
+  fi
+done
