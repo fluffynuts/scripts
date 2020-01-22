@@ -1,0 +1,6 @@
+#!/bin/bash
+CONNECTORS=( $(xrandr | grep "\sconnected" | cut -d " " -f 1) )
+
+for c in ${CONNECTORS[@]}; do
+  xrandr --output "$c" --set TearFree on
+done
