@@ -140,7 +140,20 @@ def tryConvertToInt(s):
     print("%s is not a valid number" % (s))
     sys.exit(1)
 
+def restartedAsRoot():
+  currentUser = subprocess.check_output("whoami").strip()
+  if currentUser == "root":
+    return False
+  args = "sudo -p \"Your password is required to continue: \" " + " ".join(sys.argv)
+  os.system(args)
+  return True
+  
+# TODO: update-grub should be done inline
+# TODO: should rather user subprocess for restarting as root
+    
 if __name__ == "__main__":
+  if restartedAsRoot():
+    sys.exit()
   global DRY_RUN
   DRY_RUN=False
   keep = 2
