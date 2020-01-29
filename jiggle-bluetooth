@@ -11,3 +11,4 @@ if test -z "$ID"; then
 fi
 rfkill block $ID
 rfkill unblock $ID
+killall pulseaudio

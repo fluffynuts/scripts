@@ -1,0 +1,45 @@
+#!/bin/sh
+PIDFILE="/tmp/share-media.pid"
+if test -e "$PIDFILE"; then
+  if test -e "/proc/$(cat $PIDFILE)"; then
+    echo "$(basename $0) already running..."
+    exit 1
+  fi
+fi
+echo $$ > $PIDFILE
+TARGET="$1"
+DEFAULT_TARGET="/run/media/daf/Elements"
+if test -z "$TARGET"; then
+  if test -e "$DEFAULT_TARGET"; then
+    TARGET="$DEFAULT_TARGET"
+  fi
+fi
+if test -z "$TARGET"; then
+  echo "Please specify the target to share to"
+  echo "eg: $0 /run/media/daf/Target"
+  exit 1
+fi
+BITSPLAT=$(which bitsplat)
+if test -z "$BITSPLAT"; then
+  echo "Unable to find bitsplat in the path";
+  return 2;
+fi
+if test ! -z "$QUIET"; then
+  QUIET="-q"
+fi
+CMD="$BITSPLAT --mode opt-in --keep-stale $QUIET"
+
+if test ! -d "$TARGET/series"; then
+  mkdir "$TARGET/series"
+fi
+if test ! -d "$TARGET/movies"; then
+  mkdir "$TARGET/movies"
+fi
+
+for src in /mnt/monolith/series /mnt/piggy/series/watched; do
+  echo "=== share series from $(basename $(dirname $src)) ==="
+  $CMD -s "$src" -t "$TARGET/series"
+done
+
+echo "=== share new movies ==="
+$BITSPLAT $QUIET --keep-stale -s "/mnt/monolith/movies" -t "$TARGET/movies"
