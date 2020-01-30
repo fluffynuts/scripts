@@ -1,14 +1,17 @@
-# example config
 [conf]
-DELAY=90
+DELAY=8
+
+[init]
+/home/daf/apps/scripts/jiggle-bluetooth
 
 [start]
-audacious
 transmission-qt
 firefox
-#xbindkeys
 dropbox
 /home/daf/apps/scripts/watchdog-plasmashell-20
 /home/daf/apps/scripts/watchdog-krunner
 /home/daf/apps/scripts/watchdog-kmix
-steam
+/home/daf/apps/scripts/jiggle-bluetooth
+autocutsel -s PRIMARY
+enable-vsync
+audacious
