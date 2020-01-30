@@ -9,6 +9,7 @@ fi
 DELAY=30
 STATE="start"
 START=""
+PRESTART=""
 
 while read -r line; do
 	if test -z "$line"; then
@@ -22,6 +23,10 @@ while read -r line; do
 			STATE="config"
 			continue
 		;;
+    "[prestart]")
+      STATE="prestart"
+      continue
+    ;;
 		"[start]")
 			STATE="start"
 			continue
@@ -32,24 +37,39 @@ while read -r line; do
 		"config")
 			eval $line
 		;;
+    "prestart")
+      PRESTART="${PRESTART}${line}"
+    ;;
 		"start")
 			START="${START}${line}\n"
 		;;
 	esac
 done < $RCFILE
 
-echo "Waiting $DELAY seconds..."
-sleep $DELAY
 LOGDIR=/tmp/delayed_autostart_logs
 if ! test -e $LOGDIR; then
     mkdir $LOGDIR
 fi
 
-echo -e "$START" | while read -r line; do
-	if test -z "$line"; then
-		continue
-	fi
-    LOGFILE="$LOGDIR/$(echo $line | sed -e 's/ /-/g' | sed -e 's/\//-/g')"
-	$line &> $LOGFILE &
-done
+function run_lines() {
+  LABEL=$1
+  LINES=$2
+  if test -z "$LINES"; then
+    return
+  fi
+  echo "Running $LABEL"
+  echo -e "$LINES" | while read -r line; do
+    if test -z "$line"; then
+      continue
+    fi
+      LOGFILE="$LOGDIR/$(echo $line | sed -e 's/ /-/g' | sed -e 's/\//-/g')"
+    $line &> $LOGFILE &
+  done
+}
+
+run_lines "Pre-start" "$PRESTART"
+
+echo "Waiting $DELAY seconds..."
+sleep $DELAY
+run_lines "Start" "$START"
 
