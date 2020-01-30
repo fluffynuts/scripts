@@ -1,7 +1,14 @@
 #!/bin/sh
-TARGET="/run/media/daf/Elements"
-if test ! -d "$TARGET"; then
-  exit 0
+TARGET="/mnt/haynes"
+AUTO_UNMOUNT=0
+if test -z "$(mount | grep $TARGET)"; then
+  if ! mount $TARGET; then
+    exit 0
+  fi
+  AUTO_UNMOUNT=1
 fi
 
 "$(dirname $0)/share-media" "$TARGET"
+if test "$AUTO_UNMOUNT" = "1"; then
+  umount $TARGET
+fi
