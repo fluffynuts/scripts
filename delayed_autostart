@@ -9,7 +9,7 @@ fi
 DELAY=30
 STATE="start"
 START=""
-PRESTART=""
+INIT=""
 
 while read -r line; do
 	if test -z "$line"; then
@@ -23,8 +23,8 @@ while read -r line; do
 			STATE="config"
 			continue
 		;;
-    "[prestart]")
-      STATE="prestart"
+    "[init]")
+      STATE="init"
       continue
     ;;
 		"[start]")
@@ -37,8 +37,8 @@ while read -r line; do
 		"config")
 			eval $line
 		;;
-    "prestart")
-      PRESTART="${PRESTART}${line}"
+    "init")
+      INIT="${INIT}${line}"
     ;;
 		"start")
 			START="${START}${line}\n"
@@ -67,7 +67,7 @@ function run_lines() {
   done
 }
 
-run_lines "Pre-start" "$PRESTART"
+run_lines "Init..." "$INIT"
 
 echo "Waiting $DELAY seconds..."
 sleep $DELAY
