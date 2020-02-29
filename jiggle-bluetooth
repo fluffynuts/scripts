@@ -12,3 +12,6 @@ fi
 rfkill block $ID
 rfkill unblock $ID
 killall pulseaudio
+pulseaudio -D
+killall kmix
+kmix &
