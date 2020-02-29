@@ -2,7 +2,7 @@
 TARGET="/mnt/haynes"
 AUTO_UNMOUNT=0
 if test -z "$(mount | grep $TARGET)"; then
-  if ! mount $TARGET; then
+  if ! mount $TARGET &> null; then
     exit 0
   fi
   AUTO_UNMOUNT=1
