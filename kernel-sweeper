@@ -49,9 +49,15 @@ def rm_rf_modules(version, base):
 
     if os.path.isdir(f) and not os.path.islink(f):
       os.rmdir(f)
-    elif os.path.isfile(f):
+    else:
       try:
         os.remove(f)
+      except OSError as e:
+        if e.errno == 2:
+            # file already deleted
+            pass
+        else:
+            print("Can't purge %s: %s" % (f, e))
       except Exception as e:
         print("Can't purge %s: %s" % (f, e))
 
