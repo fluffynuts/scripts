@@ -62,6 +62,8 @@ if test -z "$NO_SYNC"; then
 fi
 if test -z "$PRETEND"; then
   check_is_root $@
+else
+  EMERGE_ARGS="$EMERGE_ARGS --pretend"
 fi
 if test ! -z "$VERBOSE"; then
   EMERGE_ARGS="$EMERGE_ARGS -v"
