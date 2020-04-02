@@ -70,7 +70,7 @@ def rm_rf_modules(version, base):
     sys.stdout.flush()
 
 def remove_boot_detritus(version):
-  print(yellow("Cleaning out /boot"))
+  print(yellow("Cleaning out /boot for %s" % version))
   contents = ls_R("/boot")
   for f in contents:
     if not version in f:
@@ -98,17 +98,16 @@ def ls_R(dir):
 def version(path):
     parts = path.split(os.sep)
     last = re.sub(r"-.*$","", parts[-1])
-    parts = map(lambda x: x * 100, map(int, last.split(".")))
-    reversed = parts[::-1]
-    largest = sorted(parts)[-1]
-    step = 100
-    while step < largest:
-        step = step * 10
-    mul = 1
-    result = 0
-    for part in reversed:
-        result = result + (part * mul)
-        mul = mul * step
+    # parts = map(lambda x: x * 100, map(int, last.split(".")))
+    parts = map(int, last.split("."))
+    result = ""
+    print(path)
+    for part in parts:
+      local_part = str(part)
+      while len(local_part) < 4:
+        local_part = "0" + local_part
+      result = result + local_part
+    print("%s -> %s" % (path, result))
     return result
 
 
@@ -153,10 +152,10 @@ def restartedAsRoot():
   args = "sudo -p \"Your password is required to continue: \" " + " ".join(sys.argv)
   os.system(args)
   return True
-  
+
 # TODO: update-grub should be done inline
 # TODO: should rather user subprocess for restarting as root
-    
+
 if __name__ == "__main__":
   if restartedAsRoot():
     sys.exit()
