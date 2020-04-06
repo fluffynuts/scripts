@@ -5,7 +5,7 @@ import sys
 import re
 import subprocess
 import shutil
-
+import re
 
 def would(str):
     print("Would: %s" % (str))
@@ -63,7 +63,7 @@ def remove_boot_detritus(version):
 
 
 def remove_kernel_sources(version):
-    source_dir = "/usr/src/linux-%s" % version
+    source_dir = re.sub("-(x86_64|i386)", "", "/usr/src/linux-%s" % version)
     if (not os.path.isdir(source_dir)):
         print(yellow("No kernel sources found at %s" % source_dir))
         return
