@@ -103,7 +103,6 @@ def version(path):
         while len(local_part) < 4:
             local_part = "0" + local_part
         result = result + local_part
-    print("%s -> %s" % (path, result))
     return result
 
 
