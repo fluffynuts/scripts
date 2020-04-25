@@ -99,14 +99,13 @@ function build_with_genkernel() {
     exit $STATUS
   fi
 
-  if test "$SKIP_MODULE_REBUILD" = "n"; then
+  if test "$FORCE_MODULE_REBUILD" = "y"; then
+    yellow "Forcing @module-rebuild" 
     if ! emerge @module-rebuild; then
       STATUS=$?
       echo "module rebuild exits with status $STATUS"
       exit $STATUS
     fi
-  else
-    yellow "Skipping @module-rebuild" 
   fi
 }
 
@@ -115,10 +114,10 @@ function update_grub() {
 }
 
 function grok_args() {
-  SKIP_MODULE_REBUILD="n"
+  FORCE_MODULE_REBUILD="n"
   while test ! -z "$1"; do
-    if test "$1" = "--no-module-rebuild" || test "$1" = "-n"; then
-      SKIP_MODULE_REBUILD="y"
+    if test "$1" = "--force-module-rebuild" || test "$1" = "-f"; then
+      FORCE_MODULE_REBUILD="y"
     fi
     shift
   done
