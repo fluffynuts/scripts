@@ -12,6 +12,7 @@ dropbox
 /home/daf/apps/scripts/watchdog-krunner
 /home/daf/apps/scripts/watchdog-kmix
 /home/daf/apps/scripts/jiggle-bluetooth
+/home/daf/apps/scripts/start-vnc-server
 autocutsel -s PRIMARY
 enable-vsync
 audacious
