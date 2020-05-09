@@ -97,7 +97,6 @@ def version(path):
     # parts = map(lambda x: x * 100, map(int, last.split(".")))
     parts = map(int, last.split("."))
     result = ""
-    print(path)
     for part in parts:
         local_part = str(part)
         while len(local_part) < 4:
