@@ -1,5 +1,5 @@
 #!/bin/bash
-PROTON=$(find ~/.steam/steam/steamapps/common -name proton)
+PROTON=$(find ~/.steam/steam/steamapps/common -name proton | sort --reverse | head -n 1)
 if test -z "$PROTON"; then
   echo "can't find proton )':"
   exit 1
