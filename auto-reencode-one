@@ -1,9 +1,9 @@
 #!/bin/zsh
 if test -z "$PROFILE"; then
   if test ! -z "$SMALLER"; then
-    PROFILE="HQ 720p30 Surround"
+    PROFILE="General/HQ 720p30 Surround"
   else
-    PROFILE="HQ 1080p30 Surround"
+    PROFILE="General/HQ 1080p30 Surround"
   fi
 fi
 
@@ -64,6 +64,9 @@ function reencode()
       return 0
     fi
     CMD="nice -n 19 $HANDBRAKE -Z \"$PROFILE\" -i \"$filepath\" -o \"$TMPFILE\" &> \"$LOGFILE\""
+    if test ! -z "$DEBUG"; then
+      echo "cmd: $CMD"
+    fi
     if nice -n 19 $HANDBRAKE -Z "$PROFILE" -i "$filepath" -o "$TMPFILE" &> "$TMPFILE.log"; then
       if mv "$TMPFILE" "$(dirname $filepath)"; then
         if test ! -z "$KEEP_ORIGINAL"; then
