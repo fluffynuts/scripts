@@ -180,6 +180,7 @@ if __name__ == "__main__":
     keep = 2
     basedir = "/lib/modules"
     last_arg = ""
+    yes = False
     for arg in sys.argv[1:]:
         if ["-k", "--keep", "-keep",
                 "-md", "--modulesdir", "-modulesdir"].count(arg) > 0:
@@ -196,6 +197,8 @@ if __name__ == "__main__":
         if ["-md", "--modulesdir", "-modulesdir"].count(last_arg) > 0:
             basedir = arg
             last_arg = arg
+        if ["-y", "--yes"].count(arg) > 0:
+            yes = True
     if not os.path.isdir(basedir):
         print("Can't find modules base at %s; specify with -md" % (basedir))
         sys.exit(2)
@@ -209,23 +212,28 @@ if __name__ == "__main__":
 
     to_remove = available_kernels[keep:]
 
+    would = "would"
+    if yes:
+        would = "will"
+
     if DRY_RUN:
         print(cyan("DRY RUN ONLY - NON-DESTRUCTIVE"))
-    else:
+    elif not yes:
         print(red("Please verify before continuing:"))
-    print("Operation would purge the following kernels:")
+    print("Operation %s purge the following kernels:" % (would))
     for k in to_remove:
         print(red("  %s" % (k)))
-    print("The following kernels would be left:")
+    print("The following kernels %s be left:" % (would))
     for k in available_kernels[:2]:
         print(green("  %s" % (k)))
 
-    sys.stdout.write("Are you sure you want to continue ? (y/N) ")
-    sys.stdout.flush()
-    ans = sys.stdin.readline().strip().lower()
-    if len(ans) == 0 or ans[0] != "y":
-        print("Bailing out")
-        sys.exit(0)
+    if not yes:
+        sys.stdout.write("Are you sure you want to continue ? (y/N) ")
+        sys.stdout.flush()
+        ans = sys.stdin.readline().strip().lower()
+        if len(ans) == 0 or ans[0] != "y":
+            print("Bailing out")
+            sys.exit(0)
 
     for k in to_remove:
         purge_dpkg(k)
