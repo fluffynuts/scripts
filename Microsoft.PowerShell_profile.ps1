@@ -4,7 +4,11 @@ Remove-Item alias:cp
 Remove-Item alias:mv
 
 Function Ls-Color {
-    . $(which ls) --color @Args
+    if ($env:NO_COLOR) {
+        . $(which ls) @Args
+    } else {
+        . $(which ls) --color @Args
+    }
 }
 Set-Alias ls Ls-Color
 
@@ -18,3 +22,4 @@ Set-PSReadLineOption -EditMode Emacs
 Set-PSReadLineKeyHandler -Chord Ctrl+r -Function ReverseSearchHistory
 Set-PSReadLineKeyHandler -Chord Tab -Function TabCompleteNext
 Set-PSReadLineKeyHandler -Chord Shift+Tab -Function TabCompletePrevious
+Set-PSReadlineKeyHandler -Chord Ctrl+Backspace -Function BackwardDeleteWord
