@@ -36,10 +36,54 @@ if test ! -d "$TARGET/movies"; then
   mkdir "$TARGET/movies"
 fi
 
+BACKUP_BASE="/mnt/dump/sync-db-backup/$(basename $TARGET)"
+if test ! -e "$BACKUP_BASE"; then
+  mkdir -p "$BACKUP_BASE"
+fi
+
+function restore_db_if_missing()
+{
+  TARGET_DIR="$1"
+  TARGET_DB="$TARGET/$TARGET_DIR/.bitsplat.db"
+  BACKUP_DIR="$BACKUP_BASE/$TARGET_DIR"
+  BACKUP_DB="$BACKUP_DIR/.bitsplat.db"
+
+  if ! test -e "$BACKUP_DIR"; then
+    mkdir -p "$BACKUP_DIR"
+  fi
+
+  if test ! -e "$TARGET_DB"; then
+    if test -e "$BACKUP_DB"; then
+      echo "Restoring database $TARGET_DB from $BACKUP_DB"
+      cp "$BACKUP_DB" "$TARGET_DB"
+    fi
+  fi
+}
+
+function backup_db()
+{
+  TARGET_DIR="$1"
+  TARGET_DB="$TARGET/$TARGET_DIR/.bitsplat.db"
+  BACKUP_DIR="$BACKUP_BASE/$TARGET_DIR"
+  BACKUP_DB="$BACKUP_DIR/.bitsplat.db"
+
+  if test -e "$TARGET_DB"; then
+    if ! test -e "$BACKUP_DIR"; then
+      mkdir -p "$BACKUP_DIR"
+    fi
+    echo "Backing up database $TARGET_DB to $BACKUP_DB"
+    cp "$TARGET_DB" "$BACKUP_DB"
+  fi
+}
+
 for src in /mnt/monolith/series /mnt/piggy/series/watched /mnt/piglet/series /mnt/archive/keep/Cosmos; do
   echo "=== share series from $(basename $(dirname $src)) ==="
+  restore_db_if_missing series
   $CMD -s "$src" -t "$TARGET/series"
+  backup_db series
 done
 
 echo "=== share new movies ==="
+restore_db_if_missing movies
 $BITSPLAT $QUIET --keep-stale -s "/mnt/monolith/movies" -t "$TARGET/movies"
+backup_db movies
