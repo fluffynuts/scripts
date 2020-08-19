@@ -1,0 +1,27 @@
+#!/bin/bash
+UPS_NAME=mecer
+UPS_USER=root
+UPS_PASS=root
+
+fetch_beeper_state()
+{
+  echo $(upsc $UPS_NAME | grep beeper.status | awk '{print $2}')
+}
+
+STARTING_STATE="$(fetch_beeper_state)"
+if test "$STARTING_STATE" = "disabled"; then
+  echo "Beeper is already disabled..."
+  exit 0
+fi
+
+if test "$(fetch_beeper_state)" = "enabled"; then
+  echo "beeper is enabled... disabling"
+  upscmd -u $UPS_USER -p $UPS_PASS $UPS_NAME beeper.toggle
+fi
+
+sleep 2
+
+if test "$(fetch_beeper_state)" != "disabled"; then
+  echo "ERROR: beeper remains enabled"
+fi
+
