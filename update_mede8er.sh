@@ -67,15 +67,15 @@ function update_target_with_bitsplat() {
         mkdir $DST_BASE/$TARGET
     fi
 
-    CMD="$BITSPLAT -s $SRC_BASE/$TARGET -t $DST_BASE/$TARGET"
+    CMD="$BITSPLAT --source $SRC_BASE/$TARGET --target $DST_BASE/$TARGET"
     if test ! -z "$QUIET"; then
-      CMD="$CMD -q"
+      CMD="$CMD --quiet"
     fi
     if test ! -z "$ARCHIVE"; then
       if ! test -d "$ARCHIVE"; then
         mkdir -p "$ARCHIVE"
       fi
-      CMD="$CMD -a $ARCHIVE"
+      CMD="$CMD --archive $ARCHIVE"
     fi
     if test ! -z "$NO_HISTORY"; then
       CMD="$CMD --no-history"
