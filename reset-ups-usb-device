@@ -1,0 +1,9 @@
+#!/bin/bash
+DEVICE_LINE=$(lsusb | grep -i "usb to serial")
+BUS=$(echo $DEVICE_LINE | awk '{print $2}');
+DEV=$(echo $DEVICE_LINE | awk '{print $4}' | sed -e 's/://g');
+
+echo "resetting $DEVICE_LINE..."
+$(dirname $0)/usb-reset $BUS $DEV
+
+

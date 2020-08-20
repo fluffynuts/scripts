@@ -14,14 +14,31 @@ if test "$STARTING_STATE" = "disabled"; then
   exit 0
 fi
 
-if test "$(fetch_beeper_state)" = "enabled"; then
-  echo "beeper is enabled... disabling"
-  upscmd -u $UPS_USER -p $UPS_PASS $UPS_NAME beeper.toggle
-fi
+function attempt_disable()
+{
+  if test "$(fetch_beeper_state)" = "enabled"; then
+    echo "beeper is enabled... disabling"
+    upscmd -u $UPS_USER -p $UPS_PASS $UPS_NAME beeper.toggle
+  fi
+}
 
-sleep 2
+GIVE_UP=0
+function verify()
+{
+  if test "$(fetch_beeper_state)" != "disabled"; then
+    echo "ERROR: beeper remains enabled"
+    echo "- attempt device reset..."
+    if test $GIVE_UP -eq 0; then
+      ./reset-ups-usb-device
+      attempt_disable
+      sleep 5
+      verify
+    fi
+  fi
+}
 
-if test "$(fetch_beeper_state)" != "disabled"; then
-  echo "ERROR: beeper remains enabled"
-fi
+attempt_disable
+sleep 5
+verify
+
 
