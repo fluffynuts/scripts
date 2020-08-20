@@ -5,3 +5,4 @@ datagrip
 rider
 webstorm
 *.pyc
+.idea
