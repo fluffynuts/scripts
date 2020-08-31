@@ -27,9 +27,11 @@ function verify()
 {
   if test "$(fetch_beeper_state)" != "disabled"; then
     echo "ERROR: beeper remains enabled"
-    echo "- attempt device reset..."
     if test $GIVE_UP -eq 0; then
-      ./reset-ups-usb-device
+      echo "- attempt device reset..."
+      $(dirname $0)/reset-ups-usb-device
+      sleep 5
+      GIVE_UP=1
       attempt_disable
       sleep 5
       verify
