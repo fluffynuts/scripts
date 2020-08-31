@@ -1,7 +1,20 @@
 #!/bin/bash
+ONLY_ONCE=0
+for arg in $*; do
+  if test "$arg" = "--once"; then
+    ONLY_ONCE=1
+  fi
+done
+
 HEADPHONES_MAC=D0:8A:55:63:48:61
 function attempt_connect () {
-    bluetoothctl --timeout 5 connect $HEADPHONES_MAC
+  result="$(bluetoothctl --timeout 5 connect $HEADPHONES_MAC)";
+  if test ! -z "$(echo $result | grep "successful")"; then
+    if test "$ONLY_ONCE" = "1"; then
+      echo "performed once-off connection; exiting"
+      exit 0
+    fi
+  fi
 }
 
 if test -z "$SILENT"; then
