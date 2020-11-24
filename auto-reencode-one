@@ -47,7 +47,11 @@ function reencode()
     clear_line
     echo -n "inspect: $SHORT"
   fi
-  if test "$CODEC" = "hevc" || test ! -z "$FORCE"; then
+  IS_HEVC=0
+  if test ! -z "$(echo $CODEC | grep -i hevc)"; then
+    IS_HEVC=1
+  fi
+  if test $IS_HEVC = "1" || test ! -z "$FORCE"; then
     clear_line
     if test -z "$FORCE"; then
       echo "Re-encode: \"$SHORT\""
@@ -58,7 +62,11 @@ function reencode()
     OUTFILE="${FILENAME%.*}.mp4"
     TMPFILE="/tmp/$OUTFILE"
     LOGFILE="/tmp/re-encode__${FILENAME%.*}.log"
-    TARGET="$(dirname $filepath)/$OUTFILE"
+    if test -z "$OUTDIR"; then
+      TARGET="$(dirname $filepath)/$OUTFILE"
+    else
+      TARGET="$OUTDIR/$OUTFILE"
+    fi
     if test -f "$TARGET"; then
       echo "$TARGET already exists... skipping"
       return 0
@@ -68,7 +76,7 @@ function reencode()
       echo "cmd: $CMD"
     fi
     if nice -n 19 $HANDBRAKE -Z "$PROFILE" -i "$filepath" -o "$TMPFILE" &> "$TMPFILE.log"; then
-      if mv "$TMPFILE" "$(dirname $filepath)"; then
+      if mv "$TMPFILE" "$TARGET"; then
         if test ! -z "$KEEP_ORIGINAL"; then
           return 0
         fi
@@ -80,7 +88,7 @@ function reencode()
         return $RET
       else
         RET=$?
-        echo "Cannot move $TMPFILE to $(dirname $filepath)"
+        echo "Cannot move $TMPFILE to $TARGET"
         return $RET
       fi
     else
