@@ -72,10 +72,14 @@ function validate_selected_kernel() {
   ESELECTED=$(find_selected_kernel)
   RUNNING=$(uname -r)
   if test "$ESELECTED" != "$LATEST"; then
-    echo "The current selected kernel is $(red ${ESELECTED}), however $(green ${LATEST}) is available."
-    echo -n " Select newer kernel? (Y/n) "
-    read ANSWER
-    ANSWER=$(echo $ANSWER | tr [:upper:] [:lower:])
+    if test "$ALWAYS_SELECT_LATEST_KERNEL" = "y"; then
+      ANSWER="y"
+    else
+      echo "The current selected kernel is $(red ${ESELECTED}), however $(green ${LATEST}) is available."
+      echo -n " Select newer kernel? (Y/n) "
+      read ANSWER
+      ANSWER=$(echo $ANSWER | tr [:upper:] [:lower:])
+    fi
     if test -z "$ANSWER" || 
        test "$ANSWER" = "y" ||
        test "$ANSWER" = "yes"; then
@@ -115,9 +119,13 @@ function update_grub() {
 
 function grok_args() {
   FORCE_MODULE_REBUILD="n"
+  ALWAYS_SELECT_LATEST_KERNEL="n"
   while test ! -z "$1"; do
     if test "$1" = "--force-module-rebuild" || test "$1" = "-f"; then
       FORCE_MODULE_REBUILD="y"
+    fi
+    if test "$1" = "-y"; then
+      ALWAYS_SELECT_LATEST_KERNEL="y"
     fi
     shift
   done
