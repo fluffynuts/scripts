@@ -75,6 +75,16 @@ fi
 if test ! -z "$(which ionice)"; then
   IONICE="ionice -c idle"
 fi
+PORTAGE_INFO="$(emerge --search sys-apps/portage | grep version)"
+PORTAGE_INSTALLED_VERSION="$(echo "$PORTAGE_INFO" | grep "version installed" | awk '{print $4}')"
+PORTAGE_AVAILABLE_VERSION="$(echo "$PORTAGE_INFO" | grep "version available" | awk '{print $4}')"
+if test "$PORTAGE_INSTALLED_VERSION" != "$PORTAGE_AVAILABLE_VERSION"; then
+  echo "Portage is updated: $PORTAGE_INSTALLED_VERSION -> $PORTAGE_AVAILABLE_VERSION"
+  if ! emerge -1 sys-apps/portage; then
+    echo "PORTAGE UPGRADE FAILS!"
+    exit 2
+  fi
+fi
 if $IONICE emerge --update --newuse --changed-use --deep --changed-deps --keep-going @world $ASK $EMERGE_ARGS; then
   echo "Checking for @preserved-rebuild actions..."
   emerge @preserved-rebuild $ASK
