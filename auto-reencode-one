@@ -67,6 +67,15 @@ function reencode()
     else
       TARGET="$OUTDIR/$OUTFILE"
     fi
+    if test "$filepath" = "$TARGET"; then
+      TEMP="_${OUTFILE}"
+      TARGET="$(dirname $filepath)/${TEMP}"
+      while test -f "$TARGET"; do
+        TEMP="_${TEMP}"
+        TARGET="$(dirname $filepath)/${TEMP}"
+      done
+      MINOR_RENAME="1"
+    fi
     if test -f "$TARGET"; then
       echo "$TARGET already exists... skipping"
       return 0
@@ -77,6 +86,9 @@ function reencode()
     fi
     if nice -n 19 $HANDBRAKE -Z "$PROFILE" -i "$filepath" -o "$TMPFILE" &> "$TMPFILE.log"; then
       if mv "$TMPFILE" "$TARGET"; then
+        if test ! -z "$MINOR_RENAME"; then
+          mv "$TARGET" "$(dirname $filepath)/${OUTFILE}"
+        fi
         if test ! -z "$KEEP_ORIGINAL"; then
           return 0
         fi
