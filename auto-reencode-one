@@ -84,7 +84,7 @@ function reencode()
     if test ! -z "$DEBUG"; then
       echo "cmd: $CMD"
     fi
-    if nice -n 19 $HANDBRAKE -Z "$PROFILE" -i "$filepath" -o "$TMPFILE" &> "$TMPFILE.log"; then
+    if nice -n 19 $HANDBRAKE -Z "$PROFILE" -i "$filepath" -o "$TMPFILE" &> "$LOGFILE"; then
       if mv "$TMPFILE" "$TARGET"; then
         if test ! -z "$MINOR_RENAME"; then
           mv "$TARGET" "$(dirname $filepath)/${OUTFILE}"
