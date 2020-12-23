@@ -153,8 +153,8 @@ function attempt_target_dismount() {
     if test ! -z "$SKIP_REMOUNT"; then
       return
     fi
-    if test ! -z "$(mount | grep $DST_BASE)"; then
-      umount $DST_BASE
+    if mount | grep $DST_BASE &> /dev/null; then
+      umount $DST_BASE 2>1 &> /dev/null
     fi
 }
 
