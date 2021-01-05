@@ -13,6 +13,18 @@ function check_is_root()
   fi
 }
 
+function clear_ccache_log()
+{
+  CCACHE_CONFIG="/etc/ccache.conf"
+  if test ! -f "$CCACHE_CONFIG"; then
+    return
+  fi
+  CCACHE_LOG_FILE="$(grep log_file "$CCACHE_CONFIG" | awk '{print $3}')"
+  if test -f "$CCACHE_LOG_FILE"; then
+    rm -f "$CCACHE_LOG_FILE"
+  fi
+}
+
 for arg in "$@"; do
   if test "$arg" = "--"; then
     RECEIVING_EMERGE_ARGS="yes"
@@ -85,6 +97,7 @@ if test "$PORTAGE_INSTALLED_VERSION" != "$PORTAGE_AVAILABLE_VERSION"; then
     exit 2
   fi
 fi
+clear_ccache_log
 if $IONICE emerge --update --newuse --changed-use --deep --changed-deps --keep-going @world $ASK $EMERGE_ARGS; then
   echo "Checking for @preserved-rebuild actions..."
   emerge @preserved-rebuild $ASK
