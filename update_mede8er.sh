@@ -146,7 +146,7 @@ function attempt_target_remount() {
     fi
     puts "Attempting remount of $DST_BASE"
     attempt_target_dismount
-    mount $DST_BASE
+    mount $DST_BASE &> /dev/null
 }
 
 function attempt_target_dismount() {
