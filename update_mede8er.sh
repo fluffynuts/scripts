@@ -1,9 +1,6 @@
 #!/bin/bash
 MEDESYNC="ionice -c idle $(dirname $0)/medesync.py"
 BITSPLAT="ionice -c idle $(dirname $0)/bitsplat --no-history"
-
-# fixme: bitsplat is not moving source files to the archive folder
-#NO_BITSPLAT=1
 NO_MEDESYNC=1
 
 SPECIFIED_TARGET="$1"
@@ -28,7 +25,7 @@ function check_single() {
     fi
     if test ! -z "$OTHER"; then
         if test -e /proc/$OTHER; then
-            if test ! -z "$(cat /proc/$OTHER/cmdline | grep $0)"; then
+            if grep "$0" "/proc/$OTHER/cmdline" &> /dev/null; then
                 if test -z "$IN_CRON"; then
                   echo "Already running with pid $OTHER"
                 fi
@@ -133,11 +130,12 @@ function update_target() {
 }
 
 function check_target_is_mounted() {
-    if test -z "$(mount | grep $DST_BASE)"; then
-        puts "FATAL: mede8er does not appear to be mounted!"
-        exit 2
+    if mount | grep $DST_BASE &>/dev/null; then
+        puts "$DST_BASE is mounted... let the fun begin"
+        return
     fi
-    puts "$DST_BASE is mounted... let the fun begin"
+    puts "FATAL: mede8er does not appear to be mounted!"
+    exit 2
 }
 
 function attempt_target_remount() {
