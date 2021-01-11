@@ -1,0 +1,33 @@
+#vim: expandtab shiftwidth=4 tabstop=4
+# script to cd to the working folder of a PM2 process by the process name
+# should source this from within your bashrc
+
+function pm2-list-names()
+{
+    pm2 list | sed -e 's/Îáù:/g' 2>&1 | cut -f 2 --delimiter=: | grep -v Îá}Îõgrep -v "App name" | grep -v "pm2 show"
+}
+
+function pm2-cd()
+{
+    if test -z "$1"; then
+        echo specify one of the following process names
+        pm2-list-names
+        return
+    fi
+
+    TARGET="$(pm2 info "$1" | grep "exec cwd" | sed -e 's/Îáù:/g' | cut -f 3 --delimiter=: | sed -e 's/^\s*//' | sed -e 's/\s*$//')"
+
+    if test ! -d "$TARGET"; then
+        if test -z "$TARGET"; then
+            echo "Unable to find working folder for $1"
+            echo "  (PM2 process names are case-sensitive)"
+            echo "Known PM2 processes:"
+            pm2-list-names
+            return
+        fi
+        echo "Unable to find folder '$TARGET' (may be a bug in this script!)"
+        return
+    fi
+
+    cd "$TARGET"
+}
