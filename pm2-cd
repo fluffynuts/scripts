@@ -4,7 +4,7 @@
 
 function pm2-list-names()
 {
-    pm2 list | sed -e 's/Îáù:/g' 2>&1 | cut -f 2 --delimiter=: | grep -v Îá}Îõgrep -v "App name" | grep -v "pm2 show"
+    pm2 list | sed -e 's/│/:/g' 2>&1 | cut -f 2 --delimiter=: | grep -v ─ | tail -n +2 | head -n -1 | sort
 }
 
 function pm2-cd()
@@ -15,7 +15,7 @@ function pm2-cd()
         return
     fi
 
-    TARGET="$(pm2 info "$1" | grep "exec cwd" | sed -e 's/Îáù:/g' | cut -f 3 --delimiter=: | sed -e 's/^\s*//' | sed -e 's/\s*$//')"
+    TARGET="$(pm2 info "$1" | grep "exec cwd" | sed -e 's/│/:/g' | cut -f 3 --delimiter=: | sed -e 's/^\s*//' | sed -e 's/\s*$//')"
 
     if test ! -d "$TARGET"; then
         if test -z "$TARGET"; then
@@ -31,3 +31,10 @@ function pm2-cd()
 
     cd "$TARGET"
 }
+
+function _gen-pm2-cd-completions()
+{
+    options=("$(pm2-list-names | xargs)")
+    COMPREPLY=($(compgen -W "${options[*]}" "${COMP_WORDS[${COMP_CWORD}]}"))
+}
+complete -F _gen-pm2-cd-completions pm2-cd
