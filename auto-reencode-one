@@ -101,6 +101,9 @@ function reencode()
         if test ! -z "$KEEP_ORIGINAL"; then
           return 0
         fi
+        if test "$filepath" = "$TARGET"; then
+          return 0
+        fi
         if rm $filepath; then
           return 0
         fi
