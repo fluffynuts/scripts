@@ -27,9 +27,9 @@ while test $# -gt 0; do
   elif test -d "$1"; then
     export LEAVE_STATUS=1
     if test -z "$MAX_AGE_DAYS"; then
-      find "$1" -iname "*.mkv" -exec $RE_ENCODE {} \;
+      find "$1" -iname '*.mkv' -o -iname '*.mp4' -exec $RE_ENCODE {} \;
     else
-      find "$1" -iname "*.mkv" -mtime -$MAX_AGE_DAYS -exec $RE_ENCODE {} \;
+      find "$1" -iname '*.mkv' -o -iname '*.mp4' -mtime -$MAX_AGE_DAYS -exec $RE_ENCODE {} \;
     fi
     clear_line
   else

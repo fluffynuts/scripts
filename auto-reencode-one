@@ -37,21 +37,34 @@ function truncate_to_fit()
 function reencode()
 {
   filepath="$1"
-  CODEC=$(mediainfo "$filepath" | grep -A5 Video | grep Format | grep -v Info | grep -v profile | awk '{print $3}' | tr '[:upper:]' '[:lower:]')
-  # SHORT=$(echo $filepath | cut -d'/' -f5-)
-  SHORT=$(truncate_to_fit $filepath)
-  if test -z "$SHORT"; then
-    SHORT="$filepath"
-  fi
-  if test -z "$QUIET"; then
-    clear_line
-    echo -n "inspect: $SHORT"
-  fi
   IS_HEVC=0
-  if test ! -z "$(echo $CODEC | grep -i hevc)"; then
-    IS_HEVC=1
+  IS_AVC1=0
+
+  if test -z "$FORCE"; then
+    MEDIAINFO="$(mediainfo "$filepath")"
+    CODEC=$(echo "$MEDIAINFO" | grep -A5 Video | grep Format | grep -v Info | grep -v profile | awk '{print $3}' | tr '[:upper:]' '[:lower:]')
+    # SHORT=$(echo $filepath | cut -d'/' -f5-)
+    SHORT=$(truncate_to_fit $filepath)
+    if test -z "$SHORT"; then
+      SHORT="$filepath"
+    fi
+    if test -z "$QUIET"; then
+      clear_line
+      echo -n "inspect: $SHORT"
+    fi
+    if test ! -z "$(echo $CODEC | grep -i hevc)"; then
+      IS_HEVC=1
+    fi
+
+    if test "$IS_HEVC" != "1"; then
+      CODEC_ID="$(echo $MEDIAINFO | egrep -A 10 '^Video' | grep "Codec ID" | head -n 1 | awk '{print $4}')"
+      if test "$CODEC_ID" = "avc1"; then
+        IS_AVC1=1
+      fi
+    fi
   fi
-  if test $IS_HEVC = "1" || test ! -z "$FORCE"; then
+
+  if test "$IS_HEVC" = "1" || test "$IS_AVC1" = "1" || test ! -z "$FORCE"; then
     clear_line
     if test -z "$FORCE"; then
       echo "Re-encode: \"$SHORT\""
@@ -75,10 +88,6 @@ function reencode()
         TARGET="$(dirname $filepath)/${TEMP}"
       done
       MINOR_RENAME="1"
-    fi
-    if test -f "$TARGET"; then
-      echo "$TARGET already exists... skipping"
-      return 0
     fi
     CMD="nice -n 19 $HANDBRAKE -Z \"$PROFILE\" -i \"$filepath\" -o \"$TMPFILE\" &> \"$LOGFILE\""
     if test ! -z "$DEBUG"; then
