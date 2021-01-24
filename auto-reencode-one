@@ -38,7 +38,6 @@ function reencode()
 {
   filepath="$1"
   IS_HEVC=0
-  IS_AVC1=0
 
   if test -z "$FORCE"; then
     MEDIAINFO="$(mediainfo "$filepath")"
@@ -55,16 +54,9 @@ function reencode()
     if test ! -z "$(echo $CODEC | grep -i hevc)"; then
       IS_HEVC=1
     fi
-
-    if test "$IS_HEVC" != "1"; then
-      CODEC_ID="$(echo $MEDIAINFO | egrep -A 10 '^Video' | grep "Codec ID" | head -n 1 | awk '{print $4}')"
-      if test "$CODEC_ID" = "avc1"; then
-        IS_AVC1=1
-      fi
-    fi
   fi
 
-  if test "$IS_HEVC" = "1" || test "$IS_AVC1" = "1" || test ! -z "$FORCE"; then
+  if test "$IS_HEVC" = "1" || test ! -z "$FORCE"; then
     clear_line
     if test -z "$FORCE"; then
       echo "Re-encode: \"$SHORT\""
