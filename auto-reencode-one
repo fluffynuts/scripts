@@ -97,11 +97,9 @@ function reencode()
       if mv "$TMPFILE" "$TARGET"; then
         if test ! -z "$MINOR_RENAME"; then
           mv "$TARGET" "$(dirname $filepath)/${OUTFILE}"
-        fi
-        if test ! -z "$KEEP_ORIGINAL"; then
           return 0
         fi
-        if test "$filepath" = "$TARGET"; then
+        if test ! -z "$KEEP_ORIGINAL"; then
           return 0
         fi
         if rm $filepath; then
