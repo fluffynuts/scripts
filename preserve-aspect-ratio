@@ -1,0 +1,2 @@
+#!/bin/bash
+xrandr --output DisplayPort-0 --set "scaling mode" "Full aspect"
