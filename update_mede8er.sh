@@ -120,11 +120,9 @@ function update_target_with_medesync() {
 
 function update_target() {
   if test -z "$NO_BITSPLAT"; then
-    puts "Attempt update with bitsplat"
     update_target_with_bitsplat $*
   fi
   if test -z "$NO_MEDESYNC"; then
-    puts "Attempt update with medesync"
     update_target_with_medesync $*
   fi
 }
