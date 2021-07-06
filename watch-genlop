@@ -1,2 +1,2 @@
 #!/bin/bash
-watch -n1 "genlop -cn"
+watch --color -n1 "genlop -c"
