@@ -1,2 +1,4 @@
 #!/bin/bash
 killall pulseaudio
+sleep 1
+$(dirname $0)/set-pa-default-sink
