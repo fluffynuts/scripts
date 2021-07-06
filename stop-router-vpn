@@ -1,0 +1,2 @@
+#!/bin/bash
+run-at-router killall vpnclient2
