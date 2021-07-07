@@ -1,0 +1,20 @@
+#!/bin/bash
+cd ~/code/opensource/lazygit
+ORIGINAL_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+STEPS=8
+echo "[ 1 / $STEPS ] Stashing any changes"
+git stash > /dev/null
+echo "[ 2 / $STEPS ] Switching to fork upstream"
+git checkout master > /dev/null
+echo "[ 3 / $STEPS ] Fetching all remotes"
+git fetch --all > /dev/null
+echo "[ 4 / $STEPS ] Merge origin/master"
+git merge origin/master
+echo "[ 5 / $STEPS ] Rebase on upstream/master"
+git rebase upstream/master > /dev/null
+echo "[ 6 / $STEPS ] Building"
+go build && cp lazygit ~/.local/bin/ || exit 1
+echo "[ 7 / $STEPS ] Pushing back to origin"
+git push origin master > /dev/null
+echo "[ 8 / $STEPS ] Checking out $ORIGINAL_BRANCH"
+git checkout "$ORIGINAL_BRANCH"
