@@ -18,3 +18,5 @@ enable-vsync
 audacious
 /home/daf/.local/share/JetBrains/Toolbox/bin/jetbrains-toolbox
 steam
+start-xboxdrv
+set-pa-default-sink
