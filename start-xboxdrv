@@ -1,0 +1,11 @@
+#!/bin/bash
+if test -z "$(which xboxdrv)"; then
+  echo "xboxdrv not found in the path; bailing out"
+  exit 1
+fi
+EXISTING_PID="$(pidof xboxdrv)"
+if test ! -z "$EXISTING_PID"; then
+  echo "xboxdrv is already running with pid $EXISTING_PID"
+  exit 2
+fi
+xboxdrv --detach --daemon
