@@ -10,7 +10,6 @@ firefox
 dropbox
 /home/daf/apps/scripts/watchdog-plasmashell-20
 /home/daf/apps/scripts/watchdog-krunner
-/home/daf/apps/scripts/watchdog-kmix
 /home/daf/apps/scripts/jiggle-bluetooth
 /home/daf/apps/scripts/start-vnc-server
 autocutsel -s PRIMARY
@@ -19,4 +18,4 @@ audacious
 /home/daf/.local/share/JetBrains/Toolbox/bin/jetbrains-toolbox
 steam
 start-xboxdrv
-set-pa-default-sink
+xbindkeys
