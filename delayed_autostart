@@ -62,7 +62,10 @@ function run_lines() {
     if test -z "$line"; then
       continue
     fi
-      LOGFILE="$LOGDIR/$(echo $line | sed -e 's/ /-/g' | sed -e 's/\//-/g')"
+    if test -z "$(echo $line | grep -v '^#')"; then
+      coneinue
+    fi
+    LOGFILE="$LOGDIR/$(echo $line | sed -e 's/ /-/g' | sed -e 's/\//-/g')"
     $line &> $LOGFILE &
   done
 }
