@@ -4,7 +4,7 @@
 # (which is a little odd, come to think about it)
 
 function runcmd () {
-  echo -n "Setting default sink..."
+  echo -n "Setting default sinki ($2)..."
   if ! /usr/bin/pacmd $@ > /dev/null; then
     echo " (fail)"
     echo "  Unable to run command:"
@@ -33,7 +33,7 @@ runcmd "set-default-sink" $CARD
 
 # now switch over existing streams
 echo -n "Moving all sink inputs"
-for src in $(pacmd list-sink-inputs | grep index: | cut -f 2 --delimiter=':' | awk '{print $CARD}'); do
+for src in $(pacmd list-sink-inputs | grep index: | cut -f 2 --delimiter=':'); do
   echo -n "."
   if pacmd move-sink-input $src $CARD &> /dev/null; then
     echo -n "."
