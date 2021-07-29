@@ -1,0 +1,2 @@
+#!/bin/bash
+$(dirname $0)/set-default-pulse-sink alsa_output.usb-0a12_Avantree_DG80-00.analog-stereo
