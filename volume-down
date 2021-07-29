@@ -1,0 +1,3 @@
+#!/bin/bash
+xdotool keydown XF86AudioLowerVolume
+xdotool keyup XF86AudioLowerVolume
