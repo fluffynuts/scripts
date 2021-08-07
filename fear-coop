@@ -1,0 +1,7 @@
+#!/bin/bash
+BASEPATH=~/.wine/drive_c/Program\ Files/Sierra/FEAR\ Combat\ \(SEC2\)
+cd "$BASEPATH"
+#wine FEARMP.exe -archcfg Coop-Warfare_0.7.archcfg -userdirectory CoopWarfare_User +join http://jvdwonline.hopto.org:27016 +password poes
+wine FEARMP.exe -userdirectory . +join http://jvdwonline.hopto.org:27016 +password poes
+restore-screens
+cd -

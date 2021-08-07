@@ -1,0 +1,6 @@
+#!/bin/bash
+BASEPATH=~/.wine/drive_c/Program\ Files/Sierra/FEAR\ Combat\ \(SEC2\)
+cd "$BASEPATH"
+wine FEARServer.exe -archcfg Coop-Warfare_0.7.archcfg -userdirectory CoopWarfare_User
+restore-screens
+cd -
