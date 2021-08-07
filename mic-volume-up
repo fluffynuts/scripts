@@ -1,0 +1,6 @@
+#!/bin/bash
+MIC=alsa_input.usb-0a12_Avantree_DG80-00.mono-fallback
+CURRENT_LEVEL=$(pacmd list-sources | grep -i $MIC -A10 | grep volume | grep mono | awk '{print $3}')
+NEXT_LEVEL=$(($CURRENT_LEVEL + 3277))
+pacmd set-source-volume $MIC $NEXT_LEVEL
+
