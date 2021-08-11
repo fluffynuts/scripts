@@ -4,7 +4,7 @@ HEADPHONES_DEFAULT_LEVEL=100
 SPEAKERS_DEFAULT_LEVEL=100
 HEADPHONES=Headphones
 HEADPHONES_MIXER=PCM
-declare -a channels=("Master" "Headphone" "Surround" "Center" "LFE" "Side" "Line" "PCM" "Front" "Side")
+declare -a channels=("Master" "Headphone" "Surround" "Center" "LFE" "Line" "PCM" "Front")
 AMUTE="Auto-Mute Mode"
 AUTO_SET_SOUND="$(dirname $0)/autoset-sound"
 
