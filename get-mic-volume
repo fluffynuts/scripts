@@ -1,0 +1,4 @@
+#!/bin/bash
+MIC=alsa_input.usb-0a12_Avantree_DG80-00.mono-fallback
+RAW="$(pacmd list-sources | grep -i $MIC -A10 | grep volume | grep mono | awk '{print $3}')"
+echo $(($RAW * 100 / 65536))

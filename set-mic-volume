@@ -1,0 +1,10 @@
+#!/bin/bash
+MIC=alsa_input.usb-0a12_Avantree_DG80-00.mono-fallback
+if test -z "$1"; then
+  echo "provide a level as a percentage, eg $0 78 or overdrive with $0 180"
+  exit 1
+fi
+LEVEL_PERCENT=$(echo $1 | sed -e 's/%//')
+NEXT_LEVEL=$(($LEVEL_PERCENT * 65536 / 100))
+pacmd set-source-volume $MIC $NEXT_LEVEL
+
