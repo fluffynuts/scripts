@@ -5,6 +5,7 @@ DELAY=8
 /home/daf/apps/scripts/jiggle-bluetooth
 
 [start]
+set-system-colors
 transmission-qt
 firefox
 dropbox
