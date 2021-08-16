@@ -1,0 +1,64 @@
+#!/bin/bash
+if test -z "$(mount | grep backup)"; then
+  echo "backup not mounted, bailing"
+  exit 1
+fi
+BACKUP_HOME=0
+BACKUP_ROOT=0
+RSYNC="rsync -avl --del --sparse"
+
+function grok_args()
+{
+  if test ! -z "$1"; then
+    while test ! -z "$1"; do
+      if test "$1" = "--root" || test "$1" = "-r"; then
+        BACKUP_ROOT=1
+      fi
+      if test "$1" = "--home" || test "$1" = "-h"; then
+        BACKUP_HOME=1
+      fi
+      shift
+    done
+  fi
+}
+
+function test_if_need_root()
+{
+  if test "$(whoami)" != "root"; then
+    if test "$BACKUP_ROOT" = "1"; then
+      sudo -p "Your password is required to continue: " $0 $@
+      exit $?
+    fi
+  fi
+}
+
+function exit_if_nothing_to_do()
+{
+  if test "$BACKUP_HOME" = 0 && test "$BACKUP_ROOT" = 0; then
+    echo "nothing to do"
+    echo "  specify --home or --root on the cli"
+    exit 1
+  fi
+}
+
+function backup_home()
+{
+  if test "$BACKUP_HOME" = "1"; then
+    mkdir -p /mnt/backup/home/daf
+    $RSYNC /home/daf /mnt/backup/home
+  fi
+}
+
+function backup_root()
+{
+  if test "$BACKUP_ROOT" = "1"; then
+    mkdir -p /mnt/backup/root
+    $RSYNC --exclude /run/media --exclude /proc --exclude /tmp --exclude /sys --exclude /mnt --exclude /dev --exclude /home / /mnt/backup/root
+  fi
+}
+
+grok_args $@
+test_if_need_root $@
+exit_if_nothing_to_do
+backup_home
+backup_root
