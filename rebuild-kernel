@@ -138,7 +138,7 @@ function remind_reboot() {
 }
 
 check_is_root
-grok_args
+grok_args $@
 validate_selected_kernel
 create_config_if_missing
 build_with_genkernel
