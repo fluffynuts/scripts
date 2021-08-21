@@ -1,2 +1,55 @@
-#!/bin/bash
-openrgb -p fire
+#!/usr/bin/python
+import io
+import subprocess
+import re
+
+
+def read_devices():
+    proc = subprocess.Popen(["openrgb", "-l"], stdout=subprocess.PIPE)
+    result = []
+    device_matcher = re.compile("^\\d:")
+
+    for line in io.TextIOWrapper(proc.stdout, encoding="utf-8"):
+        if device_matcher.match(line) is None:
+            continue
+
+        parts = line.strip().split(":")
+        result.append({
+            "id": parts[0],
+            "name": ":".join(parts[1:]).strip()
+        })
+    return result
+
+
+def generate_cli(devices):
+    ram_colors = ["FF1E00", "FF1400", "FF0A00", "FF0000"]
+    board_color = "FF2800"
+    ram_matcher = re.compile(".*ASUS Aura DRAM.*", re.IGNORECASE)
+    board_matcher = re.compile(".*AORUS ELITE.*", re.IGNORECASE)
+    result = []
+    for device in devices:
+        if ram_matcher.match(device["name"]):
+            if len(ram_colors) == 0:
+                raise Exception("Ran out of RAM colors?")
+            result.extend(["-d", device["id"], "-c", ram_colors[0]])
+            ram_colors = ram_colors[1:]
+        elif board_matcher.match(device["name"]):
+            result.extend(["-d", device["id"], "-c", board_color])
+    return result
+
+
+def run_openrgb_with(options):
+    cli = ["openrgb"]
+    cli.extend(options)
+    proc = subprocess.Popen(cli, stdout=subprocess.PIPE)
+    proc.wait()
+    if proc.returncode != 0:
+        raise Exception("unable to run openrgb with cli: " + options)
+
+def main():
+    devices = read_devices()
+    cli = generate_cli(devices)
+    run_openrgb_with(cli)
+
+
+main()
