@@ -1,7 +1,7 @@
 #!/bin/bash
 STICKY_FILE=/tmp/$(basename $0).sticky
 HEADPHONES_DEFAULT_LEVEL=100
-SPEAKERS_DEFAULT_LEVEL=100
+SPEAKERS_DEFAULT_LEVEL=85
 HEADPHONES=Headphones
 HEADPHONES_MIXER=PCM
 declare -a channels=("Master" "Headphone" "Surround" "Center" "LFE" "Line" "PCM" "Front")
@@ -86,13 +86,13 @@ function unMuteDevice() {
 
 function mute_headphones() {
   echo "[ muting headphones ]"
-  setVal $HEADPHONES_MIXER 0 $HEADPHONES_DEVICE
+  #setVal $HEADPHONES_MIXER 0 $HEADPHONES_DEVICE
 }
 
 function unmute_headphones() {
   echo "[ unmuting headphones ]"
-  unMuteDevice $HEADPHONES_MIXER $HEADPHONES_DEVICE
-  setVal $HEADPHONES_MIXER $HEADPHONES_DEFAULT_LEVEL $HEADPHONES_DEVICE
+  #unMuteDevice $HEADPHONES_MIXER $HEADPHONES_DEVICE
+  #setVal $HEADPHONES_MIXER $HEADPHONES_DEFAULT_LEVEL $HEADPHONES_DEVICE
 }
 
 function mute_speakers() {
