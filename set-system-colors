@@ -44,7 +44,11 @@ def run_openrgb_with(options):
     proc = subprocess.Popen(cli, stdout=subprocess.PIPE)
     proc.wait()
     if proc.returncode != 0:
-        raise Exception("unable to run openrgb with cli: " + options)
+        lines = []
+        for line in io.TextIOWrapper(proc.stdout, encoding="utf-8"):
+            lines.append(line)
+        raise Exception("unable to run openrgb with cli: " + " ".join(options) + "\n" + "\n".join(lines))
+
 
 def main():
     devices = read_devices()
