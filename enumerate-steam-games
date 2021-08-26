@@ -1,0 +1,11 @@
+#!/bin/bash
+IDX=1
+while true; do
+	URL="https://store.steampowered.com/app/$IDX"
+	RESPONSE="$(curl -i --no-progress-meter $URL | tr -d '\0')"
+	if test -z "$(echo "$RESPONSE" | head -n 1 | grep 302)"; then
+		TITLE="$(echo "$RESPONSE" | grep -i twitter:title | awk '{$1=$2=""; print $0}' | sed -e 's/\s*content="//' | sed -e 's/">//' | sed -e 's/ on Steam//')"
+		echo "$URL :: $TITLE"
+	fi
+	IDX=$(( $IDX + 1 ))
+done
