@@ -1,0 +1,25 @@
+#!/bin/bash
+REPO=~/code/opensource/rivalcfg
+if test ! -d "$REPO"; then
+  echo "Can't find rivalcfg at $REPO"
+  exit 1
+fi
+if test -z "$(which xprintidle)"; then
+  echo "Please install xprintidle"
+  exit 1
+fi
+
+IDLE_TIME=$(xprintidle)
+if test "$IDLE_TIME" -gt 600000; then
+  echo "idle"
+  exit 0
+fi
+
+cd "$REPO"
+BATTERY_PERCENT=$(./run --battery-level | grep -o '[0-9]*')
+if test "$BATTERY_PERCENT" -gt 100; then
+  echo "idle"
+else
+  echo "$BATTERY_PERCENT%"
+fi
+cd - &> /dev/null
