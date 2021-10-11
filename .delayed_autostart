@@ -2,10 +2,10 @@
 DELAY=8
 
 [init]
-/home/daf/apps/scripts/jiggle-bluetooth
+#/home/daf/apps/scripts/jiggle-bluetooth
+/home/daf/apps/scripts/set-system-colors --log-file /tmp/set-system-colors.log
 
 [start]
-set-system-colors
 transmission-qt
 firefox
 dropbox
@@ -20,3 +20,4 @@ audacious
 steam
 start-xboxdrv
 xbindkeys
+redshift-gtk

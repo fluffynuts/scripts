@@ -3,11 +3,21 @@ import io
 import os
 import subprocess
 import re
+from sys import argv
+from datetime import datetime
+
+debug_enabled = os.environ.get("DEBUG") == "1"
+log_file = None
 
 
 def debug(s):
-    if os.environ.get("DEBUG") == "1":
-        print(s)
+    line = "[%s] %s" % (datetime.now(), s)
+    if debug_enabled:
+        print(line)
+    if log_file is not None:
+        # noinspection PyTypeChecker
+        with open(log_file, "a") as fp:
+            fp.writelines("%s\n" % line)
 
 
 def read_devices():
@@ -63,9 +73,19 @@ def run_openrgb_with(options):
 
 
 def main():
+    global debug_enabled
+    global log_file
+    start_index = argv.index(__file__) + 1
+    args = argv[start_index:]
+    if args.index("--debug") > -1:
+        debug_enabled = True
+    log_file_index = args.index("--log-file")
+    if -1 < log_file_index < len(args):
+        log_file = args[log_file_index + 1]
     devices = read_devices()
     cli = generate_cli(devices)
     run_openrgb_with(cli)
 
 
-main()
+if __name__ == "__main__":
+    main()
