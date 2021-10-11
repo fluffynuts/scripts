@@ -1,9 +1,13 @@
 #!/bin/zsh
+# some profiles:
+# General/Fast 1080p30
+# General/HQ 1080p30 Surround
+
 if test -z "$PROFILE"; then
   if test ! -z "$SMALLER"; then
-    PROFILE="General/HQ 720p30 Surround"
+    PROFILE="General/Fast 720p30"
   else
-    PROFILE="General/HQ 1080p30 Surround"
+    PROFILE="General/Fast 1080p30"
   fi
 fi
 
@@ -81,7 +85,7 @@ function reencode()
       done
       MINOR_RENAME="1"
     fi
-    CMD="nice -n 19 $HANDBRAKE -Z \"$PROFILE\" -i \"$filepath\" -o \"$TMPFILE\" &> \"$LOGFILE\""
+    CMD="ionice -c idle nice -n 19 $HANDBRAKE -Z \"$PROFILE\" -i \"$filepath\" -o \"$TMPFILE\" &> \"$LOGFILE\""
     if test ! -z "$DEBUG"; then
       echo "cmd: $CMD"
     fi
