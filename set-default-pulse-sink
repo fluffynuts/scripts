@@ -43,39 +43,3 @@ for src in $(pacmd list-sink-inputs | grep index: | cut -f 2 --delimiter=':'); d
 done
 echo " (done)"
 
-# move kmix (requires that indexes match up... this is empirical)
-killall -15 kmix
-#KMIXRC=/home/daf/.kde/share/config/kmixrc
-#if test "$CARD" = "1"; then
-#  echo -n "kmixrc: set master to speakers"
-#  if sed $KMIXRC -i -e 's/MasterMixerDevice=.*/MasterMixerDevice=alsa_output.pci-0000_00_14.2.analog-stereo/'; then
-#    echo " (ok)"
-#  else
-#    echo " (fail)"
-#  fi
-#elif test "$CARD" = "0"; then
-#  echo -n "kmixrc: set master to logitech usb"
-#  if sed $KMIXRC -i -e 's/MasterMixerDevice=.*/MasterMixerDevice=alsa_output.usb-Logitech_Logitech_USB_Headset-00-Headset.analog-stereo/'; then
-#    echo " (ok)"
-#  else
-#    echo " (fail)"
-#  fi
-#elif test "$CARD" = "2"; then
-#  echo -n "kmixrc: set master to combined"
-#  if sed $KMIXRC -i -e 's/MasterMixerDevice=.*/MasterMixerDevice=combined/'; then
-#    echo " (ok)"
-#  else
-#    echo " (fail)"
-#  fi
-#  # set card volumes to 90%
-#  let "vol = 65536 * 0.9"
-#  v=${vol/.*}
-#  echo "Setting vol to $v"
-#  for ((i = 0; $i < 2; i++)); do
-#    pacmd set-sink-volume $i $v &> /dev/null
-#  done
-#
-#else
-#  echo "Don't know how to mod kmix for card $CARD"
-#fi
-kmix &> /dev/null &

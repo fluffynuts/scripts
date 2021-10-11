@@ -1,2 +1,2 @@
 #!/bin/bash
-$(dirname $0)/set-default-pulse-sink 1
+$(dirname $0)/set-default-pulse-sink combined
