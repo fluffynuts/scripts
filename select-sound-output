@@ -1,7 +1,7 @@
 #!/bin/bash
 STICKY_FILE=/tmp/$(basename $0).sticky
 HEADPHONES_DEFAULT_LEVEL=100
-SPEAKERS_DEFAULT_LEVEL=85
+SPEAKERS_DEFAULT_LEVEL=70
 HEADPHONES=Headphones
 HEADPHONES_MIXER=PCM
 declare -a channels=("Master" "Headphone" "Surround" "Center" "LFE" "Line" "PCM" "Front")
