@@ -77,11 +77,12 @@ def main():
     global log_file
     start_index = argv.index(__file__) + 1
     args = argv[start_index:]
-    if args.index("--debug") > -1:
+    if "--debug" in args:
         debug_enabled = True
-    log_file_index = args.index("--log-file")
-    if -1 < log_file_index < len(args):
-        log_file = args[log_file_index + 1]
+    if "--log-file" in args:
+        log_file_index = args.index("--log-file")
+        if -1 < log_file_index < len(args):
+            log_file = args[log_file_index + 1]
     devices = read_devices()
     cli = generate_cli(devices)
     run_openrgb_with(cli)
