@@ -141,6 +141,6 @@ check_is_root
 grok_args $@
 validate_selected_kernel
 create_config_if_missing
-build_with_genkernel
+time build_with_genkernel
 update_grub
 remind_reboot
