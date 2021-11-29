@@ -7,7 +7,7 @@ def play_pause():
     containing_dir = os.path.dirname(file_path)
     aud_tool = os.path.join(containing_dir, "audtool.exe")
 
-    if !os.path.isfile(aud_tool):
+    if not os.path.isfile(aud_tool):
         print("please copy this script into the folder containing audtool.exe")
         exit(1)
 
