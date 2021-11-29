@@ -1,25 +1,39 @@
-Remove-Item alias:rm
-Remove-Item alias:ls
-Remove-Item alias:cp
-Remove-Item alias:mv
+Import-Module posh-git
+Import-Module oh-my-posh
+Import-Module npm-completion
+Import-Module PSReadLine
 
-Function Ls-Color {
-    if ($env:NO_COLOR) {
-        . $(which ls) @Args
-    } else {
-        . $(which ls) --color @Args
+set-poshprompt -theme ~/.mytheme.omp.json
+
+function remove-alias {
+    param (
+        $alias
+    )
+    if (test-path $alias) {
+        remove-item $alias -force
     }
 }
-Set-Alias ls Ls-Color
 
-Import-Module posh-git
+Remove-Alias alias:cp
+Remove-Alias alias:rm
+Remove-Alias alias:ls
+Remove-Alias alias:rmdir
+Remove-Alias alias:mv
+Remove-Alias alias:diff
 
-# makes ctrl-d work to exit, as well as some
-#  other stuff
-Set-PSReadLineOption -EditMode Emacs
-# make history work the traditional
-#  way -- vi history mode has no preview
-Set-PSReadLineKeyHandler -Chord Ctrl+r -Function ReverseSearchHistory
-Set-PSReadLineKeyHandler -Chord Tab -Function TabCompleteNext
-Set-PSReadLineKeyHandler -Chord Shift+Tab -Function TabCompletePrevious
-Set-PSReadlineKeyHandler -Chord Ctrl+Backspace -Function BackwardDeleteWord
+Set-Alias find C:\apps\gnuwin32\bin\find.exe
+Set-PSReadlineOption -EditMode Emacs
+Set-PSReadlineKeyHandler -Key ctrl+d -Function ViExit
+Set-PSReadlineKeyHandler -Key Tab -Function TabCompleteNext
+Set-PSReadLineOption -BellStyle None
+
+Function Ls-Real {
+    if ($env:NO_COLOR) {
+        ls.exe @Args
+    } else {
+        ls.exe --color @Args
+    }
+}
+
+Set-Alias ls Ls-Real
+
