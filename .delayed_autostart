@@ -3,9 +3,9 @@ DELAY=8
 
 [init]
 #/home/daf/apps/scripts/jiggle-bluetooth
-/home/daf/apps/scripts/set-system-colors --log-file /tmp/set-system-colors.log
 
 [start]
+/home/daf/apps/scripts/set-system-colors --log-file /tmp/set-system-colors.log
 transmission-qt
 firefox
 dropbox
@@ -17,7 +17,7 @@ autocutsel -s PRIMARY
 enable-vsync
 audacious
 /home/daf/.local/share/JetBrains/Toolbox/bin/jetbrains-toolbox
-steam
+steam -silent
 start-xboxdrv
 xbindkeys
-redshift-gtk
+#redshift-gtk

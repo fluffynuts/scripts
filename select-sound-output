@@ -9,7 +9,8 @@ AMUTE="Auto-Mute Mode"
 AUTO_SET_SOUND="$(dirname $0)/autoset-sound"
 
 SPEAKERS_DEVICE=PCH
-HEADPHONES_DEVICE=DG80
+#HEADPHONES_DEVICE=DG80
+HEADPHONES_DEVICE=Gamin
 
 if test -z "$1"; then
   OUTPUT=""
