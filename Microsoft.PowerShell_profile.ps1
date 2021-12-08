@@ -14,13 +14,6 @@ function remove-alias {
     }
 }
 
-Remove-Alias alias:cp
-Remove-Alias alias:rm
-Remove-Alias alias:ls
-Remove-Alias alias:rmdir
-Remove-Alias alias:mv
-Remove-Alias alias:diff
-
 Set-Alias find C:\apps\gnuwin32\bin\find.exe
 Set-PSReadlineOption -EditMode Emacs
 Set-PSReadlineKeyHandler -Key ctrl+d -Function ViExit
@@ -36,4 +29,10 @@ Function Ls-Real {
 }
 
 Set-Alias ls Ls-Real
+Remove-Alias alias:cp
+Remove-Alias alias:rm
+Remove-Alias alias:ls
+Remove-Alias alias:rmdir
+Remove-Alias alias:mv
+Remove-Alias alias:diff
 
