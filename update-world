@@ -34,7 +34,7 @@ for arg in "$@"; do
     EMERGE_ARGS="$EMERGE_ARGS $arg"
     continue
   fi
-  if test "$arg" = "--no-sync" || test "$arg" = "-n"; then
+  if test "$arg" = "--no-sync" || test "$arg" = "-n" || test "$arg" = "--nosync"; then
     NO_SYNC=1
     continue
   fi
