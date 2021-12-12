@@ -1,0 +1,33 @@
+#!/usr/bin/python
+import os
+import sys
+import xml.dom.minidom
+
+def all_numeric(s):
+	for c in s:
+		if "01234567890".count(c) == 0:
+			return False
+	return True
+
+if __name__ == "__main__":
+	max = -1
+	for line in os.popen("sensors"):
+		while line.count("  ") > 0:
+			line = line.replace("  ", " ")
+		parts = line.split(" ")
+		if parts[0].strip("0123456789") != "Core":
+			continue
+		tmp = parts[2]
+		temp = ""
+		for c in tmp:
+			if ".1234567890".count(c) > 0:
+				temp += c
+		try:
+			tempValue = float(temp)
+			if tempValue > max:
+				max = tempValue
+		except:
+			pass
+	
+	if max > -1:
+		print("%i°C" % max)
