@@ -9,8 +9,12 @@ AMUTE="Auto-Mute Mode"
 AUTO_SET_SOUND="$(dirname $0)/autoset-sound"
 
 SPEAKERS_DEVICE=PCH
+# BLUETOOTH audio dongle
 #HEADPHONES_DEVICE=DG80
+# Corsair HS70
 HEADPHONES_DEVICE=Gamin
+# RIG 700
+#HEADPHONES_DEVICE=WS1
 
 if test -z "$1"; then
   OUTPUT=""
