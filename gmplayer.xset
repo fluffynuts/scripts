@@ -1,3 +1,0 @@
-#!/bin/sh
-gmplayer "$1"
-xset dpms 900 1200 1500
