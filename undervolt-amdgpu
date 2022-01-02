@@ -1,0 +1,13 @@
+#!/sbin/openrc-run
+
+TARGET=/sys/class/drm/card0/device/pp_od_clk_voltage
+
+start() {
+  echo "vc 2 1960 1005" > $TARGET
+  eend $?
+}
+
+stop() {
+  echo "vc 2 1960 1059" > $TARGET
+  eend $?
+}
