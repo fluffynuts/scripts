@@ -1,5 +1,15 @@
 #!/bin/bash
+CACHEFILE=/tmp/mousebat-perc.cache
 REPO=~/code/opensource/rivalcfg
+
+if test -f "$CACHEFILE"; then
+  CACHEFILE_AGE="$(( `date +%s` - `stat -L --format %Y $CACHEFILE` ))"
+  if test $CACHEFILE_AGE -lt 300; then
+    cat $CACHEFILE
+    exit 0
+  fi
+fi
+
 if test ! -d "$REPO"; then
   echo "Can't find rivalcfg at $REPO"
   exit 1
@@ -18,8 +28,8 @@ fi
 cd "$REPO"
 BATTERY_PERCENT=$(./run --battery-level | grep -o '[0-9]*')
 if test "$BATTERY_PERCENT" -gt 100; then
-  echo "idle"
+  echo "idle" | tee $CACHEFILE
 else
-  echo "$BATTERY_PERCENT%"
+  echo "$BATTERY_PERCENT%" | tee $CACHEFILE
 fi
 cd - &> /dev/null
