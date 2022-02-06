@@ -1,12 +1,5 @@
 #!/bin/bash
 
 for f in piggy monolith; do
-  if test -z "$(mount | grep /mnt/$f)"; then
-    mount /mnt/$f
-    BINDMOUNT="/var/ftp/pub/$f"
-    if test ! -z "$(mount | grep $BINDMOUNT)"; then
-    	umount $BINDMOUNT
-    fi
-    mount $BINDMOUNT
-  fi
+  mountpoint -q /mnt/$f || mount /mnt/$f
 done
