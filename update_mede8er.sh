@@ -2,6 +2,7 @@
 MEDESYNC="ionice -c idle $(dirname $0)/medesync.py"
 BITSPLAT="ionice -c idle $(dirname $0)/bitsplat --no-history"
 NO_MEDESYNC=1
+ARCHIVE_BASE=/mnt/piggy
 
 SPECIFIED_TARGET="$1"
 SRC_BASE=/mnt/monolith
@@ -127,13 +128,17 @@ function update_target() {
   fi
 }
 
+function die() {
+  puts $*
+  exit 2
+}
+
 function check_target_is_mounted() {
-    if mount | grep $DST_BASE &>/dev/null; then
-        puts "$DST_BASE is mounted... let the fun begin"
-        return
-    fi
-    puts "FATAL: mede8er does not appear to be mounted!"
-    exit 2
+    mountpoint -q $DST_BASE || die "FATAL: $DST_BASE is not mounted"
+}
+
+function check_archive_is_mounted() {
+  mountpoint -q $ARCHIVE_BASE || die "$ARCHIVE_BASE is not mounted"
 }
 
 function attempt_target_remount() {
@@ -165,8 +170,9 @@ function sweep_target() {
 check_single
 attempt_target_remount
 check_target_is_mounted
-update_target series /mnt/piggy/series/watched
-update_target movies /mnt/piggy/movies/watched
+check_archive_is_mounted
+update_target series $ARCHIVE_BASE/series/watched
+update_target movies $ARCHIVE_BASE/movies/watched
 SRC_BASE=/mnt/archive
 update_target keep
 clear_pidfile
