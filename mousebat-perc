@@ -21,7 +21,7 @@ fi
 
 IDLE_TIME=$(xprintidle)
 if test "$IDLE_TIME" -gt 600000; then
-  echo "idle"
+  echo "idle" | tee $CACHEFILE
   exit 0
 fi
 
