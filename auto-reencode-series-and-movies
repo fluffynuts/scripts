@@ -1,5 +1,5 @@
 #!/bin/zsh
 BASE=/mnt/monolith
 
-MAX_AGE_DAYS=120 auto-reencode $BASE/series
+auto-reencode $BASE/series
 auto-reencode $BASE/movies
