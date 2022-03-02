@@ -8,6 +8,7 @@ from datetime import datetime
 
 debug_enabled = os.environ.get("DEBUG") == "1"
 log_file = None
+openrgb = "/home/daf/code/opensource/OpenRGB/openrgb"
 
 
 def debug(s):
@@ -21,7 +22,7 @@ def debug(s):
 
 
 def read_devices():
-    proc = subprocess.Popen(["openrgb", "-l"], stdout=subprocess.PIPE)
+    proc = subprocess.Popen([openrgb, "-l"], stdout=subprocess.PIPE)
     result = []
     device_matcher = re.compile("^\\d:")
 
@@ -41,7 +42,7 @@ def generate_cli(devices):
     mode = "static"
     ram_colors = ["FF1E00", "FF1400", "FF0A00", "FF0000"]
     board_color = "FF2800"
-    ram_matcher = re.compile(".*ASUS Aura DRAM.*", re.IGNORECASE)
+    ram_matcher = re.compile(".*DRAM.*", re.IGNORECASE)
     board_matcher = re.compile(".*AORUS ELITE.*", re.IGNORECASE)
     result = []
     for device in devices:
@@ -58,7 +59,7 @@ def generate_cli(devices):
 
 
 def run_openrgb_with(options):
-    cli = ["openrgb"]
+    cli = [openrgb]
     cli.extend(options)
     debug("running cmd: %s" % (" ".join(cli)))
     proc = subprocess.Popen(cli, stdout=subprocess.PIPE)
@@ -69,7 +70,8 @@ def run_openrgb_with(options):
         debug(line)
         lines.append(line)
     if proc.returncode != 0:
-        raise Exception("unable to run openrgb with cli: " + " ".join(options) + "\n" + "\n".join(lines))
+        print("unable to run openrgb with cli: " + " ".join(options) + "\n" + "\n".join(lines))
+        raise Exception("unable to run openrgb")
 
 
 def main():
