@@ -2,7 +2,6 @@
 DELAY=8
 
 [init]
-#/home/daf/apps/scripts/jiggle-bluetooth
 
 [start]
 /home/daf/apps/scripts/set-system-colors --log-file /tmp/set-system-colors.log
