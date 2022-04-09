@@ -133,15 +133,25 @@ function echoSelection() {
   fi
 }
 
+function select_speakers() {
+  pactl set-default-sink alsa_output.pci-0000_00_1f.3.analog-stereo
+}
+
+function select_headphones() {
+  pactl set-default-sink alsa_output.usb-Corsair_CORSAIR_HS70_Pro_Wireless_Gaming_Headset-00.analog-stereo
+}
+
 if  test "$OUTPUT" = "headphones"; then
   echoSelection
   unmute_headphones
   mute_speakers
+  #select_headphones
   save_sticky_state
 elif test "$OUTPUT" = "speakers"; then
   echoSelection
   mute_headphones
   unmute_speakers
+  #select_speakers
   save_sticky_state
 elif test "$OUTPUT" = "auto"; then
     if test -e "$STICKY_FILE"; then
