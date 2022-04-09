@@ -4,7 +4,7 @@ REPO=~/code/opensource/rivalcfg
 
 if test -f "$CACHEFILE"; then
   CACHEFILE_AGE="$(( `date +%s` - `stat -L --format %Y $CACHEFILE` ))"
-  if test $CACHEFILE_AGE -lt 300; then
+  if test $CACHEFILE_AGE -lt 30; then
     cat $CACHEFILE
     exit 0
   fi
