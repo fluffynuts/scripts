@@ -1,0 +1,28 @@
+[user]
+	name = Davyd McColl
+	email = davydm@gmail.com
+[alias]
+    ; add all files and commit
+	ci = !echo Adding all files... && git add -A :/ $@ && echo Comitting... && git commit && git status | grep commits && echo Remember to push...
+    ; add everything, commit and push
+	cipush = !echo Adding all files... && git add -A :/ $@ && echo Comitting... && git commit && echo Pushing... && git push
+    ; uber-update: pull with rebase and update all submodules
+    up = !echo Pulling latest with rebase... && git pull --rebase --prune $@ && echo Updating submodules... && git submodule update --init --recursive
+	poes = push
+	stat = status
+    graph = log --graph --pretty=format:'%h %d'
+    cleanup = "!git fetch --all --prune; git branch --merged | egrep -v '(^\\*|master|main)' | egrep -v '^\\s*$' | xargs git branch -d; git gc"
+    tack = "!git commit -a --amend --no-edit"
+    fix-master-merge = "!git commit --amend -m ':twisted_rightwards_arrows: merge in origin/master'"
+    commit-master-merge = "!git add -A :/; git commit -m ':twisted_rightwards_arrows: merge in origin/master'"
+    stoot = "!while (true); do if (git push); then break; fi; done;"
+
+[rebase]
+	autostash = true
+[core]
+	editor = 'C:\\users\\davyd\\scoop\\apps\\vim\\current\\gvim.exe' -f -i NONE
+[pull]
+	merge = true
+	rebase = true
+[tool]
+	diff = gvimdiff
