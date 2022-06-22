@@ -1,4 +1,7 @@
 #!/bin/bash
+if test -z "$XDG_RUNTIME_DIR"; then
+  export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+fi
 STICKY_FILE=/tmp/$(basename $0).sticky
 HEADPHONES_DEFAULT_LEVEL=100
 SPEAKERS_DEFAULT_LEVEL=100
@@ -133,25 +136,34 @@ function echoSelection() {
   fi
 }
 
+function run_pw_metadata() {
+  if test -z "$PIPEWIRE_REMOTE"; then
+    pw-metadata $*
+  else
+    echo "PIPEWIRE_REMOTE set: $PIPEWIRE_REMOTE"
+    pw-metadata --remote $PIPEWIRE_REMOTE $*
+  fi
+}
+
 function select_speakers() {
-  pactl set-default-sink alsa_output.pci-0000_00_1f.3.analog-stereo
+  run_pw_metadata 0 default.audio.sink '{"name":"alsa_output.pci-0000_00_1f.3.analog-stereo.2"}'
 }
 
 function select_headphones() {
-  pactl set-default-sink alsa_output.usb-Corsair_CORSAIR_HS70_Pro_Wireless_Gaming_Headset-00.analog-stereo
+  run_pw_metadata 0 default.audio.sink '{"name":"alsa_output.usb-Corsair_CORSAIR_HS70_Pro_Wireless_Gaming_Headset-00.analog-stereo.2"}'
 }
 
 if  test "$OUTPUT" = "headphones"; then
   echoSelection
-  unmute_headphones
-  mute_speakers
-  #select_headphones
+  #unmute_headphones
+  #mute_speakers
+  select_headphones
   save_sticky_state
 elif test "$OUTPUT" = "speakers"; then
   echoSelection
-  mute_headphones
-  unmute_speakers
-  #select_speakers
+  #mute_headphones
+  #unmute_speakers
+  select_speakers
   save_sticky_state
 elif test "$OUTPUT" = "auto"; then
     if test -e "$STICKY_FILE"; then

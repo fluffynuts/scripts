@@ -1,19 +1,11 @@
 #!/bin/bash
-#daytime_script="$(dirname $0)/activate-speakers; $(dirname $0)/set-kmix-master intel"
-#nighttime_script="$(dirname $0)/activate-headphones;  $(dirname $0)/set-kmix-master avantree"
 select_sound_script="$(dirname $0)/select-sound-output";
 
 let "time=$(date +'%H%M' | sed -e 's/^0//')"
 logfile=/tmp/last-autoset-sound
 date > $logfile
 if test $time -lt 1905 && test $time -ge 600; then
-  #echo "Enabling daytime device"  >> $logfile
-  #eval $daytime_script
   $select_sound_script speakers 
-  #>> $logfile
 else
-  #echo "Enabling nighttime device"  >> $logfile
   $select_sound_script headphones 
-  #>> $logfile
-  #eval $nighttime_script
 fi
