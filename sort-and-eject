@@ -1,0 +1,33 @@
+#!/bin/bash
+function check_is_root()
+{
+  if test "$(whoami)" != "root"; then
+    sudo -p "Your password is required to continue: " $0 $@
+    exit $?
+  fi
+}
+
+function try_find_device()
+{
+  if test -z "$1"; then
+    echo "provide part or all of a device name please"
+    exit 2
+  fi
+  DEVICE=$(mount | grep -i $1 | awk '{print $1}')
+  if test -z "$DEVICE"; then
+    echo "Unable to find any mount matching $1"
+    exit 3
+  fi
+}
+
+function unmount_sort_eject()
+{
+  umount $DEVICE
+  fatsort -c $DEVICE
+  eject $DEVICE
+}
+
+check_is_root $@
+try_find_device $1
+unmount_sort_eject
+
