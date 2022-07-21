@@ -3,21 +3,7 @@ if test -z "$XDG_RUNTIME_DIR"; then
   export XDG_RUNTIME_DIR="/run/user/$(id -u)"
 fi
 STICKY_FILE=/tmp/$(basename $0).sticky
-HEADPHONES_DEFAULT_LEVEL=100
-SPEAKERS_DEFAULT_LEVEL=100
-HEADPHONES=Headphones
-HEADPHONES_MIXER=PCM
-declare -a channels=("Master" "Headphone" "Surround" "Center" "LFE" "Line" "PCM" "Front")
-AMUTE="Auto-Mute Mode"
 AUTO_SET_SOUND="$(dirname $0)/autoset-sound"
-
-SPEAKERS_DEVICE=PCH
-# BLUETOOTH audio dongle
-#HEADPHONES_DEVICE=DG80
-# Corsair HS70
-HEADPHONES_DEVICE=Gamin
-# RIG 700
-#HEADPHONES_DEVICE=WS1
 
 if test -z "$1"; then
   OUTPUT=""
@@ -32,95 +18,24 @@ function log()
   fi
 }
 
-function amixer()
+function reset_sticky_state()
 {
-  if test -z "$VERBOSE"; then
-    /usr/bin/amixer $* &> /dev/null
-  else
-    /usr/bin/amixer $*
-  fi
+  rm -f $STICKY_FILE
 }
 
 if test -e $STICKY_FILE; then
   CURRENT_STICKY="$(cat $STICKY_FILE)"
   if test "$OUTPUT" = "auto"; then
     echo "Sticky selection set to '$CURRENT_STICKY'; resetting back to auto..."
-    rm -f $STICKY_FILE
+    reset_sticky_state
   elif test ! -z "$FORCE"; then
     echo "Unsticking sound selection by force..."
-    rm -f $STICKY_FILE
+    reset_sticky_state
   elif test ! -z "$OUTPUT" && test -z "$STICKY"; then
     echo "Sticky sound selection set to '$CURRENT_STICKY'; not changing"
     exit
   fi
 fi
-
-
-function unmuteEverything {
-    for channel in "${channels[@]}"; do
-        amixer -c $SPEAKERS_DEVICE set "$channel" unmute
-    done
-}
-
-
-function setVal() {
-  TARGET=$1
-  TO_VAL=$2
-  DEVICE=$3
-  if test -z "$DEVICE"; then
-    echo "no mixer set; bailing out"
-    exit 1
-  fi
-  LAST_LINE="$(/usr/bin/amixer -c "$DEVICE" get "$TARGET" | tail -n 1)"
-  log --last line-- $LAST_LINE
-  if test -z "$(echo $LAST_LINE | grep -i mono)"; then
-    CURRENT_VAL="$(echo $LAST_LINE | awk '{print $4}')"
-  else
-    CURRENT_VAL="$(echo $LAST_LINE | awk '{print $3}')"
-  fi
-  if test "$TO_VAL" != "$CURRENT_VAL"; then
-    log amixer -c $DEVICE get "$TARGET"
-    log "TO_VAL: $TO_VAL but CURRENT_VAL: $CURRENT_VAL  & LAST_LINE: $LAST_LINE"
-      amixer -c $DEVICE set "$TARGET" "$TO_VAL"
-  else
-      log "$TARGET already set to $TO_VAL"
-  fi
-}
-
-function unMuteDevice() {
-  amixer -c $2 set "$1" unmute
-}
-
-
-function mute_headphones() {
-  echo "[ muting headphones ]"
-  #setVal $HEADPHONES_MIXER 0 $HEADPHONES_DEVICE
-}
-
-function unmute_headphones() {
-  echo "[ unmuting headphones ]"
-  unMuteDevice $HEADPHONES_MIXER $HEADPHONES_DEVICE
-  setVal $HEADPHONES_MIXER $HEADPHONES_DEFAULT_LEVEL $HEADPHONES_DEVICE
-}
-
-function mute_speakers() {
-  echo "[ muting speakers ]"
-  for channel in "${channels[@]}"; do
-    setVal $channel 0 $SPEAKERS_DEVICE
-  done
-}
-
-function unmute_speakers() {
-  echo "[ unmuting speakers ]"
-  for channel in "${channels[@]}"; do
-    if test "$channel" = "PCM"; then
-      setVal $channel 255 $SPEAKERS_DEVICE
-    else
-      setVal $channel $SPEAKERS_DEFAULT_LEVEL $SPEAKERS_DEVICE
-    fi
-    unMuteDevice $channel $SPEAKERS_DEVICE
-  done
-}
 
 function save_sticky_state() {
   if test ! -z "$STICKY"; then
@@ -128,7 +43,7 @@ function save_sticky_state() {
   fi
 }
 
-function echoSelection() {
+function echo_selection() {
   if ! test -z "$STICKY"; then
     echo "Selecting STICKY output device: $OUTPUT"
   else
@@ -155,24 +70,28 @@ function find_headphones_alsa_sink() {
 
 function select_speakers() {
   SINK=$(find_speakers_alsa_sink)
-  run_pw_metadata 0 default.audio.sink "{\"name\":\"$SINK\"}"
+  if test -z "$(run_pw_metadata | grep default.audio.sink | grep $SINK)"; then
+    run_pw_metadata 0 default.audio.sink "{\"name\":\"$SINK\"}"
+  else
+    echo "speakers already selected as default sink"
+  fi
 }
 
 function select_headphones() {
   SINK=$(find_headphones_alsa_sink)
-  run_pw_metadata 0 default.audio.sink "{\"name\":\"$SINK\"}"
+  if test -z "$(run_pw_metadata | grep default.audio.sink | grep $SINK)"; then
+    run_pw_metadata 0 default.audio.sink "{\"name\":\"$SINK\"}"
+  else
+    echo "headphones already selected as default sink"
+  fi
 }
 
-if  test "$OUTPUT" = "headphones"; then
-  echoSelection
-  #unmute_headphones
-  #mute_speakers
+if test "$OUTPUT" = "headphones"; then
+  echo_selection
   select_headphones
   save_sticky_state
 elif test "$OUTPUT" = "speakers"; then
-  echoSelection
-  #mute_headphones
-  #unmute_speakers
+  echo_selection
   select_speakers
   save_sticky_state
 elif test "$OUTPUT" = "auto"; then
@@ -183,6 +102,7 @@ elif test "$OUTPUT" = "auto"; then
       echo "Auto-selection already enabled"
     fi
 else
+  STICKY=1
   echo "Please select a sound output device:"
   echo "(a) headphones"
   echo "(b) speakers"
@@ -192,16 +112,18 @@ else
   if test -z "$selection"; then
     $0
   elif test "$selection" = "a" || test "$selection" = "A" || test ! -z "$(echo headphones | grep -i "$selection")"; then
-    STICKY=1 $0 headphones
+    select_headphones
+    OUTPUT="headphones"
+    save_sticky_state
   elif test "$selection" = "b" || test "$selection" = "B" || test ! -z "$(echo speakers | grep -i "$selection")"; then
-    STICKY=1 $0 speakers
+    select_speakers
+    OUTPUT="speakers"
+    save_sticky_state
   elif test "$selection" = "c" || test "$selection" = "C" || test ! -z "$(echo auto-select | grep -i "$selection")"; then
-    STICKY=1 $0 auto
-    $(dirname $0)/autoset-sound
+    reset_sticky_state
+    # autoset-sound knows the actual timing, calling back into this script appropriately
+    $AUTO_SET_SOUND
   else
     $0
   fi
 fi
-# lastly, unmute all channels - currently we "mute" with a zero volume
-# and the sound card is being retarded: muting any one of the channels mutes everything
-unmuteEverything
