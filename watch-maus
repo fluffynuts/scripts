@@ -1,0 +1,32 @@
+#!/bin/bash
+SPEED="-0.800000"
+ACCEL_PROFILE="1"
+
+DEVICE_ID=-1
+function find_maus() {
+  DEVICE_ID=-1
+  for id in $(xinput --list | grep pointer | grep SteelSeries | awk '{print $8}' | sed -e 's/id=//'); do
+    if test ! -z "$(xinput list-props $id | grep 'libinput Accel Speed')"; then
+      DEVICE_ID=$id
+      break
+    fi
+  done
+}
+
+
+while true; do
+  find_maus
+  if test $DEVICE_ID -gt 0; then
+    CURRENT_SPEED="$(xinput list-props $id | grep 'libinput Accel Speed' | head -n 1 | awk '{print $(NF)}')"
+    if test "$CURRENT_SPEED" != "$SPEED"; then
+      echo "resetting speed to $SPEED ($CURRENT_SPEED)"
+      xinput set-prop 14 "libinput Accel Speed" -0.80000
+    fi
+    CURRENT_PROFILE="$(xinput list-props $id | grep 'Accel Profile Enabled' | head -n 1 | awk '{print $(NF)}')"
+    if  test "$CURRENT_PROFILE" != "$ACCEL_PROFILE"; then
+      echo "resetting acceleration profile"
+      xinput set-prop 14 "libinput Accel Profile Enabled" 0 1
+    fi
+  fi
+  sleep 5
+done
