@@ -4,6 +4,7 @@ DELAY=8
 [init]
 
 [start]
+/home/daf/apps/scripts/watch-maus
 /home/daf/apps/scripts/set-system-colors --log-file /tmp/set-system-colors.log
 transmission-qt
 firefox

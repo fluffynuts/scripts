@@ -1,11 +1,14 @@
 #!/bin/bash
 SPEED="-0.800000"
 ACCEL_PROFILE="1"
+#DEVICE_NAME="SteelSeries"
+# remember to reset awk field to 8
+DEVICE_NAME="Logitech USB Receiver Mouse"
 
 DEVICE_ID=-1
 function find_maus() {
   DEVICE_ID=-1
-  for id in $(xinput --list | grep pointer | grep SteelSeries | awk '{print $8}' | sed -e 's/id=//'); do
+  for id in $(xinput --list | grep pointer | grep "$DEVICE_NAME" | awk '{print $7}' | sed -e 's/id=//'); do
     if test ! -z "$(xinput list-props $id | grep 'libinput Accel Speed')"; then
       DEVICE_ID=$id
       break
@@ -17,15 +20,15 @@ function find_maus() {
 while true; do
   find_maus
   if test $DEVICE_ID -gt 0; then
-    CURRENT_SPEED="$(xinput list-props $id | grep 'libinput Accel Speed' | head -n 1 | awk '{print $(NF)}')"
+    CURRENT_SPEED="$(xinput list-props $DEVICE_ID | grep 'libinput Accel Speed' | head -n 1 | awk '{print $(NF)}')"
     if test "$CURRENT_SPEED" != "$SPEED"; then
-      echo "resetting speed to $SPEED ($CURRENT_SPEED)"
-      xinput set-prop 14 "libinput Accel Speed" -0.80000
+      echo "resetting speed on [$DEVICE_ID] to $SPEED ($CURRENT_SPEED)"
+      xinput set-prop $DEVICE_ID "libinput Accel Speed" -0.80000
     fi
     CURRENT_PROFILE="$(xinput list-props $id | grep 'Accel Profile Enabled' | head -n 1 | awk '{print $(NF)}')"
     if  test "$CURRENT_PROFILE" != "$ACCEL_PROFILE"; then
-      echo "resetting acceleration profile"
-      xinput set-prop 14 "libinput Accel Profile Enabled" 0 1
+      echo "resetting acceleration profile on [$DEVICE_ID]"
+      xinput set-prop $DEVICE_ID "libinput Accel Profile Enabled" 0 1
     fi
   fi
   sleep 5

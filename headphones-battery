@@ -3,7 +3,7 @@ STATEFILE=/tmp/headphones-battery-last-state
 PERC=$(headsetcontrol -b --short-output)
 if test "$PERC" -lt 0; then
   if test -f "$STATEFILE"; then
-    echo "Headset: idle ($(cat $STATEFILE)%)"
+    echo "Headset: ($(cat $STATEFILE)%)"
   else
     echo "Headset: idle"
   fi

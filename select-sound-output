@@ -77,6 +77,11 @@ function select_speakers() {
   fi
 }
 
+function restart_wireplumber() {
+  killall wireplumber
+  wireplumber &> /dev/null &
+}
+
 function select_headphones() {
   SINK=$(find_headphones_alsa_sink)
   if test -z "$(run_pw_metadata | grep default.audio.sink | grep $SINK)"; then
