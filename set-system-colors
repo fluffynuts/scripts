@@ -42,8 +42,10 @@ def generate_cli(devices):
     mode = "static"
     ram_colors = ["FF1E00", "FF1400", "FF0A00", "FF0000"]
     board_color = "FF2800"
+    gpu_color = "FF1900"
     ram_matcher = re.compile(".*DRAM.*", re.IGNORECASE)
     board_matcher = re.compile(".*AORUS ELITE.*", re.IGNORECASE)
+    gpu_matcher = re.compile(".*RTX.*", re.IGNORECASE)
     result = []
     for device in devices:
         if ram_matcher.match(device["name"]):
@@ -55,6 +57,9 @@ def generate_cli(devices):
         elif board_matcher.match(device["name"]):
             debug("adding board at %s: %s" % (device["id"], board_color))
             result.extend(["-d", device["id"], "-m", mode, "-c", board_color])
+        elif gpu_matcher.match(device["name"]):
+            debug("adding gpu at %s: %s" % (device["id"], gpu_color))
+            result.extend(["-d", device["id"], "-m", mode, "-c", gpu_color])
     return result
 
 
