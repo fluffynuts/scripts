@@ -1,18 +1,35 @@
 #!/bin/bash
 SPEED="-0.800000"
 ACCEL_PROFILE="1"
-#DEVICE_NAME="SteelSeries"
 # remember to reset awk field to 8
-DEVICE_NAME="Logitech USB Receiver Mouse"
+#DEVICE_NAME="Logitech USB Receiver Mouse"
+DEVICE_NAME="Mouse"
+
+function log() {
+  if test -z "$DEBUG"; then
+    return
+  fi
+  echo $*
+}
 
 DEVICE_ID=-1
 function find_maus() {
   DEVICE_ID=-1
-  for id in $(xinput --list | grep pointer | grep "$DEVICE_NAME" | awk '{print $7}' | sed -e 's/id=//'); do
-    if test ! -z "$(xinput list-props $id | grep 'libinput Accel Speed')"; then
-      DEVICE_ID=$id
-      break
-    fi
+  for line in $(xinput --list | grep pointer | grep "$DEVICE_NAME" | grep -vi keyboard); do
+    for part in $line; do
+      if test ! -z "$(echo $part | grep "^id=")"; then
+        id="$(echo $part | sed -e 's/id=//')"
+        log "testing device id $id"
+        if test ! -z "$(xinput list-props $id | grep 'libinput Accel Speed')"; then
+          DEVICE_ID=$id
+          log "selecting device: $id"
+          break
+        fi
+      fi
+      if test $DEVICE_ID -gt 0; then
+        return
+      fi
+    done
   done
 }
 
@@ -22,14 +39,20 @@ while true; do
   if test $DEVICE_ID -gt 0; then
     CURRENT_SPEED="$(xinput list-props $DEVICE_ID | grep 'libinput Accel Speed' | head -n 1 | awk '{print $(NF)}')"
     if test "$CURRENT_SPEED" != "$SPEED"; then
-      echo "resetting speed on [$DEVICE_ID] to $SPEED ($CURRENT_SPEED)"
-      xinput set-prop $DEVICE_ID "libinput Accel Speed" -0.80000
+      log "resetting speed on [$DEVICE_ID] to $SPEED ($CURRENT_SPEED)"
+      xinput set-prop $DEVICE_ID "libinput Accel Speed" $SPEED
+    else
+      log "device already has accel speed $SPEED"
     fi
     CURRENT_PROFILE="$(xinput list-props $id | grep 'Accel Profile Enabled' | head -n 1 | awk '{print $(NF)}')"
     if  test "$CURRENT_PROFILE" != "$ACCEL_PROFILE"; then
-      echo "resetting acceleration profile on [$DEVICE_ID]"
+      log "resetting acceleration profile on [$DEVICE_ID]"
       xinput set-prop $DEVICE_ID "libinput Accel Profile Enabled" 0 1
+    else
+      log "device already has flat accel profile"
     fi
+  else
+    log "maus not found: $DEVICE_NAME"
   fi
   sleep 5
 done
