@@ -4,7 +4,7 @@ select_sound_script="$(dirname $0)/select-sound-output";
 let "time=$(date +'%H%M' | sed -e 's/^0//')"
 logfile=/tmp/last-autoset-sound
 date > $logfile
-if test $time -lt 1905 && test $time -ge 600; then
+if test $time -lt 1901 && test $time -ge 600; then
   $select_sound_script speakers 
 else
   $select_sound_script headphones 
