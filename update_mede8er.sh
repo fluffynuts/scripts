@@ -170,11 +170,11 @@ function sweep_target() {
 check_single
 attempt_target_remount
 check_target_is_mounted
-check_archive_is_mounted
+#check_archive_is_mounted
 update_target series $ARCHIVE_BASE/series/watched
 update_target movies $ARCHIVE_BASE/movies/watched
-SRC_BASE=/mnt/archive
-update_target keep
+#SRC_BASE=/mnt/archive
+#update_target keep
 clear_pidfile
 log_complete
 sweep_target
