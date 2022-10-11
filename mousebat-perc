@@ -10,10 +10,6 @@ if test -f "$CACHEFILE"; then
   fi
 fi
 
-if test ! -d "$REPO"; then
-  echo "Can't find rivalcfg at $REPO"
-  exit 1
-fi
 if test -z "$(which xprintidle)"; then
   echo "Please install xprintidle"
   exit 1
@@ -25,9 +21,8 @@ if test "$IDLE_TIME" -gt 600000; then
   exit 0
 fi
 
-cd "$REPO"
-BATTERY_PERCENT=$(./run --battery-level | grep -o '[0-9]*')
-if test "$BATTERY_PERCENT" -gt 100; then
+BATTERY_PERCENT=$(solaar show | grep Battery | head -n 1 | awk '{print $4}' | grep -o '[0-9]*')
+if test -z "$BATTERY_PERCENT"; then
   echo "idle" | tee $CACHEFILE
 else
   echo "$BATTERY_PERCENT%" | tee $CACHEFILE
