@@ -47,6 +47,7 @@ Remove-Alias alias:ls
 Remove-Alias alias:rmdir
 Remove-Alias alias:mv
 Remove-Alias alias:diff
+Remove-Alias alias:sleep
 
 
 # Import the Chocolatey Profile that contains the necessary code to enable
