@@ -25,6 +25,10 @@ BATTERY_PERCENT=$(solaar show | grep Battery | head -n 1 | awk '{print $4}' | gr
 if test -z "$BATTERY_PERCENT"; then
   echo "idle" | tee $CACHEFILE
 else
-  echo "$BATTERY_PERCENT%" | tee $CACHEFILE
+  if test "$BATTERY_PERCENT" = "100"; then
+    echo "💯" | tee $CACHEFILE
+  else
+    echo "$BATTERY_PERCENT%" | tee $CACHEFILE
+  fi
 fi
 cd - &> /dev/null
