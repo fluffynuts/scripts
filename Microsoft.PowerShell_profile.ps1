@@ -8,6 +8,18 @@ function refresh-path {
                 [System.Environment]::GetEnvironmentVariable("Path","User")
 }
 
+function df {
+    df.exe -h @args
+}
+
+function ls {
+    if ($env:TERMINAL_EMULATOR -eq "JetBrains-JediTerm") {
+        ls.exe @args
+    } else {
+        ls.exe --color @args
+    }
+}
+
 refresh-path
 
 oh-my-posh init pwsh --config ~/.mytheme.omp.json | Invoke-Expression
@@ -26,6 +38,7 @@ Set-PSReadlineOption -EditMode Emacs
 Set-PSReadlineKeyHandler -Key ctrl+d -Function ViExit
 Set-PSReadlineKeyHandler -Key Tab -Function TabCompleteNext
 Set-PSReadLineOption -BellStyle None
+Set-PSReadLineOption -PredictionSource None
 
 Function Ls-Real {
     if ($env:NO_COLOR) {
