@@ -103,7 +103,7 @@ if test -z "$(echo $EMERGE_ARGS | grep -i backtrack=)"; then
 fi
 if $IONICE emerge --update --newuse --changed-use --deep --changed-deps --keep-going @world $ASK $EMERGE_ARGS; then
   echo "Checking for @preserved-rebuild actions..."
-  emerge @preserved-rebuild $ASK
+  emerge @preserved-rebuild $ASK $PRETEND
   echo "Cleaning out unnecessary dependencies..."
-  emerge --depclean $ASK
+  emerge --depclean $ASK $PRETEND
 fi
