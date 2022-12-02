@@ -8,6 +8,25 @@ function refresh-path {
                 [System.Environment]::GetEnvironmentVariable("Path","User")
 }
 
+function cd {
+    Set-Location @args
+    update-title-for-location
+}
+
+function update-title-for-location {
+    $dir = $(get-location).Path
+    if ($dir -eq $env:USERPROFILE) {
+        $dir = "~"
+    } elseif ($dir.StartsWith("C:\code")) {
+        $project = $(split-path $dir -leaf)
+        $context = $(split-path $(split-path $dir) -leaf)
+        if ($context -eq "codeo" -or $context -eq "opensource") {
+            $dir = "[ $project ]"
+        }
+    }
+    $Host.UI.RawUI.WindowTitle = $dir
+}
+
 function df {
     df.exe -h @args
 }
@@ -24,12 +43,10 @@ refresh-path
 
 oh-my-posh init pwsh --config ~/.mytheme.omp.json | Invoke-Expression
 
-function remove-alias {
-    param (
-        $alias
-    )
-    if (test-path $alias) {
-        remove-item $alias -force
+function do-remove-alias {
+    $seek=$args[0]
+    if (test-path "alias:$seek") {
+        Remove-Alias -name $seek -force -scope "global"
     }
 }
 
@@ -40,28 +57,9 @@ Set-PSReadlineKeyHandler -Key Tab -Function TabCompleteNext
 Set-PSReadLineOption -BellStyle None
 Set-PSReadLineOption -PredictionSource None
 
-Function Ls-Real {
-    if ($env:NO_COLOR) {
-        ls.exe @Args
-    } else {
-        ls.exe --color @Args
-    }
-}
-
 function elevate {
     sudo.exe pwsh.exe
 }
-
-Set-Alias ls Ls-Real
-Set-Alias su elevate
-Remove-Alias alias:cp
-Remove-Alias alias:rm
-Remove-Alias alias:ls
-Remove-Alias alias:rmdir
-Remove-Alias alias:mv
-Remove-Alias alias:diff
-Remove-Alias alias:sleep
-
 
 # Import the Chocolatey Profile that contains the necessary code to enable
 # tab-completions to function for `choco`.
@@ -73,3 +71,14 @@ if (Test-Path($ChocolateyProfile)) {
   Import-Module "$ChocolateyProfile"
 }
 
+update-title-for-location
+
+Set-Alias su elevate
+. Do-Remove-Alias cp
+. Do-Remove-Alias rm
+. Do-Remove-Alias ls
+. Do-Remove-Alias rmdir
+. Do-Remove-Alias mv
+. Do-Remove-Alias diff
+. Do-Remove-Alias sleep
+. Do-Remove-Alias cd
