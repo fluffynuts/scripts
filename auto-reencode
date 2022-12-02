@@ -15,28 +15,26 @@ function clear_line()
 DID_SOMETHING=0
 RE_ENCODE="$(dirname $0)/auto-reencode-one";
 
-while test $# -gt 0; do
-  DID_SOMETHING=1
-  if test -f "$1"; then
-    echo "process one: $1"
-    if $RE_ENCODE "$1"; then
-      exit 0
+for f in $*; do
+  while test $# -gt 0; do
+    DID_SOMETHING=1
+    if test -f "$f"; then
+      echo "process one: $1"
+      $RE_ENCODE "$f"
+    elif test -d "$f"; then
+      export LEAVE_STATUS=1
+      if test -z "$MAX_AGE_DAYS"; then
+        find "$f" -iname '*.mkv' -o -iname '*.avi' -exec $RE_ENCODE {} \;
+      else
+        find "$f" -iname '*.mkv' -o -iname '*.avi' -mtime -$MAX_AGE_DAYS -exec $RE_ENCODE {} \;
+      fi
+      clear_line
     else
+      echo "Error: please supply a dir or file to work with (not $1)"
       exit 1
     fi
-  elif test -d "$1"; then
-    export LEAVE_STATUS=1
-    if test -z "$MAX_AGE_DAYS"; then
-      find "$1" -iname '*.mkv' -exec $RE_ENCODE {} \;
-    else
-      find "$1" -iname '*.mkv' -mtime -$MAX_AGE_DAYS -exec $RE_ENCODE {} \;
-    fi
-    clear_line
-  else
-    echo "Error: please supply a dir or file to work with (not $1)"
-    exit 1
-  fi
-  shift
+    shift
+  done
 done
 
 if test $DID_SOMETHING = "0"; then
