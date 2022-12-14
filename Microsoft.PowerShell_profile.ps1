@@ -2,15 +2,48 @@ Import-Module posh-git
 Import-Module npm-completion
 Import-Module PSReadLine
 
-function refresh-path {
+function Remove-ExistingAlias {
+    $seek=$args[0]
+    if (test-path "alias:$seek") {
+        Remove-Alias -name $seek -force -scope "global"
+    }
+}
+
+function Update-Path {
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") +
                 ";" +
                 [System.Environment]::GetEnvironmentVariable("Path","User")
 }
 
+<#
+.SYNOPSIS
+    like cd, except it also sets the title of your terminal for
+    the location
+.DESCRIPTION
+    changes the current working directory (cwd / pwd) and then
+    updates the title based on some rules:
+    - if we're under C:\code\codeo or C:\code\opensource,
+        use the parent folder (ie project name) for the title
+        of the window
+    - if we're in the user's home dir, set the title to ~
+    - otherwise revert to the default behavior, which will come
+        from the command (so likely the full pwd, or if you're
+        running an app which updates the title, then that
+
+    since this calls out to Set-Location, try `Get-Help Set-Location`
+    for parameters that can be passed
+#>
 function cd {
     Set-Location @args
     update-title-for-location
+}
+
+function lg {
+    lazygit.exe @args
+}
+
+function su {
+    sudo.exe pwsh.exe
 }
 
 function update-title-for-location {
@@ -39,16 +72,33 @@ function ls {
     }
 }
 
-refresh-path
+function Enable-WindowsFirewall {
+    <#
+    .SYNOPSIS
+    Enables Windows Advanced Firewall via netsh command
+    .DESCRIPTION
+    Executes:
+        netsh advfirewall set currentprofile state on
+    via sudo.exe (elevation is required to run this command)
+    #>
+    sudo.exe netsh.exe advfirewall set currentprofile state on
+}
 
+function Disable-WindowsFirewall {
+    <#
+    .SYNOPSIS
+    Disabled Windows Advanced Firewall via netsh command
+    .DESCRIPTION
+    Executes:
+        netsh advfirewall set currentprofile state off
+    via sudo.exe (elevation is required to run this command)
+    #>
+    sudo.exe netsh.exe advfirewall set currentprofile state off
+}
+
+Update-Path
 oh-my-posh init pwsh --config ~/.mytheme.omp.json | Invoke-Expression
 
-function do-remove-alias {
-    $seek=$args[0]
-    if (test-path "alias:$seek") {
-        Remove-Alias -name $seek -force -scope "global"
-    }
-}
 
 Set-Alias find C:\apps\gnuwin32\bin\find.exe
 Set-PSReadlineOption -EditMode Emacs
@@ -56,10 +106,6 @@ Set-PSReadlineKeyHandler -Key ctrl+d -Function ViExit
 Set-PSReadlineKeyHandler -Key Tab -Function TabCompleteNext
 Set-PSReadLineOption -BellStyle None
 Set-PSReadLineOption -PredictionSource None
-
-function elevate {
-    sudo.exe pwsh.exe
-}
 
 # Import the Chocolatey Profile that contains the necessary code to enable
 # tab-completions to function for `choco`.
@@ -73,12 +119,13 @@ if (Test-Path($ChocolateyProfile)) {
 
 update-title-for-location
 
-Set-Alias su elevate
-. Do-Remove-Alias cp
-. Do-Remove-Alias rm
-. Do-Remove-Alias ls
-. Do-Remove-Alias rmdir
-. Do-Remove-Alias mv
-. Do-Remove-Alias diff
-. Do-Remove-Alias sleep
-. Do-Remove-Alias cd
+. Remove-ExistingAlias cp
+. Remove-ExistingAlias rm
+. Remove-ExistingAlias ls
+. Remove-ExistingAlias rmdir
+. Remove-ExistingAlias mv
+. Remove-ExistingAlias diff
+. Remove-ExistingAlias sleep
+. Remove-ExistingAlias cd
+
+Remove-Item Function:Remove-ExistingAlias
