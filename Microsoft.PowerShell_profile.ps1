@@ -46,11 +46,28 @@ function su {
     sudo.exe pwsh.exe
 }
 
+function winget {
+    Write-Host "Disabling windows firewall during winget operations..."
+    Disable-WindowsFirewall | out-null
+    winget.exe @args
+    Enable-WindowsFirewall | out-null
+}
+
+$sep = "$([System.IO.Path]::DirectorySeparatorChar)"
+$codeDir = "${sep}code${sep}"
 function update-title-for-location {
+    <#
+    .SYNOPSIS
+        Updates the tab / window title for the current session based on
+        the current location
+        - under code folder, observe the project under `codeo` or `opensource`
+        - in home, use ~
+        - everywhere else, set the window title to the current location
+    #>
     $dir = $(get-location).Path
     if ($dir -eq $env:USERPROFILE) {
         $dir = "~"
-    } elseif ($dir.StartsWith("C:\code")) {
+    } elseif ($dir.Contains($codeDir)) {
         $project = $(split-path $dir -leaf)
         $context = $(split-path $(split-path $dir) -leaf)
         if ($context -eq "codeo" -or $context -eq "opensource") {
