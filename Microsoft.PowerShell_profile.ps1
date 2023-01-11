@@ -68,8 +68,9 @@ function update-title-for-location {
     if ($dir -eq $env:USERPROFILE) {
         $dir = "~"
     } elseif ($dir.Contains($codeDir)) {
-        $project = $(split-path $dir -leaf)
-        $context = $(split-path $(split-path $dir) -leaf)
+        $parts = $dir.Split($sep)
+        $project = $parts[3]
+        $context = $parts[2]
         if ($context -eq "codeo" -or $context -eq "opensource") {
             $dir = "[ $project ]"
         }
