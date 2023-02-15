@@ -1,0 +1,12 @@
+#!/bin/bash
+dev="$(upower -e | grep wacom)"
+if test -z "$dev"; then
+  echo "idle"
+else
+  line="$(upower -i $dev | grep percent)"
+  if test ! -z "$(echo $line | grep ignore)"; then
+    echo "idle"
+  else
+    echo $line | awk '{print $2}'
+  fi
+fi
