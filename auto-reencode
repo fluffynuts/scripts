@@ -24,9 +24,9 @@ for f in $*; do
     elif test -d "$f"; then
       export LEAVE_STATUS=1
       if test -z "$MAX_AGE_DAYS"; then
-        find "$f" -iname '*.mkv' -o -iname '*.avi' -exec $RE_ENCODE {} \;
+        find "$f" -iname '*.mkv' -o -iname '*.avi' -o -iname '*.mp4' -exec $RE_ENCODE {} \;
       else
-        find "$f" -iname '*.mkv' -o -iname '*.avi' -mtime -$MAX_AGE_DAYS -exec $RE_ENCODE {} \;
+        find "$f" -iname '*.mkv' -o -iname '*.avi' -o -iname '*.mp4' -mtime -$MAX_AGE_DAYS -exec $RE_ENCODE {} \;
       fi
       clear_line
     else
