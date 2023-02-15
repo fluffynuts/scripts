@@ -28,7 +28,7 @@ function clear_line()
 function reencode()
 {
   filepath="$1"
-  IS_HEVC=0
+  REQUIRES_REENCODE=0
 
   SHORT="$(basename $filepath)"
   if test -z "$SHORT"; then
@@ -42,11 +42,18 @@ function reencode()
       echo -n "inspect: $SHORT"
     fi
     if test ! -z "$(echo $CODEC | grep -i hevc)"; then
-      IS_HEVC=1
+      REQUIRES_REENCODE=1
+    fi
+
+    if test "$REQUIRES_REENCODE" = "0"; then
+      CODEC="$(echo $MEDIAINFO | grep -A10 '^Video' | awk '$1=="Codec" && $2=="ID" {print $4}')"
+      if test "$CODEC" = "DIVX"; then
+        REQUIRES_REENCODE=1
+      fi
     fi
   fi
 
-  if test "$IS_HEVC" = "1" || test ! -z "$FORCE"; then
+  if test "$REQUIRES_REENCODE" = "1" || test ! -z "$FORCE"; then
     clear_line
     if test -z "$FORCE"; then
       echo "Re-encode: \"$SHORT\""
@@ -79,21 +86,17 @@ function reencode()
       if mv "$TMPFILE" "$TARGET"; then
         if test ! -z "$MINOR_RENAME"; then
           mv "$TARGET" "$(dirname $filepath)/${OUTFILE}"
-          return 0
+        elif test ! -z "$KEEP_ORIGINAL"; then
+        elif rm $filepath; then
+        else
+          RET=$?
+          echo "Cannot remove $filepath"
+          exit $RET
         fi
-        if test ! -z "$KEEP_ORIGINAL"; then
-          return 0
-        fi
-        if rm $filepath; then
-          return 0
-        fi
-        RET=$?
-        echo "Cannot remove $filepath"
-        return $RET
       else
         RET=$?
         echo "Cannot move $TMPFILE to $TARGET"
-        return $RET
+        exit $RET
       fi
     else
       RET=$?
@@ -101,7 +104,7 @@ function reencode()
       echo "Logfile at $LOGFILE contains:"
       cat "$LOGFILE"
       echo "cmdline was: $CMD"
-      return $RET
+      exit $RET
     fi
   else
     if test -z "$LEAVE_STATUS"; then
