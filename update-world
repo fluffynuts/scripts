@@ -5,6 +5,8 @@ HELP=""
 PRETEND=""
 RECEIVING_EMERGE_ARGS=""
 EMERGE_ARGS=""
+RED="\033[1;31m"
+RESET="\033[0m"
 function check_is_root()
 {
   if test "$(whoami)" != "root"; then
@@ -69,6 +71,7 @@ fi
 if test -z "$NO_SYNC"; then
   check_is_root $@
   if ! emerge --sync; then
+    echo -e "${RED}sync fails - check logged output${RESET}"
     exit $?
   fi
 fi
