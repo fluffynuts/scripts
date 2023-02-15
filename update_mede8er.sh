@@ -155,7 +155,7 @@ function attempt_target_dismount() {
       return
     fi
     if mount | grep $DST_BASE &> /dev/null; then
-      umount $DST_BASE 2>1 &> /dev/null
+      umount $DST_BASE 2>&1 &> /dev/null
     fi
 }
 
