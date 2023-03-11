@@ -1,0 +1,18 @@
+#!/bin/bash
+GREEN="\033[01;32m"
+RESET="\033[0m"
+
+PKG="$(genlop -l --date today | grep gentoo-sources | awk '{print  $8}')"
+if test -z "$PKG"; then
+  exit 0
+fi
+PKG_VERSION="$(echo $PKG | awk '{split($0,a,"-");print a[4]}')"
+RUNNING_KERNEL_VERSION="$(uname -r | awk '{split($0,a,"-");print a[1]}')"
+if test "$PKG_VERSION" = "$RUNNING_KERNEL_VERSION"; then
+  exit 0
+fi
+if ls /boot/*${PKG_VERSION}* &> /dev/null; then
+  exit 0
+fi
+echo -e "${GREEN}Kernel updated to ${PKG_VERSION}. Building now.${RESET}"
+$(dirname $0)/rebuild-kernel
