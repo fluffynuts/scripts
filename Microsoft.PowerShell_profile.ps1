@@ -34,6 +34,14 @@ function Update-Path {
     for parameters that can be passed
 #>
 function cd {
+    if ($args.Length -eq 0) {
+        Set-Location $home
+        return
+    }
+    if (-not (Test-Path -PathType Container $args[0])) {
+        Write-Host "$($args[0]): directory not found"
+        return
+    }
     Set-Location @args
     update-title-for-location
 }
@@ -147,3 +155,10 @@ update-title-for-location
 . Remove-ExistingAlias cd
 
 Remove-Item Function:Remove-ExistingAlias
+
+function Kill-TempDb()
+{
+    sudo Stop-Service mysql57
+    pskill mysqld
+    sudo Start-Service mysql57
+}
