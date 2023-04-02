@@ -21,3 +21,4 @@ steam -silent
 start-xboxdrv
 xbindkeys
 #redshift-gtk
+/home/daf/.local/bin/auto-paste-emoji
