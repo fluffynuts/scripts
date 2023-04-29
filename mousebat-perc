@@ -23,14 +23,10 @@ if test "$IDLE_TIME" -gt 600000; then
   exit 0
 fi
 
-BATTERY_PERCENT=$(solaar show | grep Battery | head -n 1 | awk '{print $4}' | grep -o '[0-9]*')
+BATTERY_PERCENT=$(solaar show | grep Battery | head -n 1 | awk '{print $2}' | grep -o '[0-9]*')
 if test -z "$BATTERY_PERCENT"; then
   echo "idle" | tee $CACHEFILE
 else
-  if test "$BATTERY_PERCENT" = "100"; then
-    echo "💯" | tee $CACHEFILE
-  else
-    echo "$BATTERY_PERCENT%" | tee $CACHEFILE
-  fi
+  echo "$BATTERY_PERCENT%" | tee $CACHEFILE
 fi
 cd - &> /dev/null
