@@ -8,7 +8,6 @@ DELAY=8
 /home/daf/apps/scripts/set-system-colors --log-file /tmp/set-system-colors.log
 transmission-qt
 firefox
-dropbox
 /home/daf/apps/scripts/watchdog-plasmashell-20
 /home/daf/apps/scripts/watchdog-krunner
 /home/daf/apps/scripts/jiggle-bluetooth
