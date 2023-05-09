@@ -1,0 +1,32 @@
+#!/sbin/openrc-run
+# Copyright 2023 Gentoo Authors
+# Distributed under the terms of the GNU General Public License v2
+
+name="disable-usb-wakeup daemon"
+description=""
+command=/usr/bin/disable-usb-wakeup
+command_args="${disable-usb-wakeup_args}"
+
+depend() {
+    need udev
+}
+
+start() {
+    if test ! -z "$(grep XHCI.*enabled /proc/acpi/wakeup)"; then
+        ebegin "Disabling USB wake-up"
+        echo XHCI > /proc/acpi/wakeup
+    else
+        ebegin "USB wake-up already disabled"
+    fi
+    eend $?
+}
+
+stop() {
+    if test -z "$(grep XHCI.*enabled /proc/acpi/wakeup)"; then
+        ebegin "Enabling USB wake-up"
+        echo XHCI > /proc/acpi/wakeup
+    else
+        ebegin "USB wake-up already enabled"
+    fi
+    eend $?
+}
