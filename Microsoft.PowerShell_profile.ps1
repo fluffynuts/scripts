@@ -1,3 +1,5 @@
+$ErrorActionPreference = "Stop"
+
 Import-Module posh-git
 Import-Module npm-completion
 Import-Module PSReadLine
@@ -155,6 +157,52 @@ update-title-for-location
 . Remove-ExistingAlias cd
 
 Remove-Item Function:Remove-ExistingAlias
+
+function Recover-From-Interrupted-Tests()
+{
+    Stop-Service-If-Running "MySQL57"
+    Stop-Service-If-Running "Redis"
+    Write-Host "Killing rogue mysqld processes"
+    Kill-All "mysqld"
+    Write-Host "Killing rogue redis-server processes"
+    Kill-All "redis-server"
+    Write-Host "Starting mysql again"
+    Start-Service "MySql57"
+    Write-Host "Starting redis again"
+    Start-Service "redis"
+}
+
+function Kill-All($search) {
+    $count = 0
+    get-process | where-object { 
+        if ($_.Path) {
+            $(Split-Path -Leaf $_.Path).Replace(".exe", "").Replace(".com", "") -like $search
+        } else {
+            return $false
+        }
+    } | foreach-object {
+        try {
+            $proc.Kill()
+            $count++
+        } catch {
+            Write-Host "Can't kill $($proc.Path) ($($proc.Id))"
+        }
+    }
+    Write-Host "$count processes killed"
+}
+
+
+function Stop-Service-If-Running($name)
+{
+    $currentState = $(Get-Service $name).Status
+    if ($currentState -ne "Running")
+    {
+        Write-Host "$name is not running"
+        return
+    }
+    Write-Host "Stopping $name"
+    Stop-Service $name
+}
 
 function Kill-TempDb()
 {
