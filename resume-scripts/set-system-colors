@@ -1,0 +1,13 @@
+#!/bin/bash
+SCRIPT=/home/daf/apps/scripts/set-system-colors
+case $1/$2 in
+    pre/*)
+       # suspending / hibernating - do nothing
+    ;;
+    post/*)
+        # resuming: attempt to reset system colors
+        if test -f $SCRIPT; then
+            $SCRIPT &
+        fi
+    ;;
+esac

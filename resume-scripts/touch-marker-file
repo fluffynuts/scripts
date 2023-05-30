@@ -1,0 +1,11 @@
+#!/bin/bash
+PRE_MARKER_FILE=/tmp/pre-suspend
+POST_MARKER_FILE=/tmp/post-resume
+case $1/$2 in
+  pre/*)
+    echo "[$(date)] $1/$2" > $PRE_MARKER_FILE
+  ;;
+  post/*)
+    echo "[$(date)] $1/$2" > $POST_MARKER_FILE
+  ;;
+esac

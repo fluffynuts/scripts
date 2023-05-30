@@ -1,0 +1,16 @@
+#!/bin/bash
+RESUME_FILE=/tmp/post-resume
+POLL_INTERVAL=15
+while true; do
+  if test -f $RESUME_FILE; then
+    datestamp="$(awk '{ match($0, /\[.*\]/, arr); gsub(/\[/, "", arr[0]); gsub(/\]/, "", arr[0]); print arr[0] }' $RESUME_FILE)"
+    timestamp="$(date -d "$datestamp" +%s)"
+    now="$(date +%s)"
+    let "delta = $now - $timestamp"
+    if test $delta -lt $POLL_INTERVAL; then
+      echo "Resumed $delta seconds ago..."
+      restart-steam
+    fi
+  fi
+  sleep $POLL_INTERVAL
+done

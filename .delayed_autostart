@@ -21,3 +21,4 @@ start-xboxdrv
 xbindkeys
 #redshift-gtk
 /home/daf/.local/bin/auto-paste-emoji
+/home/daf/apps/scripts/after-resume
