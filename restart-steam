@@ -1,0 +1,12 @@
+#!/bin/bash
+killall steam &> /dev/null
+LOGGED=0
+while pidof steam > /dev/null; do
+  if test "$LOGGED" -eq "0"; then
+    LOGGED=1
+    echo "Waiting for steam to shut down..."
+  fi
+  sleep 1
+done
+echo "Starting steam..."
+steam -silent &> /dev/null & disown $!
