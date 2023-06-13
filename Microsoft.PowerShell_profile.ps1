@@ -155,6 +155,7 @@ update-title-for-location
 . Remove-ExistingAlias diff
 . Remove-ExistingAlias sleep
 . Remove-ExistingAlias cd
+. Remove-ExistingAlias pwd
 
 Remove-Item Function:Remove-ExistingAlias
 
@@ -166,6 +167,11 @@ function Recover-From-Interrupted-Tests()
     Kill-All "mysqld"
     Write-Host "Killing rogue redis-server processes"
     Kill-All "redis-server"
+    Write-Host "Killing rogue test hosts"
+    Kill-All "testhost"
+    Write-Host "Killing msbuild"
+    Kill-All "msbuild"
+    Kill-All "vbcscompiler"
     Write-Host "Starting mysql again"
     Start-Service "MySql57"
     Write-Host "Starting redis again"
@@ -175,12 +181,13 @@ function Recover-From-Interrupted-Tests()
 function Kill-All($search) {
     $count = 0
     get-process | where-object { 
-        if ($_.Path) {
+        if ($_ -and $_.Path) {
             $(Split-Path -Leaf $_.Path).Replace(".exe", "").Replace(".com", "") -like $search
         } else {
             return $false
         }
     } | foreach-object {
+        $proc = $_
         try {
             $proc.Kill()
             $count++
