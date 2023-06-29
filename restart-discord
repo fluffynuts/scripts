@@ -1,0 +1,63 @@
+#!/bin/bash
+#
+# I prefer local discord - it starts up quicker - but sometimes it lags
+# the upstream discord a bit and then won't connect, where the flatpak
+# version works fine, so this script has to be able to handle whatever is
+# installed.
+
+flatpak_appid=com.discordapp.Discord
+
+function restart_flatpak_discord()
+{
+  if flatpak_discord_is_running; then
+      flatpak kill $appid
+  fi
+  echo -n "waiting for flatpak discord to exit..."
+  while flatpak_discord_is_running; do
+    echo -n .
+    sleep 1
+  done
+  echo .
+
+  echo "starting flatpak discord"
+  flatpak run $appid &> /dev/null & disown $!
+}
+
+function flatpak_discord_is_running() 
+{
+    if test ! -z "$(flatpak ps | grep $flatpak_appid)"; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+function local_discord_is_running()
+{
+  if pidof Discord &> /dev/null; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+function restart_local_discord()
+{
+  if local_discord_is_running; then
+    killall Discord
+    echo -n "waiting for local discord to exit..."
+    while local_discord_is_running; do
+      echo -n .
+      sleep 1
+    done
+    echo .
+  fi
+  echo "starting local discord"
+  discord &> /dev/null & disown $!
+}
+
+if test -z "$(which discord)"; then
+  restart_flatpak_discord
+else
+  restart_local_discord
+fi
