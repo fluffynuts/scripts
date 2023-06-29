@@ -10,6 +10,7 @@ while true; do
     if test $delta -lt $POLL_INTERVAL; then
       echo "Resumed $delta seconds ago..."
       restart-steam
+      restart-discord
     fi
   fi
   sleep $POLL_INTERVAL
