@@ -4,3 +4,8 @@ if test "$(whoami)" != "root"; then
   exit $?
 fi
 emerge -e --keep-going --quiet-build @world $*
+
+REBUILD_KERNEL=$(dirname $0)/rebuild-kernel
+if test -f $REBUILD_KERNEL; then
+  $REBUILD_KERNEL
+fi
