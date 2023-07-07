@@ -86,9 +86,14 @@ function select_headphones() {
   fi
 }
 
+function ensure_max_mic_volume() {
+  pactl set-source-volume @DEFAULT_SOURCE@ '150%'
+}
+
 if test "$OUTPUT" = "headphones"; then
   echo_selection
   select_headphones
+  ensure_max_mic_volume
   save_sticky_state
 elif test "$OUTPUT" = "speakers"; then
   echo_selection
