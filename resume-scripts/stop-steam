@@ -1,0 +1,10 @@
+#!/bin/bash
+case $1/$2 in
+    pre/*)
+       # suspending / hibernating - do nothing
+       killall steam
+    ;;
+    post/*)
+        # resuming: attempt to reset system colors
+    ;;
+esac
