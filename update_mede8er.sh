@@ -8,6 +8,8 @@ SPECIFIED_TARGET="$1"
 SRC_BASE=/mnt/monolith
 if test -z "$DST_BASE"; then
   DST_BASE=/mnt/mede8er-smb
+else
+  SKIP_REMOUNT=1
 fi
 PIDFILE=/tmp/update-mede8er.pid
 
@@ -80,6 +82,9 @@ function update_target_with_bitsplat() {
     fi
     if test "$TARGET" = "keep"; then
       CMD="$CMD --keep-stale"
+    fi
+    if test ! -z "$DRY"; then
+      CMD="$CMD -d"
     fi
     if test ! -z "$LOGFILE"; then
       CMD="$CMD >> $LOGFILE"
