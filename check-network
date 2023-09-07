@@ -56,10 +56,9 @@ if test -z "$CURRENT_IP"; then
     done < <(rc-update show default | awk '{print $1}')
 fi
 
-for mnt in monolith piggy; do 
-	if test -z "$(mount | grep $mnt)"; then
-		mount /mnt/$mnt
-	fi
-done
+CHECK_MOUNTS="$(dirname $0)/check-mounts"
+if test -f "$CHECK_MOUNTS"; then
+  $CHECK_MOUNTS
+fi
 
 exit 0
