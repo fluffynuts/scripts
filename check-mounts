@@ -1,5 +1,5 @@
 #!/bin/bash
 
-for f in piggy monolith; do
+for f in piggy movies series; do
   mountpoint -q /mnt/$f || mount /mnt/$f
 done
