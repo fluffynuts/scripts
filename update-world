@@ -36,7 +36,7 @@ for arg in "$@"; do
     EMERGE_ARGS="$EMERGE_ARGS $arg"
     continue
   fi
-  if test "$arg" = "--no-sync" || test "$arg" = "-n" || test "$arg" = "--nosync"; then
+  if test "$arg" = "--no-sync" || test "$arg" = "-n" || test "$arg" = "--nosync" || test "$arg" = "--offline" || test "$arg" = "-o"; then
     NO_SYNC=1
     continue
   fi
@@ -62,7 +62,8 @@ if test ! -z "$HELP"; then
   echo "Usage: $(dirname $0) [options]"
   echo "OPTIONS:"
   echo " -h, --help          show this screeen and exit"
-  echo " -n, --no-sync       skip sync, just emerge updates"
+  echo " -n, --no-sync"
+  echo " -o  --offline       skip online sync, just emerge updates"
   echo " -y, --yes           skip emerge confirmation (opposite of default -a)"
   echo " -v, --verbose       more verbose output (and build logs)"
   echo " --                  options provided after this are passed to emerge"
