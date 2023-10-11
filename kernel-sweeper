@@ -231,7 +231,7 @@ if __name__ == "__main__":
     for k in to_remove:
         print(red("  %s" % (k)))
     print("The following kernels %s be left:" % (would))
-    for k in available_kernels[:2]:
+    for k in available_kernels[:keep]:
         print(green("  %s" % (k)))
 
     if not yes:
