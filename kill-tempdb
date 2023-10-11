@@ -1,0 +1,24 @@
+#!/bin/bash
+function rmRecursive() {
+  for item in $1; do
+    rm -rf $item 
+  done
+}
+
+echo "killing temp mysql instances"
+ps aux | grep mysql | grep -v /etc/mysql/my.cnf | grep -v grep | awk '{ print $2 }' | xargs -r kill
+echo "killing temp redis instances"
+ps aux | grep redis-server | grep -v :6379 | grep -v grep | awk '{ print $2 }' | xargs -r kill
+
+echo "removing tempdb files"
+rmRecursive /mnt/cage/tmp/*
+
+# remove any empty dirs
+rmdir /tmp/* &> /dev/null
+#
+# remove debug & test cruft
+rmRecursive /tmp/dotnet-diagnostic*
+rmRecursive /tmp/mysql-temp*
+rmRecursive /tmp/*.tmp
+rmRecursive /tmp/clr-debug-pipe*
+rmRecursive /tmp/RazorEngine*
