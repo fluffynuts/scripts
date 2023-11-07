@@ -69,12 +69,12 @@ function su {
     sudo.exe pwsh.exe
 }
 
-function winget {
-    Write-Host "Disabling windows firewall during winget operations..."
-    Disable-WindowsFirewall | out-null
-    winget.exe @args
-    Enable-WindowsFirewall | out-null
-}
+# function winget {
+#     Write-Host "Disabling windows firewall during winget operations..."
+#     Disable-WindowsFirewall | out-null
+#     winget.exe @args
+#     Enable-WindowsFirewall | out-null
+# }
 
 $sep = "$([System.IO.Path]::DirectorySeparatorChar)"
 $codeDir = "${sep}code${sep}"
@@ -138,7 +138,7 @@ function Disable-WindowsFirewall {
 }
 
 Update-Path
-oh-my-posh init pwsh --config ~/.mytheme.omp.json | Invoke-Expression
+oh-my-posh init pwsh --config C:\code\opensource\scripts\daf.omp.json | Invoke-Expression
 
 
 Set-Alias find C:\apps\gnuwin32\bin\find.exe
@@ -230,3 +230,5 @@ function Kill-TempDb()
     pskill mysqld
     sudo Start-Service mysql57
 }
+
+nvs auto on
