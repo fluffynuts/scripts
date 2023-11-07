@@ -1,5 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/schema.json",
+  "version": 2,
   "blocks": [
     {
       "type": "prompt",
@@ -9,6 +10,7 @@
           "type": "time",
           "style": "plain",
           "foreground": "#24af6a",
+          "template": " {{ .CurrentDate | date .Format }} ",
           "properties": {
             "time_format": "15:04:05"
           }
@@ -17,8 +19,8 @@
           "type": "path",
           "style": "plain",
           "foreground": "#3b7db3",
+          "template": "\ue5ff {{ .Path }} ",
           "properties": {
-            "prefix": "\uE5FF ",
             "style": "folder"
           }
         },
@@ -26,34 +28,29 @@
           "type": "git",
           "style": "plain",
           "foreground": "#e9671b",
+          "template": "<#5FAAE8></>{{ .HEAD }}{{if .BranchStatus }} {{ .BranchStatus }}{{ end }}{{ if .Working.Changed }} \uf044 <#eeeeee>{{ .Working.String }}</>{{ end }}{{ if and (.Staging.Changed) (.Working.Changed) }} |{{ end }}{{ if .Staging.Changed }} \uf046 {{ .Staging.String }}{{ end }}<#5FAAE8></>",
           "properties": {
-            "display_status": true,
-            "status_colors_enabled": false,
-            "behind_color": "#DD3333",
             "ahead_and_behind_color": "#DD6666",
             "ahead_color": "#33DD33",
-            "working_color": "#eeeeee",
-            "local_changes_color": "#dddd33",
-            "prefix": "<#5FAAE8></>",
-            "postfix": "<#5FAAE8></>"
+            "behind_color": "#DD3333",
+            "fetch_status": true,
+            "local_changes_color": "#dddd33"
           }
         },
         {
           "type": "root",
           "style": "plain",
           "foreground": "#ff6666",
+          "template": " \uf0e7 ",
           "properties": {
-            "root_icon": ""
+            "root_icon": "\uf0e7"
           }
         },
         {
           "type": "text",
           "style": "plain",
           "foreground": "#ffffff",
-          "properties": {
-            "prefix": "",
-            "text": "<#69FF94> \u276F</>"
-          }
+          "template": "<#69FF94> ❯</> "
         }
       ]
     }
