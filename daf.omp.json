@@ -21,7 +21,7 @@
           "foreground": "#3b7db3",
           "template": "\ue5ff {{ .Path }} ",
           "properties": {
-            "style": "folder"
+            "style": "full"
           }
         },
         {
