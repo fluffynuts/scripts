@@ -172,10 +172,29 @@ update-title-for-location
 
 Remove-Item Function:Remove-ExistingAlias
 
+function Find-MySql-Service-Name()
+{
+  $result = $(sc query type= service state= all | grep SERVICE_NAME | grep -i mysql | awk '{print $2}')
+  if ($result -is [array]) 
+  {
+    return $result
+  }
+
+  return @($result)
+}
+
 function Recover-From-Interrupted-Tests()
 {
-    Stop-Service-If-Running "MySQL57"
-    Stop-Service-If-Running "Redis"
+    $mysqlServices = Find-MySql-Service-Name
+    $restartMySql = [System.Collections.ArrayList]@()
+    foreach ($name in $mysqlServices)
+    {
+      if (Stop-Service-If-Running $name)
+      {
+        $restartMySql.Add($name)
+      }
+    }
+    $restartRedis = Stop-Service-If-Running "Redis"
     Write-Host "Killing rogue mysqld processes"
     Kill-All "mysqld"
     Write-Host "Killing rogue redis-server processes"
@@ -185,10 +204,28 @@ function Recover-From-Interrupted-Tests()
     Write-Host "Killing msbuild"
     Kill-All "msbuild"
     Kill-All "vbcscompiler"
-    Write-Host "Starting mysql again"
-    Start-Service "MySql57"
-    Write-Host "Starting redis again"
-    Start-Service "redis"
+    if ($mysqlServices.Count -eq 0)
+    {
+      Write-Host "WARNING: Not restarting any mysql services ($mysqlServices -join ",")"
+    }
+    else
+    {
+      foreach ($name in $restartMySql)
+      {
+        Write-Host "Starting $name again"
+        Start-Service $name
+      }
+    }
+
+    if ($restartRedis)
+    {
+      Write-Host "Starting redis again"
+      Start-Service "redis"
+    }
+    else
+    {
+      Write-Host "WARNING: Not restarting redis"
+    }
 }
 
 function Kill-All($search) {
@@ -218,10 +255,11 @@ function Stop-Service-If-Running($name)
     if ($currentState -ne "Running")
     {
         Write-Host "$name is not running"
-        return
+        return $false
     }
     Write-Host "Stopping $name"
     Stop-Service $name
+    return $true
 }
 
 function Kill-TempDb()
@@ -232,3 +270,4 @@ function Kill-TempDb()
 }
 
 nvs auto on
+new-alias -force -name wget -value wget2
