@@ -17,8 +17,9 @@ rmRecursive /mnt/cage/tmp/*
 rmdir /tmp/* &> /dev/null
 #
 # remove debug & test cruft
-rmRecursive /tmp/dotnet-diagnostic*
-rmRecursive /tmp/mysql-temp*
-rmRecursive /tmp/*.tmp
-rmRecursive /tmp/clr-debug-pipe*
-rmRecursive /tmp/RazorEngine*
+rmRecursive '/tmp/dotnet-diagnostic*'
+rmRecursive '/tmp/mysql-temp*'
+rmRecursive '/tmp/*.tmp'
+rmRecursive '/tmp/clr-debug-pipe*'
+rmRecursive '/tmp/RazorEngine*'
+rmRecursive '/mnt/cage/tmp/*'
