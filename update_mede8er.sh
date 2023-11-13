@@ -5,7 +5,7 @@ NO_MEDESYNC=1
 ARCHIVE_BASE=/mnt/piggy
 
 SPECIFIED_TARGET="$1"
-SRC_BASE=/mnt/monolith
+SRC_BASE=/mnt
 if test -z "$DST_BASE"; then
   DST_BASE=/mnt/mede8er-smb
 else
@@ -67,7 +67,7 @@ function update_target_with_bitsplat() {
         mkdir $DST_BASE/$TARGET
     fi
 
-    CMD="$BITSPLAT --source $SRC_BASE/$TARGET --target $DST_BASE/$TARGET"
+    CMD="$BITSPLAT --source $SRC_BASE/$TARGET/$TARGET --target $DST_BASE/$TARGET"
     if test ! -z "$QUIET"; then
       CMD="$CMD --quiet"
     fi
