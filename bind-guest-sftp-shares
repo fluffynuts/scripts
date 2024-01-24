@@ -1,0 +1,28 @@
+#!/bin/bash
+function do_bind()
+{
+  if ! test -d $1; then
+    echo "not found: $1"
+    return
+  fi
+  if ! test -d $2; then
+    mkdir $2
+    chown guest:guest $2
+  fi
+  mount --bind $1 $2
+}
+
+function unbind_all()
+{
+    mount | grep chroot | awk '{print $3}' | xargs -r umount
+}
+
+unbind_all
+do_bind /mnt/series/series /chroot/guest/series1
+do_bind /mnt/piggy/series /chroot/guest/series2
+do_bind /mnt/piglet/series /chroot/guest/series3
+do_bind /mnt/data/series /chroot/guest/series4
+do_bind /mnt/movies/movies /chroot/guest/movies1
+do_bind /mnt/piggy/movies /chroot/guest/movies2
+do_bind /mnt/piglet/movies /chroot/guest/movies3
+do_bind /mnt/data/movies /chroot/guest/movies4
