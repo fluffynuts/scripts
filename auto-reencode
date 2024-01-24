@@ -45,6 +45,6 @@ for f in $*; do
   done
 done
 
-if test $DID_SOMETHING = "0"; then
+if test "$DID_SOMETHING" = "0"; then
   echo "Please invoke with a dir or file to work with"
 fi
