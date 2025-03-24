@@ -8,12 +8,6 @@ if test -e "$PIDFILE"; then
 fi
 echo $$ > $PIDFILE
 TARGET="$1"
-DEFAULT_TARGET="/run/media/daf/Elements"
-if test -z "$TARGET"; then
-  if test -e "$DEFAULT_TARGET"; then
-    TARGET="$DEFAULT_TARGET"
-  fi
-fi
 if test -z "$TARGET"; then
   echo "Please specify the target to share to"
   echo "eg: $0 /run/media/daf/Target"
@@ -77,7 +71,7 @@ function backup_db()
 }
 
 restore_db_if_missing series
-for src in /mnt/monolith/series /mnt/piggy/series/watched /mnt/piglet/series; do
+for src in /mnt/monolith/series /mnt/piggy/series/watched /mnt/piglet/series /mnt/movies/series; do
   echo "=== share series from $(basename $(dirname $src)) ==="
   $CMD -s "$src" -t "$TARGET/series"
 done
