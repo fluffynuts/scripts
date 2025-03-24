@@ -5,7 +5,9 @@ if test -z "$SWEEPER"; then
   exit 1
 fi
 
-MNT=/mnt/mede8er-smb
+if test -z "$MNT"; then
+  MNT=/mnt/mede8er-smb
+fi
 
 if test -z "$(mount | grep $MNT)"; then
   AUTOMOUNTED=1
