@@ -38,7 +38,7 @@ function reencode()
     MEDIAINFO="$(mediainfo "$filepath")"
     VIDEO_CODEC=$(echo "$MEDIAINFO" | grep -A5 Video | grep Format | grep -v Info | grep -v profile | awk '{print $3}' | tr '[:upper:]' '[:lower:]')
     AUDIO_CODEC=$(echo "$MEDIAINFO" | grep -A5 Audio | grep Format | grep -v Info | grep -v profile | awk '{print $3}' | tr '[:upper:]' '[:lower:]')
-    BIT_DEPTH=$(echo "$MEDIAINFO" | grep -i "bit depth" | awk '{print $4}')
+    BIT_DEPTH=$(echo "$MEDIAINFO" | grep -i "bit depth" | head -n 1 | awk '{print $4}')
     if test "$BIT_DEPTH" -ne "8"; then
       echo "Unable to reliabily re-encode '${filepath}': has bit depth: '$BIT_DEPTH'";
       rm "$filepath"
@@ -49,17 +49,17 @@ function reencode()
       echo -n "inspect: $SHORT"
     fi
     if test ! -z "$(echo $VIDEO_CODEC | grep -i hevc)"; then
-      REQUIRES_REENCODE=1
+      REQUIRES_REENCODE="1"
     fi
 
     if test "$AUDIO_CODEC" = "e-ac-3"; then
-      REQUIRES_REENCODE=1
+      REQUIRES_REENCODE="1"
     fi
 
     if test "$REQUIRES_REENCODE" = "0"; then
       VIDEO_CODEC="$(echo $MEDIAINFO | grep -A10 '^Video' | awk '$1=="Codec" && $2=="ID" {print $4}')"
       if test "$VIDEO_CODEC" = "DIVX"; then
-        REQUIRES_REENCODE=1
+        REQUIRES_REENCODE="1"
       fi
     fi
   fi
