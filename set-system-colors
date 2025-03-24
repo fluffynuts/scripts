@@ -3,13 +3,47 @@ import io
 import os
 import subprocess
 import re
+import signal
+import time
 from sys import argv
 from datetime import datetime
 
 debug_enabled = os.environ.get("DEBUG") == "1"
+profile_name = os.environ.get("PROFILE")
+if profile_name is None:
+    profile_name = "cyan"
 log_file = None
-openrgb = "/home/daf/code/opensource/OpenRGB/openrgb"
+#openrgb = "/home/daf/code/opensource/OpenRGB/openrgb"
+openrgb = "/usr/bin/openrgb"
 
+profiles = {
+    "red": {
+        "ram": [ "FF1E00", "FF1400", "FF0A00", "FF0000" ],
+        "board": "FF2800",
+        "gpu": "FF1900",
+        "mouse": "FF0000"
+    },
+    "white": {
+        "ram": [ "FFFFFF", "FFFFFF", "FFFFFF", "FFFFFF" ],
+        "board": "FFFFFF",
+        "gpu": "FFFFFF",
+        "mouse": "FFFFFF"
+    },
+    "cyan": {
+        "ram": [ "77AAFF", "99BFFF", "99DDFF", "99EFFF" ],
+        "board": "77AAFF",
+        "gpu": "99FFFF",
+        "mouse": "99FFFF"
+    },
+    "purple": {
+        "ram": [ "FF00FF", "BB00BB", "990099", "550055" ],
+        "board": "FF00FF",
+        "gpu": "FF00FF",
+        "mouse": "FF00FF"
+    }
+}
+
+profile = profiles[profile_name]
 
 def debug(s):
     line = "[%s] %s" % (datetime.now(), s)
@@ -20,6 +54,7 @@ def debug(s):
         with open(log_file, "a") as fp:
             fp.writelines("%s\n" % line)
 
+debug("selected profile: %s" % profile_name)
 
 def read_devices():
     proc = subprocess.Popen([openrgb, "-l"], stdout=subprocess.PIPE)
@@ -40,12 +75,14 @@ def read_devices():
 
 def generate_cli(devices):
     mode = "static"
-    ram_colors = ["FF1E00", "FF1400", "FF0A00", "FF0000"]
-    board_color = "FF2800"
-    gpu_color = "FF1900"
+    ram_colors = profile["ram"]
+    board_color = profile["board"]
+    gpu_color = profile["gpu"]
+    mouse_color = profile["mouse"]
     ram_matcher = re.compile(".*DRAM.*", re.IGNORECASE)
     board_matcher = re.compile(".*AORUS ELITE.*", re.IGNORECASE)
     gpu_matcher = re.compile(".*RTX.*", re.IGNORECASE)
+    mouse_matcher = re.compile(".*Gaming Mouse.*")
     result = []
     for device in devices:
         if ram_matcher.match(device["name"]):
@@ -60,6 +97,9 @@ def generate_cli(devices):
         elif gpu_matcher.match(device["name"]):
             debug("adding gpu at %s: %s" % (device["id"], gpu_color))
             result.extend(["-d", device["id"], "-m", mode, "-c", gpu_color])
+        elif mouse_matcher.match(device["name"]):
+            debug("adding mouse at %s: %s" % (device["id"], mouse_color))
+            result.extend(["-d", device["id"], "-m", mode, "-c", mouse_color])
     return result
 
 
@@ -82,6 +122,7 @@ def run_openrgb_with(options):
 def main():
     global debug_enabled
     global log_file
+
     start_index = argv.index(__file__) + 1
     args = argv[start_index:]
     if "--debug" in args:
@@ -90,10 +131,18 @@ def main():
         log_file_index = args.index("--log-file")
         if -1 < log_file_index < len(args):
             log_file = args[log_file_index + 1]
+    if "--wait" in args:
+        wait_index = args.index("--wait")
+        wait_seconds = 5
+        if -1 < wait_index < len(args):
+            try:
+                wait_seconds = int(args[wait_index + 1])
+            except:
+                pass
+        time.sleep(wait_seconds)
     devices = read_devices()
     cli = generate_cli(devices)
     run_openrgb_with(cli)
-
 
 if __name__ == "__main__":
     main()
