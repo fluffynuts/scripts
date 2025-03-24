@@ -12,17 +12,6 @@ if test -z "$NOCACHE"; then
   fi
 fi
 
-if test -z "$(which xprintidle)"; then
-  echo "Please install xprintidle"
-  exit 1
-fi
-
-IDLE_TIME=$(xprintidle)
-if test "$IDLE_TIME" -gt 600000; then
-  echo "idle" | tee $CACHEFILE
-  exit 0
-fi
-
 BATTERY_PERCENT=$(solaar show | grep Battery | head -n 1 | awk '{print $2}' | grep -o '[0-9]*')
 if test -z "$BATTERY_PERCENT"; then
   echo "idle" | tee $CACHEFILE
