@@ -12,12 +12,12 @@ function clear_line()
     echo -n "\r                                                                                                          \r"
 }
 
-DID_SOMETHING=0
+DID_SOMETHING="0"
 RE_ENCODE="$(dirname $0)/auto-reencode-one";
 
 for f in $*; do
   while test $# -gt 0; do
-    DID_SOMETHING=1
+    DID_SOMETHING="1"
     if test -f "$f"; then
       echo "process one: $1"
       $RE_ENCODE "$f"
