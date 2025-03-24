@@ -4,8 +4,8 @@ DELAY=8
 [init]
 
 [start]
-/home/daf/apps/scripts/watch-maus
-/home/daf/apps/scripts/set-system-colors --log-file /tmp/set-system-colors.log
+openrgb --server
+/home/daf/apps/scripts/set-system-colors --log-file /tmp/set-system-colors.log --wait
 transmission-qt
 firefox
 /home/daf/apps/scripts/watchdog-plasmashell-20
@@ -15,10 +15,8 @@ firefox
 autocutsel -s PRIMARY
 enable-vsync
 audacious
-#/home/daf/.local/share/JetBrains/Toolbox/bin/jetbrains-toolbox
 steam -silent
 start-xboxdrv
 xbindkeys
-#redshift-gtk
 /home/daf/.local/bin/auto-paste-emoji
 /home/daf/apps/scripts/after-resume
