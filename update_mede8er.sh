@@ -169,7 +169,7 @@ function log_complete() {
 }
 
 function sweep_target() {
-  $(dirname $0)/sweep-mede8er
+  MNT="$DST_BASE" $(dirname $0)/sweep-mede8er
 }
 
 check_single
