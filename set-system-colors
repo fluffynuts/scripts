@@ -9,9 +9,9 @@ from sys import argv
 from datetime import datetime
 
 debug_enabled = os.environ.get("DEBUG") == "1"
-profile_name = os.environ.get("PROFILE")
+profile_name = os.environ.get("COLOR_PROFILE")
 if profile_name is None:
-    profile_name = "cyan"
+    profile_name = "purple"
 log_file = None
 #openrgb = "/home/daf/code/opensource/OpenRGB/openrgb"
 openrgb = "/usr/bin/openrgb"
@@ -57,6 +57,7 @@ def debug(s):
 debug("selected profile: %s" % profile_name)
 
 def read_devices():
+    debug("listing devices")
     proc = subprocess.Popen([openrgb, "-l"], stdout=subprocess.PIPE)
     result = []
     device_matcher = re.compile("^\\d:")
@@ -118,10 +119,17 @@ def run_openrgb_with(options):
         print("unable to run openrgb with cli: " + " ".join(options) + "\n" + "\n".join(lines))
         raise Exception("unable to run openrgb")
 
+def start_openrgb_server():
+    cli = [openrgb, "--server", "--noautoconnect", "--nodetect"]
+    debug("running cmd: %s" % (" ".join(cli)))
+    ret = subprocess.Popen(cli, stdout=subprocess.PIPE)
+    return ret
 
 def main():
     global debug_enabled
     global log_file
+
+    server_proc = start_openrgb_server()
 
     start_index = argv.index(__file__) + 1
     args = argv[start_index:]
@@ -143,6 +151,8 @@ def main():
     devices = read_devices()
     cli = generate_cli(devices)
     run_openrgb_with(cli)
+
+    server_proc.terminate()
 
 if __name__ == "__main__":
     main()
