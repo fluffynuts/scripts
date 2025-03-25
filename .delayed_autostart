@@ -4,8 +4,7 @@ DELAY=8
 [init]
 
 [start]
-openrgb --server
-/home/daf/apps/scripts/set-system-colors --log-file /tmp/set-system-colors.log --wait
+/home/daf/apps/scripts/set-system-colors --log-file /tmp/set-system-colors.log --wait 1
 transmission-qt
 firefox
 /home/daf/apps/scripts/watchdog-plasmashell-20
