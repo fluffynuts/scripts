@@ -1,8 +1,13 @@
-$ErrorActionPreference = "Stop"
+#$PSModuleAutoLoadingPreference = "None"
+#
+#Import-Module Microsoft.PowerShell.Utility
+#Import-Module Microsoft.PowerShell.Management
 
+$ErrorActionPreference = "Stop"
 Import-Module posh-git
 Import-Module npm-completion
 Import-Module PSReadLine
+Import-Module gsudoModule
 
 function Remove-ExistingAlias {
     $seek=$args[0]
@@ -138,13 +143,14 @@ function Disable-WindowsFirewall {
 }
 
 Update-Path
-oh-my-posh init pwsh --config C:\code\opensource\scripts\daf.omp.json | Invoke-Expression
+#oh-my-posh init pwsh --config C:\code\opensource\scripts\daf.omp.json | Invoke-Expression
 
 
 Set-Alias find C:\apps\gnuwin32\bin\find.exe
 Set-PSReadlineOption -EditMode Emacs
 Set-PSReadlineKeyHandler -Key ctrl+d -Function ViExit
 Set-PSReadlineKeyHandler -Key Tab -Function TabCompleteNext
+Set-PSReadlineKeyHandler -Key shift+Tab -Function TabCompletePrevious
 Set-PSReadLineOption -BellStyle None
 Set-PSReadLineOption -PredictionSource None
 
@@ -169,6 +175,7 @@ update-title-for-location
 . Remove-ExistingAlias sleep
 . Remove-ExistingAlias cd
 . Remove-ExistingAlias pwd
+. Remove-ExistingAlias tee
 
 Remove-Item Function:Remove-ExistingAlias
 
@@ -196,14 +203,14 @@ function Recover-From-Interrupted-Tests()
     }
     $restartRedis = Stop-Service-If-Running "Redis"
     Write-Host "Killing rogue mysqld processes"
-    Kill-All "mysqld"
+    Kill-All mysqld
     Write-Host "Killing rogue redis-server processes"
-    Kill-All "redis-server"
+    Kill-All redis-server
     Write-Host "Killing rogue test hosts"
-    Kill-All "testhost"
+    Kill-All testhost
     Write-Host "Killing msbuild"
-    Kill-All "msbuild"
-    Kill-All "vbcscompiler"
+    Kill-All msbuild
+    Kill-All vbcscompiler
     if ($mysqlServices.Count -eq 0)
     {
       Write-Host "WARNING: Not restarting any mysql services ($mysqlServices -join ",")"
@@ -213,14 +220,14 @@ function Recover-From-Interrupted-Tests()
       foreach ($name in $restartMySql)
       {
         Write-Host "Starting $name again"
-        Start-Service $name
+        sudo net start $name
       }
     }
 
     if ($restartRedis)
     {
       Write-Host "Starting redis again"
-      Start-Service "redis"
+      sudo net start "redis"
     }
     else
     {
@@ -229,21 +236,31 @@ function Recover-From-Interrupted-Tests()
 }
 
 function Kill-All($search) {
+    $output = $(sudo pskill $search | grep killed)
+    if ($output) {
+      Write-Host $output
+    } else {
+      Write-Host "0 processes killed"
+    }
+    return
     $count = 0
-    get-process | where-object { 
-        if ($_ -and $_.Path) {
-            $(Split-Path -Leaf $_.Path).Replace(".exe", "").Replace(".com", "") -like $search
-        } else {
-            return $false
-        }
-    } | foreach-object {
-        $proc = $_
+    get-process | where-object {
+      return $($_ -and $_.Path)
+    } | foreach-object { 
+      $part = $(Split-Path -Leaf $_.Path) 
+      $cleaned = $part.Replace(".exe", "").Replace(".com", "")
+      $match = $cleaned -like $search
+      if ($match) {
         try {
-            $proc.Kill()
-            $count++
+          $_.Kill()
+          $count++
         } catch {
-            Write-Host "Can't kill $($proc.Path) ($($proc.Id))"
+          Write-Host "Can't kill $($_.Path) ($($proc.Id))"
         }
+        #echo "should kill $($_.Path) ($cleaned) / ($search)"
+      } else {
+        #echo "_won't_ kill $($_.Path) ($cleaned) / ($search)"
+      }
     }
     Write-Host "$count processes killed"
 }
@@ -258,16 +275,107 @@ function Stop-Service-If-Running($name)
         return $false
     }
     Write-Host "Stopping $name"
-    Stop-Service $name
+    sudo net stop $name
     return $true
 }
 
 function Kill-TempDb()
 {
-    sudo Stop-Service mysql57
-    pskill mysqld
-    sudo Start-Service mysql57
+    sudo --inline net stop mysql80
+    sudo --inline pskill mysqld
+    sudo --inline net start mysql80
 }
 
-nvs auto on
+function aspnetrepl()
+{
+    csharprepl --framework Microsoft.AspNetCore.App
+}
+
+function nvm()
+{
+  echo "Redirecting to NVS..."
+  nvs
+}
+
+function Set-LoadTestEnvVars()
+{
+  $ip=$(Resolve-DnsName "CODEO-LT-45" | grep 192.168.50 | head -n 1 | awk '{print $5}');
+  $env:APPSETTINGS_ENVIRONMENT="LoadTest"
+  $env:APPSETTINGS_AURORA_CONNECTION_STRING="SERVER=$ip; DATABASE=yumbi_loadtest; UID=yumbidev; PASSWORD=yumbidev; POOLING=true;Allow User Variables=true; Connection Lifetime=600; Max Pool Size=50;"
+  $env:CONNECTIONSTRINGS_VOUCHERS="SERVER=$ip; DATABASE=yumbi_vouchers; UID=vouchersdev; PASSWORD=vouchersdev; POOLING=true;Allow User Variables=true; Connection Lifetime=600; Max Pool Size=50;"
+  $env:CONNECTIONSTRINGS_MAIN="SERVER=$ip; DATABASE=yumbi_loadtest; UID=yumbidev; PASSWORD=yumbidev; POOLING=true;Allow User Variables=true; Connection Lifetime=600; Max Pool Size=50;"
+  $env:LOADTEST_MIGRATIONS_ENVIRONMENT="Development"
+  $env:LOADTEST_BRANCH="feat/beta-env-scrubber"
+  $env:LOADTEST_THREADS_PER_AGENT=5
+  $env:LOADTEST_AGENTS=5
+  $env:LOADTEST_REPEAT=20
+  $env:YUMBI_HOST="loadtest.yumbi.com"
+  $env:LOADTEST_DEBUG=1
+  $env:FORCE_MIGRATIONS=1
+}
+
+function Set-LoadTestEnvVarsForSingleTest()
+{
+  $ip=$(Resolve-DnsName "CODEO-LT-45" | grep 192.168.50 | head -n 1 | awk '{print $5}');
+  $env:APPSETTINGS_ENVIRONMENT="LoadTest"
+  $env:APPSETTINGS_AURORA_CONNECTION_STRING="SERVER=$ip; DATABASE=yumbi_loadtest; UID=yumbidev; PASSWORD=yumbidev; POOLING=true;Allow User Variables=true; Connection Lifetime=600; Max Pool Size=50;"
+  $env:CONNECTIONSTRINGS_VOUCHERS="SERVER=$ip; DATABASE=yumbi_vouchers; UID=vouchersdev; PASSWORD=vouchersdev; POOLING=true;Allow User Variables=true; Connection Lifetime=600; Max Pool Size=50;"
+  $env:CONNECTIONSTRINGS_MAIN="SERVER=$ip; DATABASE=yumbi_loadtest; UID=yumbidev; PASSWORD=yumbidev; POOLING=true;Allow User Variables=true; Connection Lifetime=600; Max Pool Size=50;"
+  $env:LOADTEST_MIGRATIONS_ENVIRONMENT="Development"
+  $env:LOADTEST_BRANCH="feat/beta-env-scrubber"
+  $env:LOADTEST_THREADS_PER_AGENT=1
+  $env:LOADTEST_AGENTS=1
+  $env:LOADTEST_REPEAT=1
+  $env:YUMBI_HOST="loadtest.yumbi.com"
+  $env:LOADTEST_DEBUG=1
+  $env:FORCE_MIGRATIONS=1
+  $env:LTC_REPORT_FOLER="/app/logs"
+}
+
+function Set-LoadTestEnvVarsForLoadTestOverSSH()
+{
+  $ip="localhost"
+  $env:APPSETTINGS_ENVIRONMENT="LoadTest"
+  $env:APPSETTINGS_AURORA_CONNECTION_STRING="SERVER=$ip; DATABASE=yumbi; UID=loadtest; PASSWORD=Qk9qOZ4PEaYmuE7BZdmIkQNOOKWhKS5f; Port=3307; POOLING=true;Allow User Variables=true; Connection Lifetime=600; Max Pool Size=50;"
+  $env:CONNECTIONSTRINGS_VOUCHERS="SERVER=$ip; DATABASE=yumbi; UID=loadtest; PASSWORD=Qk9qOZ4PEaYmuE7BZdmIkQNOOKWhKS5f; POOLING=true; Port=3307; Allow User Variables=true; Connection Lifetime=600; Max Pool Size=50;"
+  $env:CONNECTIONSTRINGS_MAIN="SERVER=$ip; DATABASE=yumbi; UID=loadtest; PASSWORD=Qk9qOZ4PEaYmuE7BZdmIkQNOOKWhKS5f; POOLING=true; Port=3307; Allow User Variables=true; Connection Lifetime=600; Max Pool Size=50;"
+  $env:LOADTEST_MIGRATIONS_ENVIRONMENT="Development"
+  $env:LOADTEST_BRANCH="feat/beta-env-scrubber"
+  $env:LOADTEST_THREADS_PER_AGENT=1
+  $env:LOADTEST_AGENTS=1
+  $env:LOADTEST_REPEAT=1
+  $env:YUMBI_HOST="loadtest.yumbi.com"
+  $env:LOADTEST_DEBUG=1
+  $env:FORCE_MIGRATIONS=1
+}
+
+
+function Clear-LoadTestEnvVars()
+{
+  $env:APPSETTINGS_ENVIRONMENT=""
+  $env:APPSETTINGS_AURORA_CONNECTION_STRING=""
+  $env:CONNECTIONSTRINGS_VOUCHERS=""
+  $env:CONNECTIONSTRINGS_MAIN=""
+  $env:LOADTEST_MIGRATIONS_ENVIRONMENT=""
+  $env:LOADTEST_BRANCH=""
+  $env:LOADTEST_THREADS_PER_AGENT=""
+  $env:LOADTEST_AGENTS=""
+  $env:LOADTEST_REPEAT=""
+  $env:YUMBI_HOST=""
+  $env:LOADTEST_DEBUG=""
+  $env:FORCE_MIGRATIONS=""
+}
+
+function Run-LoadTest()
+{
+  Set-LoadTestEnvVars
+  npm run loadtest
+}
+
+#nvs auto on
 new-alias -force -name wget -value wget2
+new-alias -force -name 'c#' -value csharprepl
+new-alias -force -name 'asp#' -value aspnetrepl
+new-alias -force -name vlc -value 'C:\Program Files\VideoLAN\VLC\vlc.exe'
+
+. $HOME/.dotbins/shell/powershell.ps1
