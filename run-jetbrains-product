@@ -1,7 +1,7 @@
 #!/bin/bash
 function die() {
-  echo "$1"
-  exit $0
+  echo "$2"
+  exit $1
 }
 function spin() {
   case "$SPIN_CHAR" in
@@ -21,8 +21,33 @@ function spin() {
   echo -en "\r    \r${SPIN_CHAR}"
   sleep 0.1
 }
+function install() {
+  TARGET="$1"
+  LOCAL_LINK="${HOME}/.local/bin/${TARGET}"
+  if test -e "$LOCAL_LINK"; then
+    echo -n "$LOCAL_LINK already exists. Replace it? (Y/n) "
+    read answer
+    answer="$(echo $answer | tr [:upper:] [:lower:])"
+    if test -z "$answer" || test "$answer" == "y"; then
+      rm "$LOCAL_LINK"
+    fi
+    read   
+  fi
+  echo "installing script at $LOCAL_LINK"
+  read -r -d '' SCRIPT <<EOF
+#!/bin/bash
+$0 $TARGET \$1
+EOF
+  echo "$SCRIPT" > "$LOCAL_LINK";
+  chmod +x "$LOCAL_LINK"
+}
 
 TARGET="$1"
+
+if test "$TARGET" = "install"; then
+  install $2
+  exit 0
+fi
 
 if test -z "$TARGET"; then
   die 1 "No tool specified. Run like so: $0 webstorm"
