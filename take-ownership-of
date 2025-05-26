@@ -1,0 +1,13 @@
+#!/bin/bash
+if test -z "$TARGET_FILE"; then
+  TARGET_FILE="$1";
+fi
+if test -z "$TARGET_USER"; then
+  TARGET_USER=$USER
+fi
+if test "$(whoami)" != "root"; then
+  TARGET_FILE="$TARGET_FILE" TARGET_USER=$TARGET_USER sudo -E -p "Your password is required to continue" $0
+  exit $?
+fi
+
+chown $TARGET_USER:$TARGET_USER "$TARGET_FILE"
