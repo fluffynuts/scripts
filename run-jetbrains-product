@@ -3,20 +3,56 @@ function die() {
   echo "$1"
   exit $0
 }
+function spin() {
+  case "$SPIN_CHAR" in
+    "|")
+      SPIN_CHAR="/"
+      ;;
+    "/")
+      SPIN_CHAR="-"
+      ;;
+    "-")
+      SPIN_CHAR="\\"
+      ;;
+    *)
+      SPIN_CHAR="|"
+      ;;
+  esac
+  echo -en "\r    \r${SPIN_CHAR}"
+  sleep 0.1
+}
+
 TARGET="$1"
+
 if test -z "$TARGET"; then
   die 1 "No tool specified. Run like so: $0 webstorm"
 fi
 
 JETBRAINS_HOME="$HOME/.local/share/JetBrains/Toolbox/apps/"
-for f in "$(find "$JETBRAINS_HOME" -iname $TARGET)"; do
-  echo $f
-done
-exit 2
-
-if test ! -d "$HOME"; then
+if test ! -d "$JETBRAINS_HOME"; then
   die 2 "JetBrains scripts not found at: $JETBRAINS_HOME"
 fi
 
-FULL_PATH="${JETBRAINS_HOME}/${TARGET}"
+for f in $(find "$JETBRAINS_HOME" -name $TARGET); do
+  if test -f "$f" && test -x "$f"; then
+    FULL_PATH="$f"
+    break
+  fi
+done
+
+if test -z "$FULL_PATH"; then
+  die 3 "FATAL: cannot find tool stub for ${TARGET}"
+fi
+
 $FULL_PATH $2 &> /dev/null &
+CHILD_PID="$!"
+
+echo "${TARGET} started as pid: ${CHILD_PID}"
+
+while ps -p $CHILD_PID &> /dev/null; do
+  spin
+  if wmctrl -lp | awk '{print $3}' | grep $CHILD_PID &> /dev/null; then
+    echo -e "\r    \r\n"
+    exit 0
+  fi
+done
