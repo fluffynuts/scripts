@@ -1,0 +1,9 @@
+#!/bin/bash
+INTERVAL=30
+increment() {
+    echo `expr $(cat /tmp/idle) + $INTERVAL` > /tmp/idle
+}
+
+swayidle timeout 15 "echo 'watching idle'" resume "echo 0 > /tmp/idle" &
+echo 0 > /tmp/idle
+while true; do sleep $INTERVAL && increment; done
