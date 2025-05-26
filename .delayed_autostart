@@ -4,7 +4,7 @@ DELAY=8
 [init]
 
 [start]
-/home/daf/apps/scripts/set-system-colors --log-file /tmp/set-system-colors.log --wait 1
+/home/daf/apps/scripts/set-system-colors --log-file /tmp/set-system-colors.log
 transmission-qt
 firefox
 /home/daf/apps/scripts/watchdog-plasmashell-20
@@ -15,7 +15,6 @@ autocutsel -s PRIMARY
 enable-vsync
 audacious
 steam -silent
-start-xboxdrv
 xbindkeys
 /home/daf/.local/bin/auto-paste-emoji
 /home/daf/apps/scripts/after-resume
