@@ -1,0 +1,13 @@
+#!/usr/bin/python3
+import os
+path = os.environ["PATH"].split(":")
+path = map(os.path.normpath, path)
+clean = dict.fromkeys(path)
+to_remove = []
+for f in clean:
+  if not os.path.isdir(f):
+    to_remove.append(f)
+for f in to_remove:
+  del clean[f]
+clean_path = ":".join(clean.keys())
+print(f"export PATH={clean_path}")
