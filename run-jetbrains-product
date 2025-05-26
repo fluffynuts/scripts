@@ -1,0 +1,17 @@
+#!/bin/bash
+function die() {
+  echo "$1"
+  exit $0
+}
+TARGET="$1"
+if test -z "$TARGET"; then
+  die 1 "No tool specified. Run like so: $0 webstorm"
+fi
+
+JETBRAINS_HOME="$HOME/.local/share/JetBrains/Toolbox/scripts/"
+if test ! -d "$HOME"; then
+  die 2 "JetBrains scripts not found at: $JETBRAINS_HOME"
+fi
+
+FULL_PATH="${JETBRAINS_HOME}/${TARGET}"
+$FULL_PATH $2 &> /dev/null &
