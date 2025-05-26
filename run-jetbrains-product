@@ -8,7 +8,12 @@ if test -z "$TARGET"; then
   die 1 "No tool specified. Run like so: $0 webstorm"
 fi
 
-JETBRAINS_HOME="$HOME/.local/share/JetBrains/Toolbox/scripts/"
+JETBRAINS_HOME="$HOME/.local/share/JetBrains/Toolbox/apps/"
+for f in "$(find "$JETBRAINS_HOME" -iname $TARGET)"; do
+  echo $f
+done
+exit 2
+
 if test ! -d "$HOME"; then
   die 2 "JetBrains scripts not found at: $JETBRAINS_HOME"
 fi
