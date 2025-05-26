@@ -44,8 +44,8 @@ function exit_if_nothing_to_do()
 function backup_home()
 {
   if test "$BACKUP_HOME" = "1"; then
-    mkdir -p /mnt/backup/home/daf
-    $RSYNC /home/daf /mnt/backup/home
+    mkdir -p /mnt/backup/home/$USER
+    $RSYNC /home/$USER /mnt/backup/home
   fi
 }
 
