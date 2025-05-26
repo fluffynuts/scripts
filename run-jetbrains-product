@@ -25,18 +25,16 @@ function install() {
   TARGET="$1"
   LOCAL_LINK="${HOME}/.local/bin/${TARGET}"
   if test -e "$LOCAL_LINK"; then
-    echo -n "$LOCAL_LINK already exists. Replace it? (Y/n) "
-    read answer
+    read -p "$LOCAL_LINK already exists. Replace it? (Y/n) " answer
     answer="$(echo $answer | tr [:upper:] [:lower:])"
     if test -z "$answer" || test "$answer" == "y"; then
       rm "$LOCAL_LINK"
     fi
-    read   
   fi
   echo "installing script at $LOCAL_LINK"
   read -r -d '' SCRIPT <<EOF
 #!/bin/bash
-$0 $TARGET \$1
+$(realpath $0)) $TARGET \$1
 EOF
   echo "$SCRIPT" > "$LOCAL_LINK";
   chmod +x "$LOCAL_LINK"
