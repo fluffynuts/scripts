@@ -34,7 +34,7 @@ function install() {
   echo "installing script at $LOCAL_LINK"
   read -r -d '' SCRIPT <<EOF
 #!/bin/bash
-$(realpath $0)) $TARGET \$1
+$(realpath $0) $TARGET \$1
 EOF
   echo "$SCRIPT" > "$LOCAL_LINK";
   chmod +x "$LOCAL_LINK"
