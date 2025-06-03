@@ -1,0 +1,7 @@
+#!/bin/bash
+if test "$(whoami)" != "root"; then
+  sudo -p "Your password is required to continue" $*
+  exit $?
+fi
+
+$*
