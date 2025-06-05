@@ -1,0 +1,9 @@
+#!/bin/bash
+let words=0
+let totalChars=0
+for f in "$@"; do
+  let words=$((words + 1))
+  let wordChars=$(echo $f | grep -o . | wc -l)
+  let totalChars=$((totalChars + wordChars))
+  echo $wordChars
+done
