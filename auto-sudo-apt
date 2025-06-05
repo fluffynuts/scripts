@@ -4,4 +4,4 @@ if test "$1" = "search"; then
   exit $?
 fi
 
-$(dirname $0)/auto-sudo $*
+$(dirname $0)/auto-sudo apt $*
