@@ -1,12 +1,10 @@
 #!/bin/bash
-SAKAKI_BUILDKERNEL=/usr/sbin/buildkernel
-if test -e $SAKAKI_BUILDKERNEL; then
-    echo "Using Sakaki's buildkernel..."
-    $SAKAKI_BUILDKERNEL
-    exit $?
-fi
 RUNNING_CONFIG=/proc/config.gz
-KERNEL_CONFIG=/usr/src/linux/.config
+if  test -z "$KERNEL_SOURCES"; then
+  KERNEL_SOURCES=/usr/src/linux
+fi
+KERNEL_CONFIG=$KERNEL_SOURCES/.config
+ALT_KERNEL_CONFIG=/boot/config-$(uname -r)
 
 RED="\033[1;31m"
 GREEN="\033[1;32m"
@@ -60,6 +58,9 @@ function create_config_if_missing() {
     if test -e $RUNNING_CONFIG; then
       echo "$(green "creating $KERNEL_CONFIG from current running kernel")"
       $ZCAT $RUNNING_CONFIG > $KERNEL_CONFIG
+    elif -test -e "$ALT_KERNEL_CONFIG"; then
+      echo "$(green "creating $KERNEL_CONFIG from $ALT_KERNEL_CONFIG")"
+      cp "$ALT_KERNEL_CONFIG" "$KERNEL_CONFIG"
     else
       echo "$(red "unable to generate new $KERNEL_CONFIG: current kernel does not support $RUNNING_CONFIG")"
       exit 2
@@ -68,6 +69,9 @@ function create_config_if_missing() {
 }
 
 function validate_selected_kernel() {
+  if test -z "$(which eselect)"; then
+    return;
+  fi
   LATEST=$(find_latest_kernel)
   ESELECTED=$(find_selected_kernel)
   RUNNING=$(uname -r)
@@ -97,7 +101,7 @@ function validate_selected_kernel() {
 }
 
 function build_with_genkernel() {
-  if ! nice -n 19 ionice -c idle genkernel all --microcode --kernel-config=/usr/src/linux/.config --oldconfig --makeopts=-j$(nproc) --loglevel=2; then
+  if ! nice -n 19 ionice -c idle genkernel all --microcode --kernel-config=$KERNEL_SOURCES/.config --oldconfig --makeopts=-j$(nproc) --loglevel=2; then
     STATUS=$?
     echo "genkernel exits with status $STATUS; modules not rebuilt!"
     exit $STATUS
@@ -113,8 +117,78 @@ function build_with_genkernel() {
   fi
 }
 
+function prepare_build_environment_apt() {
+  REQUIRED="flex bison build-essential gawk libdw-dev";
+  MISSING=0
+  for pkg in $(echo $REQUIRED); do
+    if ! dpkg -s $pkg &> /dev/null; then
+      MISSING=1
+      break
+    fi
+  done;
+  if test "$MISSING" -eq 0; then
+    return
+  fi
+  apt install $(echo $REQUIRED)
+}
+
+function build_generic() {
+  DEB_BASED=0
+  if test ! -z "$(which apt)"; then
+    DEB_BASED=1
+    prepare_build_environment_apt
+  fi
+  if test $DEB_BASED -ne 1; then
+    echo "System not supported: this script supports gentoo and debian-based systems"
+    exit 42
+  fi
+  CFG="$KERNEL_SOURCES/scripts/config"
+  # don't build -dbg package
+  echo "preparing: disabling CONFIG_DEBUG_INFO*"
+  $CFG --disable CONFIG_DEBUG_INFO
+  $CFG --disable CONFIG_DEBUG_INFO_DWARF4
+  $CFG --disable CONFIG_DEBUG_INFO_DWARF5
+  $CFG --disable CONFIG_DEBUG_DWARF_TOOLCHAIN_DEFAULT
+  $CFG --disable CONFIG_DEBUG_INFO
+  $CFG --enable CONFIG_DEBUG_INFO_NONE
+
+  # disable trust / signing - this is built locally
+  echo "preparing: disabling system trusted & revocation keys"
+  $CFG --disable SYSTEM_TRUSTED_KEYS
+  $CFG --disable SYSTEM_REVOCATION_KEYS
+
+  # auto-accept new stuff
+  make olddefconfig
+
+  cd "$KERNEL_SOURCES" || exit 2
+  if test -z "$MAX_CONCURRENCY"; then
+    # count processors: there's one section per processor
+    #   in /proc/cpuinfo, so count the blank lines to
+    #   avoid issues with language/translation/messaging changes
+    let PROCESSOR_COUNT=$(cat /proc/cpuinfo | grep "^$")
+    # use half available cores - it's quite likely
+    #   that this is the number of physical cores
+    #   on the system, as HT "cores" are indistinguishable
+    #   from real ones from within the OS
+    let MAX_CONCURRENCY="$PROCESSOR_COUNT / 2"
+  fi
+  make -j $MAX_CONCURRENCY bindeb-pkg
+  FILE="debian/image.files"
+  if test ! -e "$FILE"; then
+    echo "Unable to find image: $FILE not found"
+  fi
+  NAME=$(cat "$FILE" | awk '{print $1}');
+  echo "installing look for ${NAME}"
+  dpkg -i ../${NAME}
+  cd -
+}
+
 function update_grub() {
-  grub-mkconfig -o /boot/grub/grub.cfg
+  if test -z $"(which update-grub)"; then
+    grub-mkconfig -o /boot/grub/grub.cfg
+  else
+    update-grub
+  fi
 }
 
 function grok_args() {
@@ -141,6 +215,10 @@ check_is_root
 grok_args $@
 validate_selected_kernel
 create_config_if_missing
-time build_with_genkernel
+if test -z "$(which genkernel)"; then
+  time build_generic
+else
+  time build_with_genkernel
+fi
 update_grub
 remind_reboot
