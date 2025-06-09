@@ -1,7 +1,19 @@
 #!/bin/bash
-if test "$1" = "search"; then
-  apt "$@"
-  exit $?
-fi
+#if test "$1" = "search"; then
+#  apt "$@"
+#  exit $?
+#fi
+case "$1" in
+  "--help")
+    ;&
+  list)
+    ;&
+  search)
+    ;&
+  show)
+    apt "$@"
+    exit $?
+    ;;
+esac;
 
 $(dirname $0)/auto-sudo apt "$@"
