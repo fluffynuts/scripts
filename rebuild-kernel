@@ -84,7 +84,7 @@ function validate_selected_kernel() {
       read ANSWER
       ANSWER=$(echo $ANSWER | tr [:upper:] [:lower:])
     fi
-    if test -z "$ANSWER" || 
+    if test -z "$ANSWER" ||
        test "$ANSWER" = "y" ||
        test "$ANSWER" = "yes"; then
       eselect kernel set $LATEST
@@ -108,7 +108,7 @@ function build_with_genkernel() {
   fi
 
   if test "$FORCE_MODULE_REBUILD" = "y"; then
-    yellow "Forcing @module-rebuild" 
+    yellow "Forcing @module-rebuild"
     if ! emerge @module-rebuild; then
       STATUS=$?
       echo "module rebuild exits with status $STATUS"
@@ -142,6 +142,8 @@ function build_generic() {
     echo "System not supported: this script supports gentoo and debian-based systems"
     exit 42
   fi
+  cd "$KERNEL_SOURCES" || exit 2
+  echo "build_generic: configure";
   CFG="$KERNEL_SOURCES/scripts/config"
   # don't build -dbg package
   echo "preparing: disabling CONFIG_DEBUG_INFO*"
@@ -153,19 +155,17 @@ function build_generic() {
   $CFG --enable CONFIG_DEBUG_INFO_NONE
 
   # disable trust / signing - this is built locally
-  echo "preparing: disabling system trusted & revocation keys"
   $CFG --disable SYSTEM_TRUSTED_KEYS
   $CFG --disable SYSTEM_REVOCATION_KEYS
 
   # auto-accept new stuff
   make olddefconfig
 
-  cd "$KERNEL_SOURCES" || exit 2
   if test -z "$MAX_CONCURRENCY"; then
     # count processors: there's one section per processor
     #   in /proc/cpuinfo, so count the blank lines to
     #   avoid issues with language/translation/messaging changes
-    let PROCESSOR_COUNT=$(cat /proc/cpuinfo | grep "^$")
+    let PROCESSOR_COUNT=$(grep "^$" /proc/cpuinfo | wc -l)
     # use half available cores - it's quite likely
     #   that this is the number of physical cores
     #   on the system, as HT "cores" are indistinguishable
