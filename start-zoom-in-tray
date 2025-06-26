@@ -1,0 +1,15 @@
+#!/bin/sh
+zoom "$@" & # Launch zoom in the background
+HOST=$(hostname)
+i=0
+FWID=
+while [ $i -lt 10 ]; do
+    i=$((i+1))
+    sleep 0.5
+    wid=`wmctrl -l | grep -E " $HOST Zoom Workplace - " | cut -d' ' -f1 | head -1`
+    test -n "$wid" && {     # we got the main window-id
+        wmctrl -ic $wid     # close main window
+        #echo Took $i tries
+        exit 0
+    }
+done

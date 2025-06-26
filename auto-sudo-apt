@@ -1,8 +1,5 @@
 #!/bin/bash
-#if test "$1" = "search"; then
-#  apt "$@"
-#  exit $?
-#fi
+complete -o default -F _longopt apt
 case "$1" in
   "--help")
     ;&
