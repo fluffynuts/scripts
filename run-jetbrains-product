@@ -67,7 +67,8 @@ if test -z "$FULL_PATH"; then
   die 3 "FATAL: cannot find tool stub for ${TARGET}"
 fi
 
-$FULL_PATH "$@" &> /dev/null &
+echo "Starting '$FULL_PATH' ${@:2}"
+"$FULL_PATH" "${@:2}" &> /dev/null &
 CHILD_PID="$!"
 
 echo "${TARGET} started as pid: ${CHILD_PID}"
