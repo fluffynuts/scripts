@@ -71,7 +71,7 @@ function backup_db()
 }
 
 restore_db_if_missing series
-for src in /mnt/monolith/series /mnt/piggy/series/watched /mnt/piglet/series /mnt/movies/series; do
+for src in /mnt/series/series /mnt/series/series_ /mnt/piggy/series/watched /mnt/piglet/series; do
   echo "=== share series from $(basename $(dirname $src)) ==="
   $CMD -s "$src" -t "$TARGET/series"
 done
