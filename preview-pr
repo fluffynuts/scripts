@@ -1,0 +1,10 @@
+#!/bin/bash
+NVS_HOME="$HOME/.nvs";
+if test ! -e $NVS_HOME; then
+  echo "nvs not found at $NVS_HOME"
+  exit 2
+fi
+
+NVS_EXECUTE=1 source "$NVS_HOME/nvs.sh"
+
+nvs exec 24 npx -y difit . origin/master
