@@ -1,0 +1,2 @@
+#!/bin/bash
+ps aux | grep mysqld | grep -- --port | awk '{print $2}' | xargs -r kill -15
