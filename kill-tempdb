@@ -1,2 +1,8 @@
 #!/bin/bash
+COUNT=$(ps aux | grep mysqld | grep -- --port | wc -l)
+if test $COUNT -eq 0; then
+  echo "No temporary mysqld processes found"
+  exit 0
+fi
 ps aux | grep mysqld | grep -- --port | awk '{print $2}' | xargs -r kill -15
+echo "Killed $COUNT temporary mysqd processes"
