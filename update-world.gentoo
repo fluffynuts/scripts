@@ -1,0 +1,118 @@
+#!/bin/bash
+NO_SYNC=""
+ASK="-a"
+HELP=""
+PRETEND=""
+RECEIVING_EMERGE_ARGS=""
+EMERGE_ARGS=""
+RED="\033[1;31m"
+RESET="\033[0m"
+function check_is_root()
+{
+  if test "$(whoami)" != "root"; then
+    sudo -p "Your password is required to continue: " $0 $@
+    exit $?
+  fi
+}
+
+function clear_ccache_log()
+{
+  CCACHE_CONFIG="/etc/ccache.conf"
+  if test ! -f "$CCACHE_CONFIG"; then
+    return
+  fi
+  CCACHE_LOG_FILE="$(grep log_file "$CCACHE_CONFIG" | awk '{print $3}')"
+  if test -f "$CCACHE_LOG_FILE"; then
+    rm -f "$CCACHE_LOG_FILE"
+  fi
+}
+
+for arg in "$@"; do
+  if test "$arg" = "--"; then
+    RECEIVING_EMERGE_ARGS="yes"
+    continue
+  fi
+  if test ! -z "$RECEIVING_EMERGE_ARGS"; then
+    EMERGE_ARGS="$EMERGE_ARGS $arg"
+    continue
+  fi
+  if test "$arg" = "--no-sync" || test "$arg" = "-n" || test "$arg" = "--nosync" || test "$arg" = "--offline" || test "$arg" = "-o"; then
+    NO_SYNC=1
+    continue
+  fi
+  if test "$arg" = "--yes" || test "$arg" = "-y"; then
+    ASK=""
+    continue
+  fi
+  if test "$arg" = "-p" || test "$arg" = "--pretend"; then
+    PRETEND="-p"
+    continue
+  fi
+  if test "$arg" = "-h" || test "$arg" = "--help"; then
+    HELP=1
+    continue
+  fi
+  if test "$arg" = "-v" || test "$arg" = "--verbose"; then
+    VERBOSE=1
+  fi
+  # assume left-over args are to emerge
+  EMERGE_ARGS="$EMERGE_ARGS $arg"
+done
+if test ! -z "$HELP"; then
+  echo "Usage: $(dirname $0) [options]"
+  echo "OPTIONS:"
+  echo " -h, --help          show this screeen and exit"
+  echo " -n, --no-sync"
+  echo " -o  --offline       skip online sync, just emerge updates"
+  echo " -y, --yes           skip emerge confirmation (opposite of default -a)"
+  echo " -v, --verbose       more verbose output (and build logs)"
+  echo " --                  options provided after this are passed to emerge"
+  exit 0
+fi
+if test -z "$NO_SYNC"; then
+  check_is_root $@
+  if ! emerge --sync; then
+    echo -e "${RED}sync fails - check logged output${RESET}"
+    exit $?
+  fi
+fi
+if test -z "$PRETEND"; then
+  check_is_root $@
+else
+  EMERGE_ARGS="$EMERGE_ARGS --pretend"
+fi
+if test ! -z "$VERBOSE"; then
+  EMERGE_ARGS="$EMERGE_ARGS -v"
+else
+  EMERGE_ARGS="$EMERGE_ARGS --quiet-build"
+fi
+# set io niceness; if you want to set cpu niceness, you should
+#  set PORTAGE_NICENESS in /etc/portage/make.conf
+if test ! -z "$(which ionice)"; then
+  IONICE="ionice -c idle"
+fi
+PORTAGE_INFO="$(emerge --search sys-apps/portage | grep version)"
+PORTAGE_INSTALLED_VERSION="$(echo "$PORTAGE_INFO" | grep "version installed" | awk '{print $4}')"
+PORTAGE_AVAILABLE_VERSION="$(echo "$PORTAGE_INFO" | grep "version available" | awk '{print $4}')"
+if test "$PORTAGE_INSTALLED_VERSION" != "$PORTAGE_AVAILABLE_VERSION"; then
+  echo "Portage is updated: $PORTAGE_INSTALLED_VERSION -> $PORTAGE_AVAILABLE_VERSION"
+  if ! emerge -1 sys-apps/portage; then
+    echo "PORTAGE UPGRADE FAILS!"
+    exit 2
+  fi
+fi
+clear_ccache_log
+if test -z "$(echo $EMERGE_ARGS | grep -i backtrack=)"; then
+  EMERGE_ARGS="$EMERGE_ARGS --backtrack=256"
+fi
+if $IONICE emerge --update --newuse --changed-use --deep --changed-deps --keep-going @world $ASK $EMERGE_ARGS; then
+  echo "Checking for @preserved-rebuild actions..."
+  emerge @preserved-rebuild $ASK $PRETEND
+  echo "Cleaning out unnecessary dependencies..."
+  emerge --depclean $ASK $PRETEND
+fi
+
+KERNEL_REBUILDER="$(dirname $0)/build-kernel-if-updated-today"
+if test -f "$KERNEL_REBUILDER"; then
+  $KERNEL_REBUILDER
+fi
