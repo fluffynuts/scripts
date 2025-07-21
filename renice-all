@@ -1,0 +1,43 @@
+#!/bin/bash
+TARGET="$1"
+RENICE_TO="$2"
+if test -z "$1" || test -z "$2"; then
+  echo "Usage: renice-all {app} {level}"
+  echo "  eg: renice-all firefox -10"
+  exit 1
+fi
+
+function exit_bad_renice()
+{
+  echo "renice value must be an integer between 19 (lowest priority) and -19 (highest priority), inclusive (provided value was: $RENICE_TO)"
+  exit 2
+}
+
+NON_NUMERICS=$(echo $RENICE_TO | sed -e 's/^-//' | sed -e 's/[0-9]//g');
+if test ! -z "$NON_NUMERICS"; then
+  exit_bad_renice
+fi
+if test "$RENICE_TO" -lt -19; then
+  exit_bad_renice
+fi
+if test "$RENICE_TO" -gt 19; then
+  exit_bad_renice
+fi
+
+if test "$(whoami)" != "root" && test "$RENICE_TO" -lt 0; then
+  sudo -p "Your password is required to elevate process niceness to negative values: " $0 $1 $2
+  exit $?
+fi
+
+let RENICED=0
+for pid in $(pidof $1); do
+  let RENICED="$RENICED + 1"
+  renice -n $RENICE_TO -p $pid
+done
+
+if test $RENICED -eq 0; then
+  echo "no process matches found for $TARGET"
+  exit 3
+fi
+
+echo "reniced $RENICED $TARGET processes"
