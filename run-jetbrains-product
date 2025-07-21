@@ -42,6 +42,12 @@ EOF
 
 TARGET="$1"
 
+# special cases
+if test "$TARGET" = "android-studio"; then
+  echo "Auto-correcting 'android-studio' to 'studio' to match JB product name"
+  TARGET="studio"
+fi
+
 if test "$TARGET" = "install"; then
   install $2
   exit 0
@@ -64,7 +70,7 @@ for f in $(find "$JETBRAINS_HOME" -name $TARGET); do
 done
 
 if test -z "$FULL_PATH"; then
-  die 3 "FATAL: cannot find tool stub for ${TARGET}"
+  die 3 "FATAL: cannot find tool stub for ${TARGET} (check under $JETBRAINS_HOME - is it installed? is it named what you expect it to be?)"
 fi
 
 echo "Starting '$FULL_PATH' ${@:2}"
