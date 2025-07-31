@@ -1,0 +1,9 @@
+#!/bin/bash
+TARGET="$1"
+if test -e "$TARGET"; then
+  echo "$TARGET already exists - remove it first"
+  exit 1
+fi
+echo -e "#!/bin/bash\n" > "$TARGET"
+chmod +x "$TARGET"
+gvim "$TARGET"
