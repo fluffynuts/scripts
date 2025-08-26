@@ -41,6 +41,12 @@ profiles = {
         "board": "FF00FF",
         "gpu": "FF00FF",
         "mouse": "FF00FF"
+    },
+    "fire": {
+        "ram": [ "FB1D04", "F13704", "EE5204", "FB6D0E" ],
+        "board": "DA0303",
+        "gpu": "",
+        "mouse": "D53803"
     }
 }
 
