@@ -1,0 +1,4 @@
+#!/bin/bash
+REF="$(git symbolic-ref --short HEAD)"
+echo "Running workflow for branch: $REF"
+gh workflow run --ref "${REF}"
