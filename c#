@@ -1,0 +1,46 @@
+#!/bin/bash
+if ! which csharprepl &> /dev/null; then
+  if ! which dotnet &> /dev/null; then
+    echo "Please install dotnet"
+    exit 1
+  fi
+  dotnet tool install csharprepl
+  if ! which csharprepl &> /dev/null; then
+    echo "Attempted to install dotnet tool 'csharprepl', but it's not in the PATH"
+    exit 2
+  fi
+fi
+
+function restore_nuget_config()
+{
+  if test -e NuGet.Config.bak; then
+    mv NuGet.Config.bak NuGet.Config
+  else
+    rm NuGet.Config
+  fi
+}
+
+function create_local_nuget_config()
+{
+  read -r -d "" NUGET_CONFIG <<'EOF'
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <packageSources>
+    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" />
+  </packageSources>
+  <packageSourceCredentials>
+  </packageSourceCredentials>
+</configuration>
+EOF
+
+  if test -e NuGet.Config; then
+    mv NuGet.Config NuGet.Config.bak
+  fi
+  echo "$NUGET_CONFIG" > NuGet.Config
+}
+
+trap restore_nuget_config INT
+
+create_local_nuget_config
+csharprepl
+restore_nuget_config
