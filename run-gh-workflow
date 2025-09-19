@@ -1,4 +1,114 @@
-#!/bin/bash
-REF="$(git symbolic-ref --short HEAD)"
-echo "Running workflow for branch: $REF"
-gh workflow run --ref "${REF}"
+#!/bin/env python
+import subprocess
+import json
+import os
+import time
+import sys
+import re
+import shutil
+from datetime import datetime
+
+jsonFields = "attempt,conclusion,displayTitle,event,name,number,status,workflowDatabaseId,workflowName,databaseId"
+DEBUG= "DEBUG" in os.environ and os.environ["DEBUG"] == "1"
+
+def debug(*args):
+  if not DEBUG:
+    return;
+  print(*args);
+
+def exec(args):
+  debug("exec: ", args)
+  result = subprocess.check_output(args).decode(sys.stdout.encoding).strip()
+  debug("result: ", result)
+  return result
+
+def read_current_branch():
+  return exec(["git", "symbolic-ref", "--short", "HEAD"])
+
+def fetch_latest_run_for_branch(branch):
+  raw = exec(["gh", "run", "list", "--branch", branch, "--json", jsonFields, "--limit", "1"]);
+  return json.loads(raw)[0]
+
+def fetch_run_for_branch(branch, number):
+  raw = exec(["gh", "run", "list", "--branch", branch, "--json", jsonFields, "--limit", "10"]);
+  jobs = json.loads(raw)
+  for job in jobs:
+    if job["number"] == number:
+      return job
+
+  return None
+
+def read_github_repo_url():
+  raw = exec(["git", "remote", "-v"])
+  lines = raw.split("\n")
+  parts = re.split(r"\s+", lines[0])
+  return parts[1].replace("git@github.com:", "https://github.com/").replace(".git", "")
+
+def run_workflow_interactive(branch):
+  subprocess.run(["gh", "workflow", "run", "--ref", branch])
+
+def test_for_gh_cli():
+  if shutil.which("gh") is None:
+    print("ERROR: the 'gh' command is required (install github cli)")
+    sys.exit(1)
+
+def timestamp(s):
+  now = datetime.now()
+  ts = now.strftime("%y-%m-%d %H:%M:%S")
+  return f"[{ts}] {s}"
+
+last_status = None
+def status(s):
+  global last_status
+  if last_status is not None:
+    space = " " * len(last_status)
+    print(f"\r{space}\r", end="")
+  last_status = s;
+  print(f"\r{timestamp(s)}\r", end="")
+
+def main():
+  test_for_gh_cli()
+  repo_url = read_github_repo_url()
+  workflow_url = f'{repo_url}/actions/runs'
+  branch = read_current_branch()
+  run_workflow_interactive(branch)
+  lastRun = fetch_latest_run_for_branch(branch);
+  have_seen_job = False
+  latestRun = fetch_latest_run_for_branch(branch)
+  runId = None
+  while True:
+    if latestRun is None:
+      if runId is none:
+        print(f"unable to query latest jobs for '{branch}'")
+      else:
+        print(f"unable to query job {runId} for branch '{branch}'")
+      sys.exit(3)
+
+    if (latestRun["number"] == lastRun["number"]):
+      status("waiting for job...")
+    else:
+      if (runId is None):
+        runId = latestRun["number"]
+      elif latestRun["number"] != runId:
+        latestRun = fetch_run_for_branch(branch, runId)
+        continue
+        
+      if latestRun is None:
+        if have_seen_job:
+          print("job has disappeared... exiting")
+          sys.exit(2)
+        have_seen_job = True
+      else:
+        url = f'{workflow_url}/{latestRun["databaseId"]}'
+        status(f'[{latestRun["number"]}] {latestRun["status"]} ({url})')
+        if (latestRun["status"] == "completed"):
+          print("job complete!")
+          sys.exit(0)
+    time.sleep(5)
+    if latestRun["number"] == lastRun["number"]:
+      latestRun = fetch_latest_run_for_branch(branch)
+    else:
+      latestRun = fetch_run_for_branch(branch, latestRun["number"])
+
+if __name__ == "__main__":
+  main()
