@@ -13,24 +13,24 @@ DEBUG= "DEBUG" in os.environ and os.environ["DEBUG"] == "1"
 
 def debug(*args):
   if not DEBUG:
-    return;
-  print(*args);
+    return
+  print(*args)
 
-def exec(args):
+def shell_exec(args):
   debug("exec: ", args)
   result = subprocess.check_output(args).decode(sys.stdout.encoding).strip()
   debug("result: ", result)
   return result
 
 def read_current_branch():
-  return exec(["git", "symbolic-ref", "--short", "HEAD"])
+  return shell_exec(["git", "symbolic-ref", "--short", "HEAD"])
 
 def fetch_latest_run_for_branch(branch):
-  raw = exec(["gh", "run", "list", "--branch", branch, "--json", jsonFields, "--limit", "1"]);
+  raw = shell_exec(["gh", "run", "list", "--branch", branch, "--json", jsonFields, "--limit", "1"])
   return json.loads(raw)[0]
 
 def fetch_run_for_branch(branch, number):
-  raw = exec(["gh", "run", "list", "--branch", branch, "--json", jsonFields, "--limit", "10"]);
+  raw = shell_exec(["gh", "run", "list", "--branch", branch, "--json", jsonFields, "--limit", "10"])
   jobs = json.loads(raw)
   for job in jobs:
     if job["number"] == number:
@@ -39,13 +39,16 @@ def fetch_run_for_branch(branch, number):
   return None
 
 def read_github_repo_url():
-  raw = exec(["git", "remote", "-v"])
+  raw = shell_exec(["git", "remote", "-v"])
   lines = raw.split("\n")
   parts = re.split(r"\s+", lines[0])
   return parts[1].replace("git@github.com:", "https://github.com/").replace(".git", "")
 
 def run_workflow_interactive(branch):
-  subprocess.run(["gh", "workflow", "run", "--ref", branch])
+  proc = subprocess.run(["gh", "workflow", "run", "--ref", branch])
+  if proc.returncode != 0:
+      print(f"gh workflow command failed or aborted (exit code {proc.returncode}, exiting")
+      sys.exit(proc.returncode)
 
 def test_for_gh_cli():
   if shutil.which("gh") is None:
@@ -63,7 +66,7 @@ def status(s):
   if last_status is not None:
     space = " " * len(last_status)
     print(f"\r{space}\r", end="")
-  last_status = s;
+  last_status = s
   print(f"\r{timestamp(s)}\r", end="")
 
 def main():
@@ -72,43 +75,43 @@ def main():
   workflow_url = f'{repo_url}/actions/runs'
   branch = read_current_branch()
   run_workflow_interactive(branch)
-  lastRun = fetch_latest_run_for_branch(branch);
+  last_run_before_start = fetch_latest_run_for_branch(branch)
   have_seen_job = False
-  latestRun = fetch_latest_run_for_branch(branch)
-  runId = None
+  latest_run = fetch_latest_run_for_branch(branch)
+  run_id = None
   while True:
-    if latestRun is None:
-      if runId is none:
+    if latest_run is None:
+      if run_id is None:
         print(f"unable to query latest jobs for '{branch}'")
       else:
-        print(f"unable to query job {runId} for branch '{branch}'")
+        print(f"unable to query job {run_id} for branch '{branch}'")
       sys.exit(3)
 
-    if (latestRun["number"] == lastRun["number"]):
+    if latest_run["number"] == last_run_before_start["number"]:
       status("waiting for job...")
     else:
-      if (runId is None):
-        runId = latestRun["number"]
-      elif latestRun["number"] != runId:
-        latestRun = fetch_run_for_branch(branch, runId)
+      if run_id is None:
+        run_id = latest_run["number"]
+      elif latest_run["number"] != run_id:
+        latest_run = fetch_run_for_branch(branch, run_id)
         continue
         
-      if latestRun is None:
+      if latest_run is None:
         if have_seen_job:
           print("job has disappeared... exiting")
           sys.exit(2)
         have_seen_job = True
       else:
-        url = f'{workflow_url}/{latestRun["databaseId"]}'
-        status(f'[{latestRun["number"]}] {latestRun["status"]} ({url})')
-        if (latestRun["status"] == "completed"):
+        url = f'{workflow_url}/{latest_run["databaseId"]}'
+        status(f'[{latest_run["number"]}] {latest_run["status"]} ({url})')
+        if latest_run["status"] == "completed":
           print("job complete!")
           sys.exit(0)
     time.sleep(5)
-    if latestRun["number"] == lastRun["number"]:
-      latestRun = fetch_latest_run_for_branch(branch)
+    if latest_run["number"] == last_run_before_start["number"]:
+      latest_run = fetch_latest_run_for_branch(branch)
     else:
-      latestRun = fetch_run_for_branch(branch, latestRun["number"])
+      latest_run = fetch_run_for_branch(branch, latest_run["number"])
 
 if __name__ == "__main__":
   main()
