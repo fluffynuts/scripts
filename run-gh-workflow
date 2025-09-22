@@ -4,6 +4,7 @@ import json
 import os
 import time
 import sys
+import getopt
 import re
 import shutil
 from datetime import datetime
@@ -22,7 +23,9 @@ def shell_exec(args):
   debug("result: ", result)
   return result
 
-def read_current_branch():
+def read_current_branch(opts):
+  if "branch" in opts:
+    return opts["branch"]
   return shell_exec(["git", "symbolic-ref", "--short", "HEAD"])
 
 def fetch_latest_run_for_branch(branch):
@@ -69,11 +72,47 @@ def status(s):
   last_status = s
   print(f"\r{timestamp(s)}\r", end="")
 
+def notify_and_exit(exitCode, message):
+  if shutil.which("notify-send") is not None:
+    if exitCode == 0:
+      shell_exec(["notify-send", "-i", "dialog-information", "GitHub action complete", message]);
+    else:
+      shell_exec(["notify-send", "-i", "dialog-error", "GitHub action errored", message]);
+  sys.exit(exitCode)
+
+def print_help_and_exit():
+  print(
+"""
+usage: run-gh-workflow {--branch <branch>}
+  runs the 'gh workflow run' flow for the current
+  repository with the current branch, unless --branch
+  is specified
+"""
+  )
+  sys.exit(0)
+
+def gather_options():
+  args = sys.argv[1:]
+  options = "hb:"
+  long_options = [ "help", "branch=" ]
+  result = {};
+  try:
+    arguments, values = getopt.getopt(args, options, long_options)
+    for currentArg, currentVal in arguments:
+      if currentArg in ("-h", "--help"):
+        print_help_and_exit()
+      if currentArg in ("-b", "--branch"):
+        result["branch"] = currentVal
+  except getopt.error as err:
+    print(str(err))
+  return result
+
 def main():
   test_for_gh_cli()
   repo_url = read_github_repo_url()
   workflow_url = f'{repo_url}/actions/runs'
-  branch = read_current_branch()
+  opts = gather_options()
+  branch = read_current_branch(opts)
   run_workflow_interactive(branch)
   last_run_before_start = fetch_latest_run_for_branch(branch)
   have_seen_job = False
@@ -81,11 +120,8 @@ def main():
   run_id = None
   while True:
     if latest_run is None:
-      if run_id is None:
-        print(f"unable to query latest jobs for '{branch}'")
-      else:
-        print(f"unable to query job {run_id} for branch '{branch}'")
-      sys.exit(3)
+      message = f"unable to query latest jobs for '{branch}'" if run_id is None else f"unable to query job {run_id} for branch '{branch}'"
+      notify_and_exit(3, message);
 
     if latest_run["number"] == last_run_before_start["number"]:
       status("waiting for job...")
@@ -98,15 +134,13 @@ def main():
         
       if latest_run is None:
         if have_seen_job:
-          print("job has disappeared... exiting")
-          sys.exit(2)
+          notify_and_exit(2, "job has disappeared...");
         have_seen_job = True
       else:
         url = f'{workflow_url}/{latest_run["databaseId"]}'
         status(f'[{latest_run["number"]}] {latest_run["status"]} ({url})')
         if latest_run["status"] == "completed":
-          print("job complete!")
-          sys.exit(0)
+          notify_and_exit(0, f"job '{run_id}' complete!")
     time.sleep(5)
     if latest_run["number"] == last_run_before_start["number"]:
       latest_run = fetch_latest_run_for_branch(branch)
