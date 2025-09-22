@@ -1,0 +1,3 @@
+!#/bin/bash
+REF="$(git symbolic-ref --short HEAD)"
+watch -n 5 "gh run list --branch \"$REF\""
