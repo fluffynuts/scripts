@@ -72,13 +72,13 @@ def status(s):
   last_status = s
   print(f"\r{timestamp(s)}\r", end="")
 
-def notify_and_exit(exitCode, message):
+def notify_and_exit(exit_code, message):
   if shutil.which("notify-send") is not None:
-    if exitCode == 0:
-      shell_exec(["notify-send", "-i", "dialog-information", "GitHub action complete", message]);
+    if exit_code == 0:
+      shell_exec(["notify-send", "-i", "dialog-information", "GitHub action complete", message])
     else:
-      shell_exec(["notify-send", "-i", "dialog-error", "GitHub action errored", message]);
-  sys.exit(exitCode)
+      shell_exec(["notify-send", "-i", "dialog-error", "GitHub action errored", message])
+  sys.exit(exit_code)
 
 def print_help_and_exit():
   print(
@@ -121,7 +121,7 @@ def main():
   while True:
     if latest_run is None:
       message = f"unable to query latest jobs for '{branch}'" if run_id is None else f"unable to query job {run_id} for branch '{branch}'"
-      notify_and_exit(3, message);
+      notify_and_exit(3, message)
 
     if latest_run["number"] == last_run_before_start["number"]:
       status("waiting for job...")
@@ -134,13 +134,13 @@ def main():
         
       if latest_run is None:
         if have_seen_job:
-          notify_and_exit(2, "job has disappeared...");
+          notify_and_exit(2, "job has disappeared...")
         have_seen_job = True
       else:
         url = f'{workflow_url}/{latest_run["databaseId"]}'
         status(f'[{latest_run["number"]}] {latest_run["status"]} ({url})')
         if latest_run["status"] == "completed":
-          notify_and_exit(0, f"job '{run_id}' complete!")
+          notify_and_exit(0, f"Completed: {latest_run["displayTitle"]}")
     time.sleep(5)
     if latest_run["number"] == last_run_before_start["number"]:
       latest_run = fetch_latest_run_for_branch(branch)
