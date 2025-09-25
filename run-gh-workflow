@@ -72,12 +72,16 @@ def status(s):
   last_status = s
   print(f"\r{timestamp(s)}\r", end="")
 
+def log(s):
+  print(f"{timestamp(s)}")
+
 def notify_and_exit(exit_code, message):
   if shutil.which("notify-send") is not None:
     if exit_code == 0:
       shell_exec(["notify-send", "-i", "dialog-information", "GitHub action complete", message])
     else:
       shell_exec(["notify-send", "-i", "dialog-error", "GitHub action errored", message])
+  log(message)
   sys.exit(exit_code)
 
 def print_help_and_exit():
@@ -131,7 +135,7 @@ def main():
       elif latest_run["number"] != run_id:
         latest_run = fetch_run_for_branch(branch, run_id)
         continue
-        
+
       if latest_run is None:
         if have_seen_job:
           notify_and_exit(2, "job has disappeared...")
