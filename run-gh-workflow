@@ -33,13 +33,16 @@ def fetch_latest_run_for_branch(branch):
   return json.loads(raw)[0]
 
 def fetch_run_for_branch(branch, number):
-  raw = shell_exec(["gh", "run", "list", "--branch", branch, "--json", jsonFields, "--limit", "10"])
-  jobs = json.loads(raw)
-  for job in jobs:
-    if job["number"] == number:
-      return job
+  try:
+    raw = shell_exec(["gh", "run", "list", "--branch", branch, "--json", jsonFields, "--limit", "10"])
+    jobs = json.loads(raw)
+    for job in jobs:
+      if job["number"] == number:
+        return job
 
-  return None
+    return None
+  except Exception:
+    return False
 
 def read_github_repo_url():
   raw = shell_exec(["git", "remote", "-v"])
@@ -140,13 +143,20 @@ def main():
         if have_seen_job:
           notify_and_exit(2, "job has disappeared...")
         have_seen_job = True
+      elif latest_run == False:
+        status(f"Temporary error fetching runs...")
       else:
         url = f'{workflow_url}/{latest_run["databaseId"]}'
         status(f'[{latest_run["number"]}] {latest_run["status"]} ({url})')
         if latest_run["status"] == "completed":
           notify_and_exit(0, f"Completed: {latest_run["displayTitle"]}")
     time.sleep(5)
-    if latest_run["number"] == last_run_before_start["number"]:
+    if latest_run == False:
+      if run_id is None:
+        latest_run = fetch_latest_run_for_branch(branch)
+      else:
+        latest_run = fetch_run_for_branch(branch, run_id)
+    elif latest_run["number"] == last_run_before_start["number"]:
       latest_run = fetch_latest_run_for_branch(branch)
     else:
       latest_run = fetch_run_for_branch(branch, latest_run["number"])
