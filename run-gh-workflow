@@ -8,6 +8,7 @@ import getopt
 import re
 import shutil
 from datetime import datetime
+from urllib.parse import urlparse
 
 jsonFields = "attempt,conclusion,displayTitle,event,name,number,status,workflowDatabaseId,workflowName,databaseId"
 DEBUG= "DEBUG" in os.environ and os.environ["DEBUG"] == "1"
@@ -102,7 +103,7 @@ def gather_options():
   args = sys.argv[1:]
   options = "hb:"
   long_options = [ "help", "branch=" ]
-  result = {};
+  result = {}
   try:
     arguments, values = getopt.getopt(args, options, long_options)
     for currentArg, currentVal in arguments:
@@ -114,9 +115,14 @@ def gather_options():
     print(str(err))
   return result
 
+def parse_repo_id(from_url):
+  uri = urlparse(from_url)
+  return uri.path[1:]
+
 def main():
   test_for_gh_cli()
   repo_url = read_github_repo_url()
+  repo_id = parse_repo_id(repo_url)
   workflow_url = f'{repo_url}/actions/runs'
   opts = gather_options()
   branch = read_current_branch(opts)
@@ -127,7 +133,7 @@ def main():
   run_id = None
   while True:
     if latest_run is None:
-      message = f"unable to query latest jobs for '{branch}'" if run_id is None else f"unable to query job {run_id} for branch '{branch}'"
+      message = f"{repo_id}: unable to query latest jobs for '{branch}'" if run_id is None else f"unable to query job {run_id} for branch '{branch}'"
       notify_and_exit(3, message)
 
     if latest_run["number"] == last_run_before_start["number"]:
@@ -141,7 +147,7 @@ def main():
 
       if latest_run is None:
         if have_seen_job:
-          notify_and_exit(2, "job has disappeared...")
+          notify_and_exit(2, f"{repo_id}: job has disappeared...")
         have_seen_job = True
       elif latest_run == False:
         status(f"Temporary error fetching runs...")
@@ -149,7 +155,7 @@ def main():
         url = f'{workflow_url}/{latest_run["databaseId"]}'
         status(f'[{latest_run["number"]}] {latest_run["status"]} ({url})')
         if latest_run["status"] == "completed":
-          notify_and_exit(0, f"Completed: {latest_run["displayTitle"]}")
+          notify_and_exit(0, f"{repo_id}: completed: {latest_run["displayTitle"]}")
     time.sleep(5)
     if latest_run == False:
       if run_id is None:
