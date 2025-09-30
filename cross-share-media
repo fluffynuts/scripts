@@ -1,4 +1,4 @@
-#!/usr/bin/python -Wignore::DeprecationWarning
+#!/usr/bin/python2 -Wignore::DeprecationWarning
 #vim: expandtab shiftwidth=2 tabstop=2
 import sys
 import os
@@ -162,7 +162,7 @@ def copy_or_transcode(src, dst, only_do_copy, idx, qlen, force_transcode = False
   ofps = " -ofps 24"
   if not ensure_dir_exists(os.path.dirname(output)):
     return False
-  
+
   varel = 0.9   # video / audio relative size within stream; guesswork
   if info.video[0].width > max_width:
     new_width = max_width
@@ -177,7 +177,7 @@ def copy_or_transcode(src, dst, only_do_copy, idx, qlen, force_transcode = False
     # TODO: handle videos which are in the right size range, passing
     #   through XVID for profile=dxnhtpal with the same output size
     if not force_transcode:
-      sys.stdout.write("\033[01;33m[%i/%i] %s => %s\033[0m" % (idx, qlen, src, dst)) 
+      sys.stdout.write("\033[01;33m[%i/%i] %s => %s\033[0m" % (idx, qlen, src, dst))
       sys.stdout.flush()
       try:
         if not dummy:
@@ -410,7 +410,7 @@ if __name__ == "__main__":
           print("Transcode fails; press ctrl-c to exit")
           # give a moment to catch another ctrl-c if that's what happened
           time.sleep(3)
-    
+
     conn.close()
   except KeyboardInterrupt:
     print(" (aborted)")
