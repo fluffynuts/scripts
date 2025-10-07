@@ -1,0 +1,92 @@
+#!/usr/bin/env python3
+import sys
+import os
+from git import Repo
+from colorama import Fore, Back, Style
+
+OK = f"[ {Fore.GREEN}OK{Style.RESET_ALL} ]"
+WARN = f"[{Fore.RED}WARN{Style.RESET_ALL}]"
+FAIL = f"[{Fore.WHITE}{Back.RED}FAIL{Style.RESET_ALL}]"
+
+def find_git_repos_under(folder):
+  if not os.path.isdir(folder):
+    print(f"{FAIL} folder not found: {folder}")
+    sys.exit(3)
+  result = []
+  test = os.path.join(folder, ".git")
+  if os.path.isdir(test):
+    result.append(test)
+    return result
+  for entry in os.listdir(folder):
+    full_path = os.path.join(folder, entry)
+    if os.path.isdir(full_path):
+      test = os.path.join(full_path, ".git")
+      if os.path.isdir(test):
+        result.append(full_path)
+      else:
+        result.extend(find_git_repos_under(full_path))
+  return result
+
+def scan_git_dir(folder):
+  repo = Repo(folder)
+  status = repo.index.diff(None)
+  untracked_files = repo.untracked_files
+  staged_changes = repo.index.diff("HEAD")
+  current_branch = repo.active_branch.name
+  remote_refs = repo.remote().refs
+  have_remote = False
+  messages = []
+
+  for rr in remote_refs:
+    if rr.name.endswith(f"/{current_branch}"):
+      have_remote = True
+      break
+  if have_remote:
+    unpushed = repo.git.log(f"origin/{current_branch}..{current_branch}")
+  else:
+    unpushed = ""
+    messages.append(f"No remote found for branch {current_branch}")
+
+  if len(status):
+    messages.append("One or more files is changed")
+  if len(untracked_files):
+    messages.append("One or more files are untracked")
+  if len(staged_changes):
+    messages.append("One or more staged changes is not committed")
+  if len(unpushed):
+    messages.append("One or more commits has not been pushed")
+
+  if len(messages):
+    print(f"{WARN} {folder}")
+    for message in messages:
+      print(f"  {message}")
+  else:
+    print(f"{OK} {folder}")
+
+
+def scan_dir(folder):
+  to_check = find_git_repos_under(folder)
+  if len(to_check) == 0:
+    print(f"No git repos found under {folder}")
+    sys.exit(2)
+
+  for folder in to_check:
+    try:
+      scan_git_dir(folder)
+    except Exception as e:
+      print(f"Error whilst scanning {folder}:")
+      print(f"  {e}");
+
+
+
+def main(dirs):
+  if len(dirs) == 0:
+    print("Please specify one or more folders to scan")
+    sys.exit(1)
+
+  for dir in dirs:
+    scan_dir(dir)
+
+if __name__ == "__main__":
+  main(sys.argv[1:])
+
