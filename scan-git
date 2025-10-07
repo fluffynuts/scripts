@@ -7,6 +7,7 @@ from colorama import Fore, Back, Style
 OK = f"[ {Fore.GREEN}OK{Style.RESET_ALL} ]"
 WARN = f"[{Fore.RED}WARN{Style.RESET_ALL}]"
 FAIL = f"[{Fore.WHITE}{Back.RED}FAIL{Style.RESET_ALL}]"
+verbose = False
 
 def find_git_repos_under(folder):
   if not os.path.isdir(folder):
@@ -28,6 +29,7 @@ def find_git_repos_under(folder):
   return result
 
 def scan_git_dir(folder):
+  global verbose
   repo = Repo(folder)
   status = repo.index.diff(None)
   untracked_files = repo.untracked_files
@@ -61,7 +63,8 @@ def scan_git_dir(folder):
     for message in messages:
       print(f"  {Fore.YELLOW}{message}{Style.RESET_ALL}")
   else:
-    print(f"{OK} {folder}")
+    if verbose:
+      print(f"{OK} {folder}")
 
 
 def scan_dir(folder):
@@ -77,15 +80,25 @@ def scan_dir(folder):
       print(f"Error whilst scanning {folder}:")
       print(f"  {e}");
 
-
-
-def main(dirs):
-  if len(dirs) == 0:
+def main(args):
+  global verbose
+  if len(args) == 0:
     print("Please specify one or more folders to scan")
     sys.exit(1)
 
-  for dir in dirs:
-    scan_dir(dir)
+  folders = []
+  for arg in args:
+    if arg == "--verbose" or arg == "-v":
+      verbose = True
+      continue
+    if os.path.isdir(arg):
+      folders.append(arg)
+    else:
+      print(f"Folder not found: {arg}")
+      sys.exit(3)
+
+  for folder in args:
+    scan_dir(folder)
 
 if __name__ == "__main__":
   main(sys.argv[1:])
