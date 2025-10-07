@@ -59,7 +59,7 @@ def scan_git_dir(folder):
   if len(messages):
     print(f"{WARN} {folder}")
     for message in messages:
-      print(f"  {message}")
+      print(f"  {Fore.YELLOW}{message}{Style.RESET_ALL}")
   else:
     print(f"{OK} {folder}")
 
