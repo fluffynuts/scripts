@@ -40,56 +40,59 @@ if test $RENICED -eq 0; then
   exit 3
 fi
 
-IONICE_LOOKUP=(
-  ["0"]="realtime,1"        # -19
-  ["1"]="realtime,2"        # -18
-  ["2"]="realtime,3"        # -17
-  ["3"]="realtime,4"        # -16
-  ["4"]="realtime,5"        # -15
-  ["5"]="realtime,6"        # -14
-  ["6"]="realtime,7"        # -13
-  ["7"]="realtime,8"        # -12
-  ["8"]="best-effort,0"     # -11
-  ["9"]="best-effort,0"     # -10
-  ["10"]="best-effort,1"    # -9
-  ["11"]="best-effort,1"    # -8
-  ["12"]="best-effort,2"    # -7
-  ["13"]="best-effort,2"    # -6
-  ["14"]="best-effort,3"    # -5
-  ["15"]="best-effort,3"    # -4
-  ["16"]="best-effort,4"    # -3
-  ["17"]="best-effort,4"    # -2
-  ["18"]="best-effort,4"    # -1
-  ["19"]="none,0"           # 0
-  ["20"]="best-effort,5"    # 1
-  ["21"]="best-effort,5"    # 2
-  ["22"]="best-effort,5"    # 3
-  ["23"]="best-effort,6"    # 4
-  ["24"]="best-effort,6"    # 5
-  ["25"]="best-effort,6"    # 6
-  ["26"]="best-effort,7"    # 7
-  ["27"]="best-effort,7"    # 8
-  ["28"]="best-effort,7"    # 9
-  ["29"]="idle,0"           # 10
-  ["30"]="idle,0"           # 11
-  ["31"]="idle,0"           # 12
-  ["32"]="idle,0"           # 13
-  ["33"]="idle,0"           # 14
-  ["34"]="idle,0"           # 15
-  ["35"]="idle,0"           # 16
-  ["36"]="idle,0"           # 17
-  ["37"]="idle,0"           # 18
-  ["38"]="idle,0"           # 19
-)
+if which ionice &> /dev/null; then
+  IONICE_LOOKUP=(
+    ["0"]="realtime,1"        # -19
+    ["1"]="realtime,2"        # -18
+    ["2"]="realtime,3"        # -17
+    ["3"]="realtime,4"        # -16
+    ["4"]="realtime,5"        # -15
+    ["5"]="realtime,6"        # -14
+    ["6"]="realtime,7"        # -13
+    ["7"]="realtime,8"        # -12
+    ["8"]="best-effort,0"     # -11
+    ["9"]="best-effort,0"     # -10
+    ["10"]="best-effort,1"    # -9
+    ["11"]="best-effort,1"    # -8
+    ["12"]="best-effort,2"    # -7
+    ["13"]="best-effort,2"    # -6
+    ["14"]="best-effort,3"    # -5
+    ["15"]="best-effort,3"    # -4
+    ["16"]="best-effort,4"    # -3
+    ["17"]="best-effort,4"    # -2
+    ["18"]="best-effort,4"    # -1
+    ["19"]="none,0"           # 0
+    ["20"]="best-effort,5"    # 1
+    ["21"]="best-effort,5"    # 2
+    ["22"]="best-effort,5"    # 3
+    ["23"]="best-effort,6"    # 4
+    ["24"]="best-effort,6"    # 5
+    ["25"]="best-effort,6"    # 6
+    ["26"]="best-effort,7"    # 7
+    ["27"]="best-effort,7"    # 8
+    ["28"]="best-effort,7"    # 9
+    ["29"]="idle,0"           # 10
+    ["30"]="idle,0"           # 11
+    ["31"]="idle,0"           # 12
+    ["32"]="idle,0"           # 13
+    ["33"]="idle,0"           # 14
+    ["34"]="idle,0"           # 15
+    ["35"]="idle,0"           # 16
+    ["36"]="idle,0"           # 17
+    ["37"]="idle,0"           # 18
+    ["38"]="idle,0"           # 19
+  )
 
 
-let IDX="$RENICE_TO + 19"
-IFS="," read -ra idleConfig <<< "${IONICE_LOOKUP[$IDX]}"
-echo "ionicing to: ${idleConfig[0]}, priority ${idleConfig[1]}"
+  let IDX="$RENICE_TO + 19"
+  IFS="," read -ra idleConfig <<< "${IONICE_LOOKUP[$IDX]}"
+  echo "ionicing to: ${idleConfig[0]}, priority ${idleConfig[1]}"
 
-for pid in $(pidof $1); do
-  let IONICED="$IONICED + 1"
-  ionice -p $pid -c ${idleConfig[0]} -n ${idleConfig[1]}
-done
-
+  for pid in $(pidof $1); do
+    let IONICED="$IONICED + 1"
+    ionice -p $pid -c ${idleConfig[0]} -n ${idleConfig[1]}
+  done
+else
+  echo "ionice not found - no io-scheduling changes made"
+fi
 echo "reniced $RENICED $TARGET processes"
