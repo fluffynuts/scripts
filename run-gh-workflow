@@ -9,14 +9,19 @@ import re
 import shutil
 from datetime import datetime
 from urllib.parse import urlparse
+from colorama import init, Fore, Style
 
 jsonFields = "attempt,conclusion,displayTitle,event,name,number,status,workflowDatabaseId,workflowName,databaseId"
 DEBUG= "DEBUG" in os.environ and os.environ["DEBUG"] == "1"
+init()
 
 def debug(*args):
   if not DEBUG:
     return
   print(*args)
+
+def colorise(color, str):
+  return f"{color}{str}{Style.RESET_ALL}"
 
 def shell_exec(args):
   debug("exec: ", args)
@@ -85,7 +90,10 @@ def notify_and_exit(exit_code, message):
       shell_exec(["notify-send", "-i", "dialog-information", "GitHub action complete", message])
     else:
       shell_exec(["notify-send", "-i", "dialog-error", "GitHub action errored", message])
-  log(message)
+  if exit_code == 0:
+    log(colorise(Fore.GREEN, message))
+  else:
+    log(colorise(Fore.RED, message))
   sys.exit(exit_code)
 
 def print_help_and_exit():
@@ -155,7 +163,11 @@ def main():
         url = f'{workflow_url}/{latest_run["databaseId"]}'
         status(f'[{latest_run["number"]}] {latest_run["status"]} ({url})')
         if latest_run["status"] == "completed":
-          notify_and_exit(0, f"{repo_id}: completed: {latest_run["displayTitle"]}")
+          if latest_run["conclusion"] == "success":
+            exit_code = 0
+          else:
+            exit_code = 2
+          notify_and_exit(exit_code, f"{repo_id}: completed: {latest_run["displayTitle"]}")
     time.sleep(5)
     if latest_run == False:
       if run_id is None:
