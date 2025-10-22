@@ -9,7 +9,7 @@ WARN = f"[{Fore.RED}WARN{Style.RESET_ALL}]"
 FAIL = f"[{Fore.WHITE}{Back.RED}FAIL{Style.RESET_ALL}]"
 verbose = False
 
-def find_git_repos_under(folder):
+def find_git_repos_under(folder: str) -> list[str]:
   if not os.path.isdir(folder):
     print(f"{FAIL} folder not found: {folder}")
     sys.exit(3)
@@ -67,7 +67,7 @@ def scan_git_dir(folder):
       print(f"{OK} {folder}")
 
 
-def scan_dir(folder):
+def scan_dir(folder, ignore):
   to_check = find_git_repos_under(folder)
   if len(to_check) == 0:
     print(f"No git repos found under {folder}")
@@ -75,6 +75,13 @@ def scan_dir(folder):
 
   for folder in to_check:
     try:
+      is_ignored = False
+      for i in ignore:
+        if i in folder:
+          is_ignored = True
+          break
+      if is_ignored:
+        continue
       scan_git_dir(folder)
     except Exception as e:
       print(f"Error whilst scanning {folder}:")
@@ -86,19 +93,29 @@ def main(args):
     print("Please specify one or more folders to scan")
     sys.exit(1)
 
+  ignore = []
   folders = []
+  last_switch = None
   for arg in args:
-    if arg == "--verbose" or arg == "-v":
-      verbose = True
+    if arg.startswith("-"):
+      last_switch = arg
       continue
+    if last_switch is not None:
+      if last_switch == "--verbose" or last_switch == "-v":
+        verbose = True
+      elif last_switch == "--ignore":
+        ignore.append(arg)
+      last_switch = None
+      continue
+    # finally, if it's not a switch or arg, it's a folder to check
     if os.path.isdir(arg):
       folders.append(arg)
     else:
       print(f"Folder not found: {arg}")
       sys.exit(3)
 
-  for folder in args:
-    scan_dir(folder)
+  for folder in folders:
+    scan_dir(folder, ignore)
 
 if __name__ == "__main__":
   main(sys.argv[1:])
