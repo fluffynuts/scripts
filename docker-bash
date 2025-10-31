@@ -1,0 +1,23 @@
+#!/bin/bash
+if test -z "$CONTAINER"; then
+  CONTAINER="$1"
+fi
+if test -z "$CONTAINER"; then
+  echo "looking for loadtest containers..."
+  CONTAINER="$(docker container ls | grep loadtest- | awk '{print $1}')"
+fi
+if test -z "$CONTAINER"; then
+  echo "No loadtest-* containers running"
+  exit 1
+fi
+echo "CONTAINER: $CONTAINER"
+COUNTAINER_COUNT="$(echo "$CONTAINER" | wc -l)"
+echo "CONTAINER_COUNT: ${CONTAINER_COUNT}"
+if test "$CONTAINER_COUNT" -gt 1; then
+  echo "Multiple loadtest-* containers are running. Kill the orphaned ones"
+  exit 1
+fi
+
+echo "Attempt to execute bash in container '${CONTAINER}'"
+
+docker exec -it $CONTAINER bash
