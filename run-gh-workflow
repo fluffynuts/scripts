@@ -167,7 +167,7 @@ def main():
             exit_code = 0
           else:
             exit_code = 2
-          notify_and_exit(exit_code, f"{repo_id}: completed: {latest_run["displayTitle"]}")
+          notify_and_exit(exit_code, f"{repo_id}: completed: {latest_run["displayTitle"]}\ngo there: {url}")
     time.sleep(5)
     if latest_run == False:
       if run_id is None:
