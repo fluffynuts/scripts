@@ -35,8 +35,11 @@ def read_current_branch(opts):
   return shell_exec(["git", "symbolic-ref", "--short", "HEAD"])
 
 def fetch_latest_run_for_branch(branch):
-  raw = shell_exec(["gh", "run", "list", "--branch", branch, "--json", jsonFields, "--limit", "1"])
-  return json.loads(raw)[0]
+  try:
+    raw = shell_exec(["gh", "run", "list", "--branch", branch, "--json", jsonFields, "--limit", "1"])
+    return json.loads(raw)[0]
+  except:
+    return False
 
 def fetch_run_for_branch(branch, number):
   try:
@@ -140,6 +143,10 @@ def main():
   latest_run = fetch_latest_run_for_branch(branch)
   run_id = None
   while True:
+    if latest_run == False:
+      latest_run = fetch_latest_run_for_branch(branch)
+      time.sleep(1)
+      continue
     if latest_run is None:
       message = f"{repo_id}: unable to query latest jobs for '{branch}'" if run_id is None else f"unable to query job {run_id} for branch '{branch}'"
       notify_and_exit(3, message)
