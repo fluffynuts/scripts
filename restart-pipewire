@@ -1,2 +1,2 @@
 #!/bin/bash
-systemctl --user restart pipewire
+systemctl --user restart wireplumber pipewire pipewire-pulse
