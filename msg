@@ -76,22 +76,22 @@ def hex_decode(s: str) -> str:
   return bytes.fromhex(raw).decode("utf-8")
 
 def main():
-  input = " ".join(sys.argv[1:])
-  fmt = determine_format(input)
+  raw_input = " ".join(sys.argv[1:])
+  fmt = determine_format(raw_input)
   # print(f"looks like {fmt}\n")
   if fmt == "binary":
-    print(binary_decode(input))
+    print(binary_decode(raw_input))
   elif fmt == "octal":
-    print(octal_decode(input))
+    print(octal_decode(raw_input))
   elif fmt == "hex":
-    print(hex_decode(input))
+    print(hex_decode(raw_input))
   elif fmt == "text":
     print("binary:")
-    print(text_to_bits(input))
+    print(text_to_bits(raw_input))
     print("octal:")
-    print(text_to_octal(input))
+    print(text_to_octal(raw_input))
     print("hex:")
-    print(text_to_hex(input))
+    print(text_to_hex(raw_input))
 
 
 def env_flag(name: str) -> bool:
