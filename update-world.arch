@@ -4,11 +4,11 @@ echo -e "\nPerforming updates from arch repos...\n"
 sudo pacman -Syu
 
 echo -e "\n\n${LINE_BREAK}\nPerforming AUR upgrades...\n"
-#if test -z "$GRIMAUR_LOCATION"; then
-#  GRIMAUR_LOCATION="${HOME}/code/opensource/grimaur/grimaur"
-#fi
 if test -x "$GRIMAUR_LOCATION"; then
   "$GRIMAUR_LOCATION" update
 else
   yay -Syu
 fi
+
+echo -e "\n\n${LINE_BREAK}\nRemoving unused dependencies...\n"
+sudo pacman -Rns "$(pacman -Qdtq)"
