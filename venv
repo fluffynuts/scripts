@@ -1,0 +1,79 @@
+#!/bin/bash
+EXIT_CODE_MULTIPLE_MATCHES=1
+EXIT_CODE_NOT_FOUND=2
+INVALID_VENV=3
+
+function err()
+{
+  echo "$@" >&2
+}
+
+function init_venv()
+{
+  err "would init venv now at '$(pwd)'"
+  python -m venv venv
+  source venv/bin/activate
+  echo "$(pwd)/venv"
+}
+
+function ask_yes_or_no {
+    while true; do
+        read -p "$* [Y/n]: " yn
+        case $yn in
+            [Yy]*) return 0  ;;
+            "") return 0     ;;
+            [Nn]*) return  1 ;;
+        esac
+    done
+}
+
+function find_env()
+{
+  AT="$1"
+  if test -z "$AT"; then
+    AT="$(pwd)"
+  fi
+  STARTED_AT="$AT"
+  LAST_AT="$AT"
+
+  FOUND=0
+  while true; do
+    RESULT="$(find "$AT" -maxdepth 2 -iname pyvenv.cfg 2>/dev/null)";
+    if test ! -z "$RESULT"; then
+      LINE_COUNT="$(echo "$RESULT" | wc -l)";
+      err "$LINE_COUNT"
+      if test "$LINE_COUNT" = "1"; then
+        echo "$(dirname "$RESULT")";
+        FOUND=1
+        break
+      fi
+      if test "$LINE_COUNT" != "1"; then
+        echo "Unable to choose between found virtual envs:"
+        echo "$RESULT"
+        exit $EXIT_CODE_MULTIPLE_MATCHES
+      fi
+    fi
+    AT="$(dirname "$AT")"
+    if test "$AT" = "$LAST_AT"; then
+      break
+    fi
+    LAST_AT="$AT"
+  done
+
+  if test "$FOUND" = "0"; then
+    # if we got here, we're perhaps ready to create one
+    ask_yes_or_no "virtual env not found, traversing up from '$STARTED_AT'. Create here? " && init_venv
+  fi
+}
+
+ENV_DIR="$(find_env "$(pwd)" | tail -n 1)"
+echo "Enabling env at: $ENV_DIR"
+ACTIVATE="${ENV_DIR}/bin/activate"
+if ! test -e "$ACTIVATE"; then
+  echo "$ACTIVATE not found in $ENV_DIR"
+  exit $INVALID_VENV
+fi
+
+set -o allexport
+source "$ACTIVATE"
+"$SHELL"
