@@ -67,6 +67,9 @@ function find_env()
 }
 
 ENV_DIR="$(find_env "$(pwd)" | tail -n 1)"
+if test -z "$ENV_DIR"; then
+  exit $EXIT_CODE_NOT_FOUND
+fi
 echo "Enabling env at: $ENV_DIR"
 ACTIVATE="${ENV_DIR}/bin/activate"
 if ! test -e "$ACTIVATE"; then
