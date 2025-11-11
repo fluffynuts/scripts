@@ -1,0 +1,14 @@
+#!/bin/bash
+if ! which autocutsel &> /dev/null; then
+  echo "autocutsel not found in the PATH"
+  exit 1
+fi
+
+if test -z "$(ps aux | grep autocutsel | grep -v grep | grep -- -fork)"; then
+  echo "launching autocutsel base"
+  autocutsel -fork
+fi
+if test -z "$(ps aux | grep autocutsel | grep -v grp | grep PRIMARY)"; then
+  echo "launching autocutsel PRIMARY"
+  autocutsel -s PRIMARY -fork
+fi
