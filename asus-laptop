@@ -1,0 +1,10 @@
+#!/bin/bash
+if ! which asusctl &> /dev/null; then
+  echo "asusctl not found in the PATH"
+  exit 1
+fi
+
+# disable panel overdrive
+asusctl armoury panel_overdrive 0
+# lower temp threshold for nvidia device
+asusctl armoury nv_temp_target 75
