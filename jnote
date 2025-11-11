@@ -1,15 +1,22 @@
 #!/bin/bash
+VENV_NAME="venv-$(basename $(pwd))"
+function activate()
+{
+  echo "activating venv: ${VENV_NAME}"
+  source "${VENV_NAME}/bin/activate"
+  pip install --upgrade pip
+}
+
 if ! test -d venv; then
   echo "venv not found... creating..."
-  python -m venv venv
-  echo "activating venv"
-  source venv/bin/activate
+  python -m venv "$VENV_NAME"
+  activate
   echo "installing jupyter into venv"
   pip install jupyter ipykernel
   echo "creating kernel for jupyter"
-  python -m ipykernel install --user --name venv
+  python -m ipykernel install --user --name "$VENV_NAME"
 else
-  source venv/bin/activate
+  activate
 fi
 
-jupyter notebook
+$SHELL -c "jupyter notebook"
