@@ -139,6 +139,13 @@ def main():
   branch = read_current_branch(opts)
   run_workflow_interactive(branch)
   last_run_before_start = fetch_latest_run_for_branch(branch)
+  if last_run_before_start == False:
+    last_run_before_start = fetch_latest_run_for_branch(branch)
+    for i in range(0, 10):
+      if last_run_before_start == False:
+        time.sleep(2)
+  if last_run_before_start == False:
+    notify_and_exit(3, "unable to query last run before start")
   have_seen_job = False
   latest_run = fetch_latest_run_for_branch(branch)
   run_id = None
