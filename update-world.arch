@@ -11,4 +11,4 @@ else
 fi
 
 echo -e "\n\n${LINE_BREAK}\nRemoving unused dependencies...\n"
-sudo pacman -Rns "$(pacman -Qdtq)"
+sudo pacman -Rns $(pacman -Qdtq)
