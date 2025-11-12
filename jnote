@@ -1,22 +1,23 @@
 #!/bin/bash
-VENV_NAME="venv-$(basename $(pwd))"
-function activate()
-{
-  echo "activating venv: ${VENV_NAME}"
-  source "${VENV_NAME}/bin/activate"
-  pip install --upgrade pip
-}
-
-if ! test -d venv; then
-  echo "venv not found... creating..."
-  python -m venv "$VENV_NAME"
-  activate
-  echo "installing jupyter into venv"
-  pip install jupyter ipykernel
-  echo "creating kernel for jupyter"
-  python -m ipykernel install --user --name "$VENV_NAME"
-else
-  activate
+if test -z "$1"; then
+  echo "arg1 is '$1'"
+  VENV_UTIL="$(dirname "$0")/venv"
+  if ! test -f "$VENV_UTIL"; then
+    echo "venv not found at $VENV_UTIL"
+    exit 1
+  fi
+  $VENV_UTIL "$0" start
+  exit $?
 fi
 
-$SHELL -c "jupyter notebook"
+case "$1" in
+  start)
+    pip install jupyter ipykernel jupyterlab-vim
+    python -m ipykernel install --user --name "venv-$(basename "$(pwd)")"
+    jupyter notebook
+    ;;
+  *)
+    echo "invalid argument: $1"
+    exit 2
+    ;;
+esac
