@@ -1,8 +1,39 @@
 #!/bin/bash
+function search_for_temp_es()
+{
+  docker container ls | grep temp_es | awk '{print $1}'
+}
+
+function s()
+{
+  if test "$1" -eq 1; then
+    echo ""
+  else
+    echo "s"
+  fi
+}
+
 COUNT=$(ps aux | grep mysqld | grep -- --port | wc -l)
 if test $COUNT -eq 0; then
   echo "No temporary mysqld processes found"
-  exit 0
+else
+  ps aux | grep mysqld | grep -- --port | awk '{print $2}' | xargs -r kill -15
+  echo "Killed $COUNT temporary mysqd processe$(s $COUNT)"
 fi
-ps aux | grep mysqld | grep -- --port | awk '{print $2}' | xargs -r kill -15
-echo "Killed $COUNT temporary mysqd processes"
+
+if ! which docker &> /dev/null; then
+  echo "docker not found"
+else
+  LINES="$(search_for_temp_es)"
+  if test ! -z "$LINES"; then
+    let KILLED=0
+    for line in "$LINES"; do
+      if docker container rm -f "$line"; then
+        let KILLED="$KILLED + 1"
+      fi
+    done
+    echo "Killed $KILLED temporary elastic search container$(s $KILLED)"
+  else
+    echo "No running temporary elastic search containers running."
+  fi
+fi
