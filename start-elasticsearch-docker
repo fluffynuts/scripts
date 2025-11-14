@@ -1,0 +1,32 @@
+#!/bin/bash
+VERSION=9.2.1
+
+if test -z "$ELASTIC_USER" && ! test -z "$ELASTIC_PASSWORD"; then
+  echo "env var PASS is set, but not USER"
+  exit 1
+fi
+
+if test -z "$ELASTIC_USER"; then
+  echo "starting without auth"
+  echo "set the following environment variables to enable auth:"
+  echo "  ELASTIC_USER"
+  echo "  ELASTIC_PASSWORD"
+else
+  echo "starting with auth: $ELASTIC_USER / $ELASTIC_PASSWORD"
+fi
+
+if test -z "$ELASTIC_PORT"; then
+  ELASTIC_PORT=9200
+fi
+
+docker pull elasticsearch:$VERSION
+docker run --rm --name elasticsearch_container \
+  -p ${ELASTIC_PORT}:${ELASTIC_PORT} \
+  -e ELASTIC_USERNAME=$ELASTIC_USER \
+  -e ELASTIC_PASSWORD=$ELASTIC_PASSWORD \
+  -e "discovery.type=single-node" \
+  -e "xpack.security.enabled=false" \
+  -e "http.port=${ELASTIC_PORT}" \
+  --cpus 2 \
+  --memory=2048m \
+  elasticsearch:$VERSION
