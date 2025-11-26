@@ -12,9 +12,8 @@ import tempfile
 debug_enabled = os.environ.get("DEBUG") == "1"
 profile_name = os.environ.get("COLOR_PROFILE")
 if profile_name is None:
-    profile_name = "purple"
+    profile_name = "fire"
 log_file = None
-#openrgb = "/home/daf/code/opensource/OpenRGB/openrgb"
 openrgb = "/usr/bin/openrgb"
 
 profiles = {
