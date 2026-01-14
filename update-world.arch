@@ -10,5 +10,7 @@ else
   yay -Syu
 fi
 
-echo -e "\n\n${LINE_BREAK}\nRemoving unused dependencies...\n"
-sudo pacman -Rns $(pacman -Qdtq)
+if ! test -z "$(pacman -Qdtq)"; then
+  echo -e "\n\n${LINE_BREAK}\nRemoving unused dependencies...\n"
+  sudo pacman -Rns $(pacman -Qdtq)
+fi
