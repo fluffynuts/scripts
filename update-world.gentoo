@@ -55,12 +55,18 @@ for arg in "$@"; do
   if test "$arg" = "-v" || test "$arg" = "--verbose"; then
     VERBOSE=1
   fi
+  if test "$arg" = "-c" || test "$arg" = "--continue"; then
+    NO_SYNC=1
+    ASK=""
+    continue
+  fi
   # assume left-over args are to emerge
   EMERGE_ARGS="$EMERGE_ARGS $arg"
 done
 if test ! -z "$HELP"; then
   echo "Usage: $(dirname $0) [options]"
   echo "OPTIONS:"
+  echo " -c, --continue      alias for --no-sync -y"
   echo " -h, --help          show this screeen and exit"
   echo " -n, --no-sync"
   echo " -o  --offline       skip online sync, just emerge updates"
