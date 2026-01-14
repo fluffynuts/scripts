@@ -1,0 +1,29 @@
+#!/bin/bash
+if test -z "$PUSH_APPTOKEN"; then
+  echo "env var PUSH_APPTOKEN not defined"
+  exit 1
+fi
+if test -z "$PUSH_USERTOKEN"; then
+  echo "env var PUSH_USERTOKEN not defined"
+  exit 1
+fi
+
+TITLE="$1"
+MESSAGE="$2"
+
+if test -z "$MESSAGE"; then
+  MESSAGE="$TITLE"
+  TITLE="Alert!"
+fi
+
+if test -z "$TITLE"; then
+  echo "Usage: $0 \"<title>\" \"<message>\" sends the message with the title"
+  echo "       $0 \"<message>\" sends the message with a generic title"
+  exit 2
+fi
+
+if ! curl -s --form-string "token=${PUSH_APPTOKEN}" --form-string "user=${PUSH_USERTOKEN}" --form-string "title=$TITLE" --form-string "message=${MESSAGE}" https://api.pushover.net/1/messages.json &> /tmp/push-$$.out; then
+  echo "Error: $(cat /tmp/push-$$.out)"
+else
+  echo "Sent!"
+fi
