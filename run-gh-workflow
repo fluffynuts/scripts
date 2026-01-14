@@ -88,15 +88,24 @@ def log(s):
   print(f"{timestamp(s)}")
 
 def notify_and_exit(exit_code, message):
+  if exit_code == 0:
+    title = "GitHub action complete"
+  else:
+    title = "GitHub action errored"
   if shutil.which("notify-send") is not None:
     if exit_code == 0:
-      shell_exec(["notify-send", "-i", "dialog-information", "GitHub action complete", message])
+      shell_exec(["notify-send", "-i", "dialog-information", title, message])
     else:
-      shell_exec(["notify-send", "-i", "dialog-error", "GitHub action errored", message])
+      shell_exec(["notify-send", "-i", "dialog-error", title, message])
   if exit_code == 0:
     log(colorise(Fore.GREEN, message))
   else:
     log(colorise(Fore.RED, message))
+  if shutil.which("push") is not None:
+    try:
+      shell_exec(["push", title, message])
+    except:
+      pass
   sys.exit(exit_code)
 
 def print_help_and_exit():
