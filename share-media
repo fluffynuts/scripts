@@ -26,9 +26,9 @@ CMD="$BITSPLAT --mode opt-in --keep-stale $QUIET"
 if test ! -d "$TARGET/series"; then
   mkdir "$TARGET/series"
 fi
-if test ! -d "$TARGET/movies"; then
-  mkdir "$TARGET/movies"
-fi
+#if test ! -d "$TARGET/movies"; then
+#  mkdir "$TARGET/movies"
+#fi
 
 BACKUP_BASE="/mnt/dump/sync-db-backup/$(basename $TARGET)"
 if test ! -e "$BACKUP_BASE"; then
@@ -77,7 +77,7 @@ for src in /mnt/series/series /mnt/series/series_ /mnt/piggy/series/watched /mnt
 done
 backup_db series
 
-echo "=== share new movies ==="
-restore_db_if_missing movies
-$BITSPLAT $QUIET --keep-stale -s "/mnt/monolith/movies" -t "$TARGET/movies"
-backup_db movies
+#echo "=== share new movies ==="
+#restore_db_if_missing movies
+#$BITSPLAT $QUIET --keep-stale -s "/mnt/monolith/movies" -t "$TARGET/movies"
+#backup_db movies
