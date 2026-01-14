@@ -1,0 +1,6 @@
+#!/bin/bash
+if ! which systemctl &> /dev/null; then
+  echo "systemctl not found"
+  exit 1
+fi
+systemctl restart --user plasma-powerdevil.service
