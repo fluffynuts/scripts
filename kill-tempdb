@@ -13,27 +13,53 @@ function s()
   fi
 }
 
-COUNT=$(ps aux | grep mysqld | grep -- --port | wc -l)
-if test $COUNT -eq 0; then
-  echo "No temporary mysqld processes found"
-else
-  ps aux | grep mysqld | grep -- --port | awk '{print $2}' | xargs -r kill -15
-  echo "Killed $COUNT temporary mysqd processe$(s $COUNT)"
-fi
-
-if ! which docker &> /dev/null; then
-  echo "docker not found"
-else
-  LINES="$(search_for_temp_es)"
-  if test ! -z "$LINES"; then
-    let KILLED=0
-    for line in "$LINES"; do
-      if docker container rm -f "$line"; then
-        let KILLED="$KILLED + 1"
-      fi
-    done
-    echo "Killed $KILLED temporary elastic search container$(s $KILLED)"
+function kill_tempdb_mysql()
+{
+  COUNT=$(ps aux | grep mysqld | grep -- --port | wc -l)
+  if test $COUNT -eq 0; then
+    echo "No temporary mysqld processes found"
   else
-    echo "No running temporary elastic search containers running."
+    ps aux | grep mysqld | grep -- --port | awk '{print $2}' | xargs -r kill -15
+    echo "Killed $COUNT temporary mysqd processe$(s $COUNT)"
   fi
-fi
+}
+
+function kill_elasticsearch_docker()
+{
+  if ! which docker &> /dev/null; then
+    echo "docker not found"
+  else
+    LINES="$(search_for_temp_es)"
+    if test ! -z "$LINES"; then
+      let KILLED=0
+      for line in "$LINES"; do
+        if docker container rm -f "$line"; then
+          let KILLED="$KILLED + 1"
+        fi
+      done
+      echo "Killed $KILLED temporary elastic search container$(s $KILLED)"
+    else
+      echo "No running temporary elastic search containers running."
+    fi
+  fi
+}
+
+function list_redis_processes()
+{
+  ps eao pid,args | grep redis | grep -v grep | grep -v 6379 | awk '{print $1}'
+}
+
+function kill_temp_redis()
+{
+  COUNT="$(list_redis_processes | wc -l)"
+  if test $COUNT -eq 0; then
+    echo "no temporary redis processes found"
+  else
+    list_redis_processes | xargs -r kill -15
+    echo "Killed $COUNT temporary redis processes"
+  fi 
+}
+
+kill_tempdb_mysql
+kill_elasticsearch_docker
+kill_temp_redis
