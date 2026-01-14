@@ -1,10 +1,10 @@
 #!/bin/bash
 UUID=$(uuidgen)
 if which wl-copy &> /dev/null; then
-  echo $UUID | wl-copy
+  echo -n $UUID | wl-copy
 fi
 if which xclip &> /dev/null; then
-  echo $UUID | xclip
+  echo -n $UUID | xclip
 fi
 echo $UUID
 
