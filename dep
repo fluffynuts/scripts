@@ -27,15 +27,21 @@ def print_array(a, title):
   for i in a:
     print(f"- {i}")
 
+def generate_deps_lines(deps) -> list[str]:
+  result = []
+  for key in sorted(deps.keys()):
+    result.append(f"{key}: {deps[key]}")
+  return result
+
 def perform_dep_search(deps, text, title):
   if text is None:
-    print_array(deps.keys(), title)
+    print_array(generate_deps_lines(deps), title)
     return
   collected = []
-  for item in deps:
-    lower = item.lower()
+  for key in deps.keys():
+    lower = key.lower()
     if lower.find(text) > -1:
-      collected.append(item)
+      collected.append(f"{key}: {deps[key]}")
   print_array(collected, title)
 
 def perform_sectional_search(package, text, section):
