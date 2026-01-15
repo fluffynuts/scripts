@@ -1,0 +1,61 @@
+#!/bin/env python
+import sys
+import os
+import json
+from os import path
+
+def find_package_json():
+  current = os.getcwd()
+  last = ""
+  while last != current:
+    last = current
+    test = path.join(current, "package.json")
+    if path.isfile(test):
+      return test
+    current = path.dirname(current)
+  return ""
+
+def load_json(at):
+  with open(at) as fp:
+    raw = fp.read()
+    return json.loads(raw)
+
+def print_array(a, title):
+  if len(a) == 0:
+    return
+  print(title)
+  for i in a:
+    print(f"- {i}")
+
+def perform_dep_search(deps, text, title):
+  if text is None:
+    print_array(deps.keys(), title)
+    return
+  collected = []
+  for item in deps:
+    lower = item.lower()
+    if lower.find(text) > -1:
+      collected.append(item)
+  print_array(collected, title)
+
+def perform_sectional_search(package, text, section):
+  if section in package:
+    perform_dep_search(package[section], text, section)
+
+def perform_search(package, text):
+  perform_sectional_search(package, text, "dependencies")
+  perform_sectional_search(package, text, "devDependencies")
+
+if __name__ == "__main__":
+  package_json = find_package_json()
+  if package_json == "":
+    print(f"no package.json found whilst traversing up from {os.getcwd()}")
+    sys.exit(1)
+
+  pkg = load_json(package_json)
+  if len(sys.argv) > 1:
+    search = sys.argv[1].lower()
+  else:
+    search = None
+
+  perform_search(pkg, search)
