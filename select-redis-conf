@@ -1,0 +1,61 @@
+#!/bin/env python
+import os
+import sys
+import getpass
+import shutil
+import subprocess
+
+EXIT_CODE_NO_ALTERNATIVES = 1
+EXIT_CODE_ELEVATION_REQUIRED = 2
+REDIS_CONF_DIR = "/etc/redis"
+
+def main():
+  all_items = os.listdir(REDIS_CONF_DIR)
+  alternatives = []
+  for item in all_items:
+    if item.startswith("redis.conf-"):
+      alternatives.append(item)
+  if len(alternatives) == 0:
+    print(
+      f"""
+      No alternative redis.conf files were found at {REDIS_CONF_DIR}.
+      To use this tool, you should create files like:
+        /etc/redis/redis.conf-foo
+        /etc/redis/redis.conf-bar
+      """
+    )
+    sys.exit(EXIT_CODE_NO_ALTERNATIVES)
+
+  print("Select a redis config to use:")
+  choice = 0
+  while choice < 1 or choice > len(alternatives):
+    for i, option in enumerate(alternatives, start=1):
+      print(f"{i}. {option}")
+    choice = input("Enter selection: ")
+    if not choice.isdigit():
+      choice = 0
+      continue
+    choice = int(choice)
+
+  selected = alternatives[choice - 1]
+  print(f"You selected: {selected}")
+  full_source_path = os.path.join(REDIS_CONF_DIR, selected)
+  full_target_path = os.path.join(REDIS_CONF_DIR, "redis.conf")
+  shutil.copy(full_source_path, full_target_path)
+  if shutil.which("systemctl", path=None) is not None:
+    subprocess.run(["sudo", "systemctl", "restart", "redis"])
+  elif shutil.which("rc-service") is not None:
+    subprocess.run(["sudo", "rc-service", "restart", "redis"])
+  else:
+    print("Redis service requires a restart")
+
+
+def verify_elevated():
+  if getpass.getuser() != "root":
+    print("Please run this script with sudo")
+    sys.exit(EXIT_CODE_ELEVATION_REQUIRED)
+
+
+if __name__ == "__main__":
+  verify_elevated()
+  main()
