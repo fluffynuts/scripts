@@ -1,0 +1,12 @@
+#!/bin/bash
+KILLED="$(docker ps | awk 'NR > 1' | awk '{print $1}' | xargs -r docker rm -f)"
+if test -z "$KILLED"; then
+  COUNT=0
+else
+  COUNT="$(echo "$KILLED" | wc -l)"
+fi
+if test "$COUNT" = "0"; then
+  echo "nothing to do"
+else
+  echo "killed $COUNT containers"
+fi
