@@ -3,6 +3,8 @@ import sys
 import os
 import json
 from os import path
+import json
+import subprocess
 
 def find_package_json():
   current = os.getcwd()
@@ -27,15 +29,20 @@ def print_array(a, title):
   for i in a:
     print(f"- {i}")
 
-def generate_deps_lines(deps) -> list[str]:
+def generate_deps_lines(deps, fetch_latest_version=False) -> list[str]:
   result = []
   for key in sorted(deps.keys()):
-    result.append(f"{key}: {deps[key]}")
+    if fetch_latest_version:
+      proc = subprocess.run(["npm", "show", "--json", key ], capture_output=True)
+      pkginfo = json.loads(proc.stdout)
+      result.append(f"{key}: {deps[key]} ({pkginfo["versions"][-1]})")
+    else:
+      result.append(f"{key}: {deps[key]}")
   return result
 
-def perform_dep_search(deps, text, title):
+def perform_dep_search(deps, text, title, fetch_latest_version=False):
   if text is None:
-    print_array(generate_deps_lines(deps), title)
+    print_array(generate_deps_lines(deps, fetch_latest_version), title)
     return
   collected = []
   for key in deps.keys():
@@ -44,13 +51,13 @@ def perform_dep_search(deps, text, title):
       collected.append(f"{key}: {deps[key]}")
   print_array(collected, title)
 
-def perform_sectional_search(package, text, section):
+def perform_sectional_search(package, text, section, fetch_latest_version=False):
   if section in package:
-    perform_dep_search(package[section], text, section)
+    perform_dep_search(package[section], text, section, fetch_latest_version)
 
-def perform_search(package, text):
-  perform_sectional_search(package, text, "dependencies")
-  perform_sectional_search(package, text, "devDependencies")
+def perform_search(package, text, fetch_latest_version=False):
+  perform_sectional_search(package, text, "dependencies", fetch_latest_version)
+  perform_sectional_search(package, text, "devDependencies", fetch_latest_version)
 
 if __name__ == "__main__":
   package_json = find_package_json()
@@ -58,10 +65,29 @@ if __name__ == "__main__":
     print(f"no package.json found whilst traversing up from {os.getcwd()}")
     sys.exit(1)
 
-  pkg = load_json(package_json)
-  if len(sys.argv) > 1:
-    search = sys.argv[1].lower()
-  else:
-    search = None
+  fetch_latest_version = "-v" in sys.argv or "--verbose" in sys.argv
+  show_help = "-h" in sys.argv or "--help" in sys.argv
 
-  perform_search(pkg, search)
+  if show_help:
+    print("Usage: dep {--verbose} {<search>}")
+    print("       run without args: prints all dependencies")
+    print("       dep foo: show packages containing foo (version & type of dependency)")
+    print("       dep --verbose foo: show packages containing 'foo' and print their upstream versions")
+    sys.exit(0)
+
+  search_args = []
+  for arg in sys.argv[1:]:
+    if arg.startswith("-"):
+      continue
+    search_args.append(arg)
+
+  pkg = load_json(package_json)
+  if len(search_args) > 0:
+    if len(search_args) == 1:
+      perform_search(pkg, search_args[0], fetch_latest_version)
+    else:
+      for item in search_args:
+        print(f"search: {item}")
+        perform_search(pkg, item, fetch_latest_version)
+  else:
+    perform_search(pkg, None, fetch_latest_version)
