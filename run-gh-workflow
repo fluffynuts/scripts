@@ -60,7 +60,10 @@ def read_github_repo_url():
   return parts[1].replace("git@github.com:", "https://github.com/").replace(".git", "")
 
 def run_workflow_interactive(branch):
-  proc = subprocess.run(["gh", "workflow", "run", "--ref", branch])
+  args = [ "gh", "workflow", "run", "--ref", branch ]
+  extra_args = split_options()[1]
+  args.extend(extra_args)
+  proc = subprocess.run(args)
   if proc.returncode != 0:
       print(f"gh workflow command failed or aborted (exit code {proc.returncode}, exiting")
       sys.exit(proc.returncode)
@@ -119,8 +122,25 @@ usage: run-gh-workflow {--branch <branch>}
   )
   sys.exit(0)
 
+def split_options() -> list[list[str], list[str]]:
+  all_args = sys.argv[1:]
+  before: list[str] = []
+  after: list[str] = []
+  found_double_dash = False
+  for arg in all_args:
+    if arg == "--":
+      found_double_dash = True
+      continue
+
+    if found_double_dash:
+      after.append(arg)
+    else:
+      before.append(arg)
+
+  return [before, after]
+
 def gather_options():
-  args = sys.argv[1:]
+  args = split_options()[0]
   options = "hb:"
   long_options = [ "help", "branch=" ]
   result = {}
