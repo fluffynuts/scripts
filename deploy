@@ -1,0 +1,69 @@
+#!/bin/env python3
+import sys
+import subprocess
+import os
+
+EXIT_CODE_NO_ENV = 1
+EXIT_CODE_BAD_ENV = 2
+EXIT_CODE_NO_WORKFLOWS = 3
+
+def find_workflows_folder():
+    current = os.getcwd()
+    last = ""
+    while current != last:
+        last = current
+        test = os.path.join(current, ".github", "workflows")
+        if os.path.isdir(test):
+            return test
+        current = os.path.dirname(current)
+    print(f"Unable to find .github folder, searching up from {os.getcwd()}")
+    sys.exit(EXIT_CODE_NO_WORKFLOWS)
+
+def find_workflow_name():
+    workflow_folder = find_workflows_folder()
+    for f in os.listdir(workflow_folder):
+        full_path = os.path.join(workflow_folder, f)
+        with open(full_path, "r", encoding="utf-8") as fp:
+            lines = fp.readlines()
+        for line in lines:
+            parts = line.split(":")
+            if parts[0].strip() == "name":
+                workflow_name = parts[1].strip().lower()
+                if "deploy" in workflow_name and "staging" in workflow_name:
+                    return workflow_name
+            if parts[0] == "on":
+                # no need testing the rest of this file
+                # -> we're already into the triggers stanza
+                #    (assumes consistent layout with the name at the top)
+                break
+    return None
+
+
+def deploy():
+    if len(sys.argv) < 2:
+        print("Please specify the environment (1 or 2)")
+        sys.exit(EXIT_CODE_NO_ENV)
+    env = sys.argv[1].strip()
+    if env == "1":
+        env = "staging-za"
+    elif env == "2":
+        env = "staging2-za"
+    else:
+        print(f"Valid environment values are 1 or 2, not {env}")
+        sys.exit(EXIT_CODE_BAD_ENV)
+
+    workflow_name = find_workflow_name()
+    if workflow_name is None:
+        print(f"Unable to find a workflow with a name containing 'deploy' and 'staging'")
+
+    subprocess.run([
+        "run-gh-workflow",
+        "--",
+        workflow_name,
+        "--field",
+        f"deploy_to={env}"
+    ])
+
+
+if __name__ == "__main__":
+    deploy()
