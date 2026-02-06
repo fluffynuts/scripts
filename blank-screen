@@ -1,5 +1,9 @@
 #!/bin/bash
-for ((i=0;$i<10;i++)); do
-  sleep 1
-  xset dpms force off
-done
+if test "$XDG_SESSION_TYPE" = "wayland"; then
+  sleep 1 && dbus-send --session --print-reply --dest=org.kde.kglobalaccel /component/org_kde_powerdevil org.kde.kglobalaccel.Component.invokeShortcut string:'Turn Off Screen'
+else
+  for ((i=0;$i<10;i++)); do
+    sleep 1
+    xset dpms force off
+  done
+fi
