@@ -1,9 +1,7 @@
 #!/bin/bash
 LINE_BREAK="-------------------------------"
-echo -e "\nPerforming updates from arch repos...\n"
-sudo pacman -Syu
 
-echo -e "\n\n${LINE_BREAK}\nPerforming AUR upgrades...\n"
+echo -e "Upgrading all the things..."
 if test -x "$GRIMAUR_LOCATION"; then
   "$GRIMAUR_LOCATION" update
 else
