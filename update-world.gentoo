@@ -5,6 +5,7 @@ HELP=""
 PRETEND=""
 RECEIVING_EMERGE_ARGS=""
 EMERGE_ARGS=""
+WAIT=""
 RED="\033[1;31m"
 RESET="\033[0m"
 function check_is_root()
@@ -26,6 +27,8 @@ function clear_ccache_log()
     rm -f "$CCACHE_LOG_FILE"
   fi
 }
+
+LAST_ARG=""
 
 for arg in "$@"; do
   if test "$arg" = "--"; then
@@ -60,6 +63,15 @@ for arg in "$@"; do
     ASK=""
     continue
   fi
+  if test "$arg" = "-w" || test "$arg" = "--wait"; then
+    LAST_ARG="WAIT"
+    continue
+  fi
+  if test "$LAST_ARG" = "WAIT"; then
+    LAST_ARG=""
+    WAIT="$arg"
+    continue
+  fi
   # assume left-over args are to emerge
   EMERGE_ARGS="$EMERGE_ARGS $arg"
 done
@@ -72,9 +84,19 @@ if test ! -z "$HELP"; then
   echo " -o  --offline       skip online sync, just emerge updates"
   echo " -y, --yes           skip emerge confirmation (opposite of default -a)"
   echo " -v, --verbose       more verbose output (and build logs)"
+  echo " -w, --wait          delay before actually working, passed to sleep"
   echo " --                  options provided after this are passed to emerge"
   exit 0
 fi
+
+if test ! -z "$WAIT"; then
+  echo "sleeping for $WAIT before doing any actual work"
+  sleep $WAIT;
+  if test $? -ne 0; then
+    echo "invalid wait time: specify a string that sleep would understand"
+  fi
+fi
+
 if test -z "$NO_SYNC"; then
   check_is_root $@
   if ! emerge --sync; then
