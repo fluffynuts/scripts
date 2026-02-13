@@ -1,0 +1,323 @@
+#!/usr/bin/env python3
+"""
+dump-files: Concatenate file contents into a single text file with path headers.
+
+Usage:
+    dump-files /path/to/folder /path/to/file /path/to/glob/*.conf
+    dump-files -o output.txt src/ README.md config/*.yaml
+
+Output format:
+    [{relative/path/to/file}]
+    <file contents>
+
+Each entry is separated by a blank line.
+"""
+
+import argparse
+import glob
+import os
+import sys
+from pathlib import Path
+
+
+def resolve_inputs(patterns: list[str]) -> list[Path]:
+    """
+    Resolve a list of input patterns into a sorted, deduplicated list of file paths.
+
+    Each pattern can be:
+      - A directory: recursively includes all files within it.
+      - A file: includes that file directly.
+      - A glob pattern: includes all matching files.
+    """
+    files: set[Path] = set()
+
+    for pattern in patterns:
+        path = Path(pattern)
+
+        if path.is_dir():
+            for child in path.rglob("*"):
+                if child.is_file():
+                    files.add(child.resolve())
+        elif path.is_file():
+            files.add(path.resolve())
+        else:
+            # Treat as a glob pattern
+            for match in glob.glob(pattern, recursive=True):
+                match_path = Path(match)
+                if match_path.is_file():
+                    files.add(match_path.resolve())
+
+    return sorted(files)
+
+
+def build_output(files: list[Path], base_dir: Path | None = None) -> str:
+    """
+    Build the concatenated output string.
+
+    Each file is represented as:
+        [{relative_or_absolute_path}]
+        <contents>
+
+    Entries are separated by a blank line.
+
+    If base_dir is provided, paths are shown relative to it.
+    Otherwise, paths are shown relative to cwd.
+    """
+    if base_dir is None:
+        base_dir = Path.cwd()
+
+    sections: list[str] = []
+
+    for filepath in files:
+        try:
+            display_path = filepath.relative_to(base_dir)
+        except ValueError:
+            display_path = filepath
+
+        try:
+            content = filepath.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            print(f"Warning: skipping {filepath}: {exc}", file=sys.stderr)
+            continue
+
+        line = "=" * (len(str(display_path)) + 2)
+        sections.append(f"[{display_path}]\n{line}\n{content}\n{line}")
+
+    return "\n\n".join(sections) + "\n" if sections else ""
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="dump-files",
+        description="Dump file contents into a single text file with path headers.",
+    )
+    parser.add_argument(
+        "inputs",
+        nargs="*",
+        metavar="PATH",
+        help="Files, directories, or glob patterns to include.",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        default=None,
+        help="Output file path. Defaults to stdout.",
+    )
+    parser.add_argument(
+        "--test",
+        action="store_true",
+        help="Run the built-in test suite and exit.",
+    )
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+
+    if args.test:
+        try:
+            import pytest  # noqa: F811
+        except ImportError:
+            print("Error: pytest is required to run tests. Install it with: pip install pytest", file=sys.stderr)
+            return 1
+        # Forward remaining args to pytest (strip --test itself)
+        pytest_args = [a for a in (argv or sys.argv[1:]) if a != "--test"]
+        return pytest.main([__file__, "-v"] + pytest_args)
+
+    if not args.inputs:
+        parser.error("the following arguments are required: PATH")
+
+    files = resolve_inputs(args.inputs)
+
+    if not files:
+        print("No files matched the given inputs.", file=sys.stderr)
+        return 1
+
+    output = build_output(files)
+
+    if args.output:
+        Path(args.output).write_text(output, encoding="utf-8")
+        print(f"Wrote {len(files)} file(s) to {args.output}", file=sys.stderr)
+    else:
+        sys.stdout.write(output)
+
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# Tests (run with: pytest dump_files.py or python -m pytest dump_files.py)
+# ---------------------------------------------------------------------------
+
+try:
+    import pytest
+except ImportError:
+    # Allow the script to be used as a CLI tool without pytest installed.
+    # Tests simply won't be collected.
+    if __name__ != "__main__":
+        raise
+    sys.exit(main())
+
+
+@pytest.fixture
+def sample_tree(tmp_path: Path) -> Path:
+    """
+    Create a sample file tree:
+
+        tmp_path/
+        ├── src/
+        │   ├── main.py
+        │   └── utils/
+        │       └── helper.py
+        ├── config/
+        │   ├── app.conf
+        │   └── db.conf
+        ├── readme.txt
+        └── notes.log
+    """
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "utils").mkdir()
+    (tmp_path / "config").mkdir()
+
+    (tmp_path / "src" / "main.py").write_text("print('hello')\n", encoding="utf-8")
+    (tmp_path / "src" / "utils" / "helper.py").write_text("def help(): ...\n", encoding="utf-8")
+    (tmp_path / "config" / "app.conf").write_text("key=value\n", encoding="utf-8")
+    (tmp_path / "config" / "db.conf").write_text("host=localhost\n", encoding="utf-8")
+    (tmp_path / "readme.txt").write_text("Read me!\n", encoding="utf-8")
+    (tmp_path / "notes.log").write_text("some log\n", encoding="utf-8")
+
+    return tmp_path
+
+
+class TestResolveInputs:
+    def test_single_file(self, sample_tree: Path):
+        result = resolve_inputs([str(sample_tree / "readme.txt")])
+        assert len(result) == 1
+        assert result[0].name == "readme.txt"
+
+    def test_directory_recursive(self, sample_tree: Path):
+        result = resolve_inputs([str(sample_tree / "src")])
+        names = {f.name for f in result}
+        assert names == {"main.py", "helper.py"}
+
+    def test_glob_pattern(self, sample_tree: Path):
+        result = resolve_inputs([str(sample_tree / "config" / "*.conf")])
+        names = {f.name for f in result}
+        assert names == {"app.conf", "db.conf"}
+
+    def test_mixed_inputs(self, sample_tree: Path):
+        result = resolve_inputs([
+            str(sample_tree / "src"),
+            str(sample_tree / "readme.txt"),
+            str(sample_tree / "config" / "*.conf"),
+        ])
+        names = {f.name for f in result}
+        assert names == {"main.py", "helper.py", "readme.txt", "app.conf", "db.conf"}
+
+    def test_deduplication(self, sample_tree: Path):
+        result = resolve_inputs([
+            str(sample_tree / "readme.txt"),
+            str(sample_tree / "readme.txt"),
+        ])
+        assert len(result) == 1
+
+    def test_no_matches_returns_empty(self, tmp_path: Path):
+        result = resolve_inputs([str(tmp_path / "nonexistent_*.xyz")])
+        assert result == []
+
+    def test_sorted_output(self, sample_tree: Path):
+        result = resolve_inputs([str(sample_tree)])
+        assert result == sorted(result)
+
+
+class TestBuildOutput:
+    def test_output_format(self, sample_tree: Path):
+        files = [sample_tree / "readme.txt"]
+        output = build_output(files, base_dir=sample_tree)
+
+        assert output == "[readme.txt]\nRead me!\n\n"
+
+    def test_multiple_files_separated_by_blank_line(self, sample_tree: Path):
+        files = sorted([
+            sample_tree / "config" / "app.conf",
+            sample_tree / "config" / "db.conf",
+        ])
+        output = build_output(files, base_dir=sample_tree)
+
+        assert "[config/app.conf]" in output
+        assert "[config/db.conf]" in output
+        # Sections separated by double newline
+        sections = output.strip().split("\n\n")
+        assert len(sections) == 2
+
+    def test_relative_paths(self, sample_tree: Path):
+        files = [sample_tree / "src" / "utils" / "helper.py"]
+        output = build_output(files, base_dir=sample_tree)
+
+        assert output.startswith("[src/utils/helper.py]")
+
+    def test_empty_input(self):
+        assert build_output([]) == ""
+
+    def test_skips_unreadable_file(self, sample_tree: Path, capsys):
+        bad_file = sample_tree / "binary.bin"
+        bad_file.write_bytes(b"\x80\x81\x82" * 100)
+
+        files = [sample_tree / "readme.txt", bad_file]
+        output = build_output(files, base_dir=sample_tree)
+
+        # Should still contain the readable file
+        assert "[readme.txt]" in output
+
+
+class TestCLIIntegration:
+    def test_output_to_file(self, sample_tree: Path, tmp_path: Path):
+        out_file = tmp_path / "dump.txt"
+        rc = main([
+            str(sample_tree / "readme.txt"),
+            "-o", str(out_file),
+        ])
+        assert rc == 0
+        content = out_file.read_text(encoding="utf-8")
+        assert "Read me!" in content
+
+    def test_mixed_inputs_to_file(self, sample_tree: Path, tmp_path: Path):
+        out_file = tmp_path / "dump.txt"
+        rc = main([
+            str(sample_tree / "src"),
+            str(sample_tree / "readme.txt"),
+            str(sample_tree / "config" / "*.conf"),
+            "-o", str(out_file),
+        ])
+        assert rc == 0
+        content = out_file.read_text(encoding="utf-8")
+        assert "print('hello')" in content
+        assert "Read me!" in content
+        assert "key=value" in content
+
+    def test_stdout_default(self, sample_tree: Path, capsys):
+        rc = main([str(sample_tree / "readme.txt")])
+        assert rc == 0
+        captured = capsys.readouterr()
+        assert "[" in captured.out
+        assert "Read me!" in captured.out
+
+    def test_no_matches_returns_error(self, tmp_path: Path):
+        rc = main([str(tmp_path / "nope_*.xyz")])
+        assert rc == 1
+
+    def test_output_file_header_format(self, sample_tree: Path, tmp_path: Path):
+        out_file = tmp_path / "dump.txt"
+        main([
+            str(sample_tree / "config" / "app.conf"),
+            "-o", str(out_file),
+        ])
+        content = out_file.read_text(encoding="utf-8")
+        lines = content.splitlines()
+        # First line should be a header in [path] format
+        assert lines[0].startswith("[")
+        assert lines[0].endswith("]")
+
+
+if __name__ == "__main__":
+    sys.exit(main())
