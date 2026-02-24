@@ -130,7 +130,7 @@ if test "$PORTAGE_INSTALLED_VERSION" != "$PORTAGE_AVAILABLE_VERSION"; then
   fi
 fi
 clear_ccache_log
-if test -z "$(echo $EMERGE_ARGS | grep -i backtrack=)"; then
+if test -z "$(echo "$EMERGE_ARGS" | grep -i backtrack=)"; then
   EMERGE_ARGS="$EMERGE_ARGS --backtrack=256"
 fi
 if $IONICE emerge --update --newuse --changed-use --deep --changed-deps --keep-going @world $ASK $EMERGE_ARGS; then
@@ -140,7 +140,7 @@ if $IONICE emerge --update --newuse --changed-use --deep --changed-deps --keep-g
   emerge --depclean $ASK $PRETEND
 fi
 
-KERNEL_REBUILDER="$(dirname $0)/build-kernel-if-updated-today"
+KERNEL_REBUILDER="$(dirname "$0")/build-kernel-if-necessary"
 if test -f "$KERNEL_REBUILDER"; then
   $KERNEL_REBUILDER
 fi

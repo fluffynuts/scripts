@@ -1,0 +1,25 @@
+#!/bin/bash
+NO_USR_SRC_LINUX=1
+NO_BUILDER=2
+
+GREEN="\033[01;32m"
+RESET="\033[0m"
+
+if ! test -e /usr/src/linux; then
+  echo "/usr/src/linux does not exist; symlink is required"
+  exit $NO_USR_SRC_LINUX
+fi
+
+SOURCES_VERSION="$(readlink /usr/src/linux | grep -oP '(?<=-)(\d+\.\d+\.\d+)(?=-)')"
+
+if ls /boot/*"${SOURCES_VERSION}"* &> /dev/null; then
+  exit 0
+fi
+
+BUILDER="$(dirname "$0")/rebuild-kernel"
+if test ! -x "$BUILDER"; then
+  echo "$BUILDER not found or not executable."
+  exit $NO_BUILDER
+fi
+echo -e "${GREEN}Kernel updated to ${SOURCES_VERSION}. Building now.${RESET}"
+$BUILDER
