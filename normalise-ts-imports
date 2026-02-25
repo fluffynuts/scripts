@@ -1,0 +1,292 @@
+#!/bin/env python3
+#!/usr/bin/env python3
+"""
+Recursively finds all .ts files under a folder and updates local imports:
+- Resolves relative imports (starting with '.') and aliased imports
+- If a bare directory import resolves to a folder containing index.ts,
+  rewrites the import to include the explicit /index path
+- Verifies that the target file actually exists, warns if not
+
+Usage:
+    python fix-ts-imports.py <root_folder> [--alias @=./src] [--dry-run] [--verbose]
+
+The "@" alias defaults to <root_folder> if not explicitly set.
+Use --alias multiple times for additional aliases.
+
+Examples:
+    # Uses default @ = ./src
+    python fix-ts-imports.py ./src --dry-run
+
+    # Override @ and add a second alias
+    python fix-ts-imports.py ./src --alias @=./src/app --alias ~=./src/shared --dry-run
+
+    # Explicit @ alias (same as default in this case)
+    python fix-ts-imports.py ./src --alias @=./src
+"""
+
+import argparse
+import re
+import sys
+from pathlib import Path
+
+
+# Known TypeScript extensions to try when resolving bare specifiers
+TS_EXTENSIONS = [".ts", ".tsx", ".d.ts", ".js", ".jsx"]
+
+
+def build_import_re(aliases: dict[str, Path]) -> re.Pattern:
+    """
+    Build a regex that matches import/export statements whose path starts
+    with '.' or any of the configured alias prefixes (e.g. '@/', '~/', '#/').
+    """
+    # Escape alias prefixes for regex and build alternation.
+    # Each alias like "@" should match "@/" at the start of the import path.
+    alias_patterns = [re.escape(prefix) + "/" for prefix in sorted(aliases.keys(), key=len, reverse=True)]
+
+    # Combine: relative paths (starting with .) OR any alias prefix
+    path_alts = r"\." + ("|" + "|".join(alias_patterns) if alias_patterns else "")
+
+    return re.compile(
+        rf"""^(\s*(?:import|export)\s+(?:type\s+)?(?:.*?\s+from\s+|))(['"])({path_alts}.*?)\2(.*)$""",
+        re.MULTILINE,
+    )
+
+
+def find_matching_alias(import_path: str, aliases: dict[str, Path]) -> tuple[str, Path] | None:
+    """
+    Find the longest-matching alias prefix for an import path.
+    Returns (prefix, base_dir) or None if no alias matches.
+    """
+    best = None
+    for prefix, base_dir in aliases.items():
+        full_prefix = prefix + "/"
+        if import_path.startswith(full_prefix):
+            if best is None or len(prefix) > len(best[0]):
+                best = (prefix, base_dir)
+    return best
+
+
+def resolve_import(
+    importing_file: Path,
+    import_path: str,
+    aliases: dict[str, Path],
+) -> tuple[Path | None, str | None]:
+    """
+    Resolve an import specifier to an absolute filesystem path.
+
+    Returns (resolved_path, new_import_path) where:
+    - resolved_path is the absolute path to the resolved file (or None if unresolvable)
+    - new_import_path is the rewritten import specifier (or None if no change needed)
+    """
+    # Determine the base directory for resolution
+    alias_match = find_matching_alias(import_path, aliases)
+    if alias_match is not None:
+        prefix, base_dir = alias_match
+        relative_part = import_path[len(prefix) + 1:]  # strip "prefix/"
+    elif import_path.startswith("."):
+        base_dir = importing_file.parent
+        relative_part = import_path
+    else:
+        # Not a relative or aliased import — skip
+        return None, None
+
+    candidate = (base_dir / relative_part).resolve()
+
+    # Case 1: Exact file exists (e.g. import "./foo.ts")
+    if candidate.is_file():
+        return candidate, None
+
+    # Case 2: Try appending known extensions (e.g. import "./foo" -> ./foo.ts)
+    for ext in TS_EXTENSIONS:
+        with_ext = candidate.with_suffix(ext)
+        if with_ext.is_file():
+            new_path = import_path + ext
+            return with_ext, new_path
+
+    # Case 3: It's a directory — look for index.ts inside it
+    if candidate.is_dir():
+        for ext in TS_EXTENSIONS:
+            index_file = candidate / f"index{ext}"
+            if index_file.is_file():
+                # Build the new import path with explicit /index.ts
+                new_path = import_path.rstrip("/") + f"/index{ext}"
+                return index_file, new_path
+
+    # Case 4: Nothing found
+    return None, None
+
+
+def process_file(
+    file_path: Path,
+    aliases: dict[str, Path],
+    import_re: re.Pattern,
+    dry_run: bool,
+    verbose: bool,
+) -> dict:
+    """Process a single .ts file. Returns stats dict."""
+    stats = {"imports_found": 0, "imports_rewritten": 0, "imports_missing": 0}
+
+    try:
+        original_content = file_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as e:
+        print(f"  WARNING: Could not read {file_path}: {e}", file=sys.stderr)
+        return stats
+
+    def replace_match(m: re.Match) -> str:
+        prefix = m.group(1)
+        quote = m.group(2)
+        import_path = m.group(3)
+        suffix = m.group(4)
+
+        stats["imports_found"] += 1
+
+        resolved, new_path = resolve_import(file_path, import_path, aliases)
+
+        if resolved is None:
+            stats["imports_missing"] += 1
+            print(
+                f"  WARNING: {file_path}:  unresolved import {quote}{import_path}{quote}",
+                file=sys.stderr,
+            )
+            return m.group(0)
+
+        if new_path is not None:
+            stats["imports_rewritten"] += 1
+            if verbose:
+                print(f"  REWRITE: {file_path}")
+                print(f"           {import_path}  ->  {new_path}")
+            return f"{prefix}{quote}{new_path}{quote}{suffix}"
+
+        if verbose:
+            print(f"  OK:      {file_path}:  {import_path}  ->  {resolved}")
+
+        return m.group(0)
+
+    new_content = import_re.sub(replace_match, original_content)
+
+    if new_content != original_content and not dry_run:
+        file_path.write_text(new_content, encoding="utf-8")
+
+    return stats
+
+
+def parse_alias(value: str) -> tuple[str, str]:
+    """Parse an alias definition like '@=./src' into (prefix, path)."""
+    if "=" not in value:
+        print(
+            f"ERROR: Invalid alias {value!r} — expected format: PREFIX=PATH (e.g. @=./src)",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    prefix, path = value.split("=", 1)
+    if not prefix:
+        print(f"ERROR: Empty alias prefix in {value!r}", file=sys.stderr)
+        sys.exit(1)
+    if not path:
+        print(f"ERROR: Empty alias path in {value!r}", file=sys.stderr)
+        sys.exit(1)
+    return prefix, path
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Update TypeScript local imports to use explicit index paths.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+examples:
+  %(prog)s ./src --dry-run                       # @ defaults to ./src
+  %(prog)s ./src --alias @=./src/app --dry-run    # override @ alias
+  %(prog)s ./src --alias ~=./src/shared           # add extra alias
+  %(prog)s ./src --no-default-alias               # don't auto-set @
+""",
+    )
+    parser.add_argument(
+        "root_folder",
+        type=str,
+        help="Root folder to recursively scan for .ts files",
+    )
+    parser.add_argument(
+        "--alias",
+        action="append",
+        default=[],
+        metavar="PREFIX=PATH",
+        help="Define an import alias, e.g. --alias @=./src. "
+        "Can be specified multiple times. "
+        "The '@' alias defaults to root_folder unless overridden or --no-default-alias is set.",
+    )
+    parser.add_argument(
+        "--no-default-alias",
+        action="store_true",
+        help="Do not automatically set @ as an alias for root_folder",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would change without modifying files",
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Print details for every import processed",
+    )
+    args = parser.parse_args()
+
+    root = Path(args.root_folder).resolve()
+    if not root.is_dir():
+        print(f"ERROR: {args.root_folder} is not a directory", file=sys.stderr)
+        sys.exit(1)
+
+    # Build alias map
+    aliases: dict[str, Path] = {}
+
+    # Default: @ -> root_folder (unless suppressed or explicitly overridden)
+    explicit_prefixes = set()
+    for alias_str in args.alias:
+        prefix, _ = parse_alias(alias_str)
+        explicit_prefixes.add(prefix)
+
+    if not args.no_default_alias and "@" not in explicit_prefixes:
+        aliases["@"] = root
+
+    for alias_str in args.alias:
+        prefix, path_str = parse_alias(alias_str)
+        alias_path = Path(path_str).resolve()
+        if not alias_path.is_dir():
+            print(f"ERROR: Alias path {path_str!r} (for {prefix!r}) is not a directory", file=sys.stderr)
+            sys.exit(1)
+        aliases[prefix] = alias_path
+
+    if args.dry_run:
+        print("=== DRY RUN — no files will be modified ===\n")
+
+    if aliases:
+        print("Configured aliases:")
+        for prefix, path in sorted(aliases.items()):
+            print(f"  {prefix}/  ->  {path}")
+        print()
+
+    import_re = build_import_re(aliases)
+
+    ts_files = sorted(root.rglob("*.ts"))
+    ts_files.extend(sorted(root.rglob("*.tsx")))
+
+    print(f"Scanning {len(ts_files)} TypeScript files under {root}\n")
+
+    totals = {"imports_found": 0, "imports_rewritten": 0, "imports_missing": 0}
+
+    for ts_file in ts_files:
+        stats = process_file(ts_file, aliases, import_re, args.dry_run, args.verbose)
+        for k in totals:
+            totals[k] += stats[k]
+
+    print(f"\n{'=' * 50}")
+    print(f"Total imports scanned:    {totals['imports_found']}")
+    print(f"Total imports rewritten:  {totals['imports_rewritten']}")
+    print(f"Total imports unresolved: {totals['imports_missing']}")
+
+    if args.dry_run and totals["imports_rewritten"] > 0:
+        print("\nRe-run without --dry-run to apply changes.")
+
+
+if __name__ == "__main__":
+    main()
