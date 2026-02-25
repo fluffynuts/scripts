@@ -1,0 +1,10 @@
+#!/bin/bash
+diff_output=$(git diff --stat master...HEAD | tail -1)
+
+files=$(echo "$diff_output" | grep -oP '\d+(?= files? changed)')
+insertions=$(echo "$diff_output" | grep -oP '\d+(?= insertions?)')
+deletions=$(echo "$diff_output" | grep -oP '\d+(?= deletions?)')
+
+echo "Affected files: ${files:-0}"
+echo "Added lines:    ${insertions:-0}"
+echo "Removed lines:  ${deletions:-0}"
