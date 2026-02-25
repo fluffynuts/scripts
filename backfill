@@ -1,0 +1,153 @@
+#!/bin/env python3
+# !/usr/bin/env python3
+"""
+Copy files recursively from source to destination, skipping files that already exist.
+"""
+
+import os
+import shutil
+import argparse
+from pathlib import Path
+
+
+def copy_missing_files(
+  src_dir: str,
+  dest_dir: str,
+  dry_run: bool = False,
+  quiet: bool = False
+) -> tuple[int, int]:
+  verbose = not quiet
+  """
+  Copy files from src_dir to dest_dir, preserving directory structure.
+  Only copies files that don't already exist in the destination.
+
+  Args:
+      src_dir: Source directory path
+      dest_dir: Destination directory path
+      dry_run: If True, only show what would be copied without actually copying
+      verbose: If True, print all files processed (not just copied ones)
+
+  Returns:
+      Tuple of (files_copied, files_skipped)
+  """
+  src_path = Path(src_dir).resolve()
+  dest_path = Path(dest_dir).resolve()
+
+  if not src_path.exists():
+    raise ValueError(f"Source directory does not exist: {src_path}")
+
+  if not src_path.is_dir():
+    raise ValueError(f"Source path is not a directory: {src_path}")
+
+  files_copied = 0
+  files_skipped = 0
+
+  # Walk through all files in source directory
+  for src_file in src_path.rglob("*"):
+    # Skip directories (we only copy files)
+    if src_file.is_dir():
+      continue
+
+    # Calculate relative path from source root
+    rel_path = src_file.relative_to(src_path)
+
+    # Calculate corresponding destination path
+    dest_file = dest_path / rel_path
+
+    # Check if file already exists
+    if dest_file.exists():
+      if verbose:
+        print(f"SKIP (exists): {rel_path}")
+      files_skipped += 1
+    else:
+      print(f"{'DRY RUN: ' if dry_run else ''}COPY: {rel_path}")
+
+      if not dry_run:
+        # Create parent directories if they don't exist
+        dest_file.parent.mkdir(parents=True, exist_ok=True)
+
+        # Copy the file
+        shutil.copy2(src_file, dest_file)
+
+      files_copied += 1
+
+  return files_copied, files_skipped
+
+
+def main():
+  parser = argparse.ArgumentParser(
+    description="Copy files recursively from source to destination, skipping existing files.",
+    formatter_class=argparse.RawDescriptionHelpFormatter,
+    epilog="""
+Examples:
+  # Copy missing files from backup to project
+  %(prog)s /backup/myproject /home/user/myproject
+
+  # Dry run to see what would be copied
+  %(prog)s --dry-run /backup/myproject /home/user/myproject
+
+  # Verbose mode to see all files (including skipped ones)
+  %(prog)s --verbose /backup/myproject /home/user/myproject
+        """
+  )
+
+  parser.add_argument(
+    "src",
+    help="Source directory to copy from"
+  )
+
+  parser.add_argument(
+    "dest",
+    help="Destination directory to copy to"
+  )
+
+  parser.add_argument(
+    "-n", "--dry-run",
+    action="store_true",
+    help="Show what would be copied without actually copying"
+  )
+
+  parser.add_argument(
+    "-q", "--quiet",
+    action="store_true",
+    help="Suppress SKIP outputs"
+  )
+
+  args = parser.parse_args()
+
+  try:
+    print(f"Source:      {args.src}")
+    print(f"Destination: {args.dest}")
+    print(f"Mode:        {'DRY RUN' if args.dry_run else 'LIVE'}")
+    print("-" * 60)
+
+    copied, skipped = copy_missing_files(
+      args.src,
+      args.dest,
+      dry_run=args.dry_run,
+      quiet=args.quiet
+    )
+
+    print("-" * 60)
+    print(f"Files copied:  {copied}")
+    print(f"Files skipped: {skipped}")
+    print(f"Total files:   {copied + skipped}")
+
+    if args.dry_run:
+      print("\nThis was a dry run. Use without --dry-run to actually copy files.")
+
+  except ValueError as e:
+    print(f"Error: {e}")
+    return 1
+  except KeyboardInterrupt:
+    print("\n\nOperation cancelled by user.")
+    return 130
+  except Exception as e:
+    print(f"Unexpected error: {e}")
+    return 1
+
+  return 0
+
+
+if __name__ == "__main__":
+  exit(main())
