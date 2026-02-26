@@ -1,0 +1,65 @@
+#!/bin/env python3
+import socket
+import subprocess
+import sys
+from urllib.parse import urlparse
+import pwd
+import os
+from pathlib import Path
+from datetime import datetime
+
+logfile = "/tmp/radarr-sentinel.log"
+
+
+def is_server_listening(url: str) -> bool:
+  try:
+    log("testing if server is listening")
+    parsed = urlparse(url)
+    host = parsed.hostname or 'localhost'
+    port = parsed.port or (443 if parsed.scheme == 'https' else 80)
+    log(f" -> will test {host}:{port}");
+
+    # Attempt to connect to the server
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(5)  # 5-second timeout
+    result = sock.connect_ex((host, port))
+    sock.close()
+
+    return result == 0
+  except Exception as e:
+    log(f"error: {e}")
+    print(f"Error checking server: {e}")
+    return False
+
+def timestamp() -> str:
+  return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+def log(message: str) -> None:
+  with open(logfile, "a") as fp:
+    fp.write(f"[{timestamp()}] {message}\n")
+
+
+def main():
+  Path(logfile).unlink(missing_ok=True)
+  url = "http://localhost:7878"
+  quiet = False
+  if "-q" in sys.argv[1:]:
+    quiet = True
+  if is_server_listening(url):
+    log("server is up!")
+    if not quiet:
+      print(f"✓ Radarr is listening on {url}")
+  else:
+    log("restarting server...")
+    print(f"✗ Radarr is NOT listening on {url}")
+    print("Restarting...")
+    subprocess.run("rc-service radarr restart", shell=True)
+    log("service should be restarted!")
+
+
+if __name__ == "__main__":
+  username = pwd.getpwuid(os.getuid()).pw_name
+  if username != "root":
+    print("this must be run as root")
+    sys.exit(1)
+  main()
