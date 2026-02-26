@@ -14,11 +14,24 @@ Each entry is separated by a blank line.
 """
 
 import argparse
+import base64
 import glob
+import mimetypes
 import os
 import sys
 from pathlib import Path
 import gzip
+import shutil
+import subprocess
+
+
+try:
+  import magic
+  def _guess_mime(filepath: Path) -> str:
+    return magic.from_file(str(filepath), mime=True)
+except ImportError:
+  def _guess_mime(filepath: Path) -> str:
+    return mimetypes.guess_type(str(filepath))[0] or "application/octet-stream"
 
 
 def resolve_inputs(patterns: list[str]) -> list[Path]:
@@ -57,36 +70,69 @@ def build_output(files: list[Path], verbose: bool, base_dir: Path | None = None)
 
   Each file is represented as:
       [{relative_or_absolute_path}]
+      mime-type={mime_type}
+      [encoding=base64]
+      ======...
       <contents>
+      ======...
 
   Entries are separated by a blank line.
 
   If base_dir is provided, paths are shown relative to it.
   Otherwise, paths are shown relative to cwd.
+
+  Text files are included as-is. Binary files are base64-encoded.
   """
   if base_dir is None:
     base_dir = Path.cwd()
 
   sections: list[str] = []
 
+  total_input_bytes = 0
+
   for filepath in files:
     if verbose:
-      print(f"add: {filepath}")
+      start(f"adding: {filepath}")
+
+    total_input_bytes = total_input_bytes + os.path.getsize(filepath)
+
     try:
       display_path = filepath.relative_to(base_dir)
     except ValueError:
       display_path = filepath
 
+    mime_type = _guess_mime(filepath)
+    is_binary = not mime_type.startswith("text/")
+
     try:
-      content = filepath.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError) as exc:
+      if is_binary:
+        raw = filepath.read_bytes()
+        content = base64.b64encode(raw).decode("ascii")
+      else:
+        content = filepath.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+      # mime type said text, but contents aren't valid UTF-8
+      raw = filepath.read_bytes()
+      content = base64.b64encode(raw).decode("ascii")
+      is_binary = True
+    except OSError as exc:
+      fail()
       print(f"Warning: skipping {filepath}: {exc}", file=sys.stderr)
       continue
 
-    line = "=" * (len(str(display_path)) + 2)
-    sections.append(f"[{display_path}]\n{line}\n{content}\n{line}")
+    header = f"[{display_path}]"
+    meta = f"mime-type={mime_type}"
+    if is_binary:
+      meta += "\nencoding=base64"
+    line = "=" * max(len(header), len(str(display_path)) + 2)
+    sections.append(f"{header}\n{meta}\n{line}\n{content}\n{line}")
+    ok()
 
-  return "\n\n".join(sections) + "\n" if sections else ""
+  print(f"total input size: {human_readable_filesize(total_input_bytes)}")
+  start("serialising... ")
+  result = "\n\n".join(sections) + "\n" if sections else ""
+  ok()
+  return result
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -125,6 +171,51 @@ def build_parser() -> argparse.ArgumentParser:
   )
   return parser
 
+def start(label: str) -> None:
+  print(f"{label}...  ", end="", flush=True)
+
+def ok() -> None:
+  print("ok")
+
+def fail() -> None:
+  print("fail")
+
+def file_size_from_path(path: str) -> str:
+    size = os.path.getsize(path)
+    return human_readable_filesize(size)
+
+def human_readable_filesize(size_in_bytes: int) -> str:
+  if size_in_bytes < 1024:
+    return f"{size_in_bytes}b"
+  elif size_in_bytes < 1048576:
+    return f"{size_in_bytes / 1024:.1f}kb"
+  else:
+    return f"{size_in_bytes / 1048576:.1f}mb"
+
+def write_compressed(text: str, target: str) -> None:
+  target_path = Path(target)
+  target_path.unlink(missing_ok=True)
+
+  if shutil.which("pigz"):
+    # Write plain text file without .gz extension
+    plain_path = target_path.with_suffix("") if target_path.suffix == ".gz" else target_path
+    start(f"writing intermediate file")
+    plain_path.write_text(text, encoding="utf-8")
+    ok()
+    start("compressing with pigz")
+    subprocess.run(["pigz", str(plain_path)], check=True)
+    ok()
+    # pigz produces <filename>.gz, rename if target differs
+    pigz_output = plain_path.with_suffix(plain_path.suffix + ".gz")
+    if pigz_output != target_path:
+      pigz_output.rename(target_path)
+  else:
+    start("compressing")
+    compressed = gzip.compress(text.encode("utf-8"))
+    ok()
+    start("writing file... ")
+    target_path.write_bytes(compressed)
+    ok()
 
 def main(argv: list[str] | None = None) -> int:
   parser = build_parser()
@@ -153,10 +244,13 @@ def main(argv: list[str] | None = None) -> int:
 
   if args.output:
     if not args.no_compress:
-      compressed = gzip.compress((output.encode("utf-8")))
-      newPath = Path(args.output).with_suffix(".gz")
-      newPath.write_bytes(compressed)
-      print(f"Wrote {len(files)} file(s) to {newPath}", file=sys.stderr)
+      # print("compressing... ", end="", flush=True)
+      # compressed = gzip.compress((output.encode("utf-8")))
+      # print("ok")
+      new_path = Path(args.output).with_suffix(".gz")
+      # new_path.write_bytes(compressed)
+      write_compressed(output, str(new_path))
+      print(f"Wrote {len(files)} file(s) to {new_path} ({file_size_from_path(str(new_path))})", file=sys.stderr)
     else:
       Path(args.output).with_suffix(".txt").write_text(output, encoding="utf-8")
       print(f"Wrote {len(files)} file(s) to {args.output}", file=sys.stderr)
@@ -256,7 +350,10 @@ class TestBuildOutput:
     files = [sample_tree / "readme.txt"]
     output = build_output(files, False, base_dir=sample_tree)
 
-    assert output == "[readme.txt]\nRead me!\n\n"
+    assert "[readme.txt]" in output
+    assert "mime-type=text/plain" in output
+    assert "Read me!" in output
+    assert "encoding=base64" not in output
 
   def test_multiple_files_separated_by_blank_line(self, sample_tree: Path):
     files = sorted([
@@ -280,15 +377,24 @@ class TestBuildOutput:
   def test_empty_input(self):
     assert build_output([]) == ""
 
-  def test_skips_unreadable_file(self, sample_tree: Path, capsys):
-    bad_file = sample_tree / "binary.bin"
-    bad_file.write_bytes(b"\x80\x81\x82" * 100)
+  def test_binary_file_base64_encoded(self, sample_tree: Path):
+    bin_file = sample_tree / "binary.bin"
+    bin_data = b"\x80\x81\x82" * 100
+    bin_file.write_bytes(bin_data)
 
-    files = [sample_tree / "readme.txt", bad_file]
-    output = build_output(files, base_dir=sample_tree)
+    files = [sample_tree / "readme.txt", bin_file]
+    output = build_output(files, False, base_dir=sample_tree)
 
-    # Should still contain the readable file
+    # Should contain both files
     assert "[readme.txt]" in output
+    assert "[binary.bin]" in output
+    # Binary file should have base64 encoding header
+    assert "encoding=base64" in output
+    assert "mime-type=application/octet-stream" in output
+    # Verify the base64 content decodes back correctly
+    import base64 as b64
+    encoded = b64.b64encode(bin_data).decode("ascii")
+    assert encoded in output
 
 
 class TestCLIIntegration:
