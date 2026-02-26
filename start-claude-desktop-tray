@@ -1,0 +1,13 @@
+#!/bin/bash
+claude-desktop "$@" &
+for ((i=0; i< 10; i++)); do
+  WIN_ID=$(kdotool search --class Claude)
+  if [ -n "$WIN_ID" ]; then
+    echo "Closing claude window: $WIN_ID"
+      kdotool windowclose "$WIN_ID"
+      exit 0
+  fi
+  echo "waiting for claude desktop window"
+  sleep 1
+done
+echo "unable to find claude in 10s"
