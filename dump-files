@@ -51,7 +51,7 @@ def resolve_inputs(patterns: list[str]) -> list[Path]:
   return sorted(files)
 
 
-def build_output(files: list[Path], base_dir: Path | None = None) -> str:
+def build_output(files: list[Path], verbose: bool, base_dir: Path | None = None) -> str:
   """
   Build the concatenated output string.
 
@@ -70,6 +70,8 @@ def build_output(files: list[Path], base_dir: Path | None = None) -> str:
   sections: list[str] = []
 
   for filepath in files:
+    if verbose:
+      print(f"add: {filepath}")
     try:
       display_path = filepath.relative_to(base_dir)
     except ValueError:
@@ -111,6 +113,12 @@ def build_parser() -> argparse.ArgumentParser:
     help="When output file path is provided, don't compress the contents"
   )
   parser.add_argument(
+    "-q",
+    "--quiet",
+    action="store_true",
+    help="Suppress printing out file paths as they are being added to the dump"
+  )
+  parser.add_argument(
     "--test",
     action="store_true",
     help="Run the built-in test suite and exit.",
@@ -141,7 +149,7 @@ def main(argv: list[str] | None = None) -> int:
     print("No files matched the given inputs.", file=sys.stderr)
     return 1
 
-  output = build_output(files)
+  output = build_output(files, not args.quiet)
 
   if args.output:
     if not args.no_compress:
@@ -246,7 +254,7 @@ class TestResolveInputs:
 class TestBuildOutput:
   def test_output_format(self, sample_tree: Path):
     files = [sample_tree / "readme.txt"]
-    output = build_output(files, base_dir=sample_tree)
+    output = build_output(files, False, base_dir=sample_tree)
 
     assert output == "[readme.txt]\nRead me!\n\n"
 
