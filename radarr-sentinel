@@ -55,12 +55,17 @@ def main():
         capture_output=True,
         text=True
     )
-    if any(s in output for s in ("crashed", "failed", "stopped", "failed")):
+    if any(s in status for s in ("crashed", "failed", "stopped", "failed")):
         log("restarting server...")
         print(f"✗ Radarr is NOT listening on {url}")
         print("Restarting...")
-        subprocess.run("rc-service radarr restart", shell=True)
-        log("service should be restarted!")
+        exit_code = subprocess.call("rc-service radarr restart", shell=True, capture_output=True)
+        if exit_code == 0:
+            log("service should be restarted!")
+            sys.exit(0)
+        else:
+            print("UNABLE TO RESTART SERVICE")
+            sys.exit(1)
 
 
 if __name__ == "__main__":
