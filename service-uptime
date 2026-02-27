@@ -5,6 +5,11 @@ if [[ $# -lt 1 ]]; then
     exit 1
 fi
 
+if ! which rc-service &> /dev/null; then
+  echo "This script is designed to work on an open-rc system"
+  exit 2
+fi
+
 service="$1"
 
 # Check the service exists
