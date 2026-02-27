@@ -50,11 +50,17 @@ def main():
     if not quiet:
       print(f"✓ Radarr is listening on {url}")
   else:
-    log("restarting server...")
-    print(f"✗ Radarr is NOT listening on {url}")
-    print("Restarting...")
-    subprocess.run("rc-service radarr restart", shell=True)
-    log("service should be restarted!")
+    status = subprocess.run(
+        ["rc-service", "radarr", "status" ],
+        capture_output=True,
+        text=True
+    )
+    if any(s in output for s in ("crashed", "failed", "stopped", "failed")):
+        log("restarting server...")
+        print(f"✗ Radarr is NOT listening on {url}")
+        print("Restarting...")
+        subprocess.run("rc-service radarr restart", shell=True)
+        log("service should be restarted!")
 
 
 if __name__ == "__main__":
