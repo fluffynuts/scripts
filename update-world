@@ -3,8 +3,11 @@ SUFFIX=""
 if which emerge &> /dev/null; then
   SUFFIX="gentoo"
 fi
-if which pacman &> /dev/null; then
+if test -z "$SUFFIX" && which pacman &> /dev/null; then
   SUFFIX="arch"
+fi
+if test -z "$SUFFIX" && which apt-get &> /dev/null; then
+  SUFFIX="debian";
 fi
 
 if test -z "$SUFFIX"; then
