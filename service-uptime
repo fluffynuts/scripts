@@ -1,0 +1,64 @@
+#!/bin/bash
+
+if [[ $# -lt 1 ]]; then
+    echo "Usage: service-uptime <service-name>"
+    exit 1
+fi
+
+service="$1"
+
+# Check the service exists
+if [[ ! -f "/etc/init.d/$service" ]]; then
+    echo "Error: No such service '$service' in /etc/init.d/"
+    exit 1
+fi
+
+# Check the service is started
+if ! rc-service "$service" status &>/dev/null; then
+    echo "Service '$service' is not running."
+    exit 1
+fi
+
+# Find the PID file under /run (could be /run/<service>.pid or /run/<service>/<service>.pid etc.)
+pid_file=$(find /run -maxdepth 3 -name "${service}.pid" -o -name "${service}d.pid" 2>/dev/null | head -n 1)
+
+pid=""
+
+if [[ -n "$pid_file" && -f "$pid_file" ]]; then
+    pid=$(cat "$pid_file" 2>/dev/null)
+fi
+
+# Fallback: try to get PID from the rc-service status output
+if [[ -z "$pid" || ! -d "/proc/$pid" ]]; then
+    pid=$(rc-service "$service" status 2>/dev/null | grep -oP 'pid\s+\K\d+|process\s+\K\d+|\(\s*pid\s+\K\d+' | head -n 1)
+fi
+
+# Fallback: try pgrep with the service name
+if [[ -z "$pid" || ! -d "/proc/$pid" ]]; then
+    pid=$(pgrep -f "/usr/.*${service}" | head -n 1)
+fi
+
+if [[ -z "$pid" || ! -d "/proc/$pid" ]]; then
+    echo "Service '$service' appears running but could not determine its PID."
+    exit 1
+fi
+
+# Get elapsed time in seconds
+etimes=$(ps -o etimes= -p "$pid" 2>/dev/null | tr -d ' ')
+
+if [[ -z "$etimes" ]]; then
+    echo "Could not determine uptime for service '$service' (PID $pid)."
+    exit 1
+fi
+
+# Convert seconds to human-readable format
+days=$((etimes / 86400))
+hours=$(( (etimes % 86400) / 3600 ))
+minutes=$(( (etimes % 3600) / 60 ))
+seconds=$((etimes % 60))
+
+if [[ $days -gt 0 ]]; then
+    printf "Service '%s' (PID %s) has been running for %dd %02d:%02d:%02d\n" "$service" "$pid" "$days" "$hours" "$minutes" "$seconds"
+else
+    printf "Service '%s' (PID %s) has been running for %02d:%02d:%02d\n" "$service" "$pid" "$hours" "$minutes" "$seconds"
+fi
