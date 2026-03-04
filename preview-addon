@@ -1,0 +1,161 @@
+#!/usr/bin/env python3
+
+import os
+import re
+import sys
+import shutil
+import tempfile
+import zipfile
+import urllib.request
+import urllib.error
+from html.parser import HTMLParser
+
+
+def die(msg: str) -> None:
+    print(f"error: {msg}", file=sys.stderr)
+    sys.exit(1)
+
+
+def get_ide_command() -> str:
+    cmd = os.environ.get("PREVIEW_IDE", "code")
+    if shutil.which(cmd) is None:
+        if "PREVIEW_IDE" in os.environ:
+            die(
+                f"PREVIEW_IDE is set to '{cmd}', but that command was not found in PATH.\n"
+                f"       Please set PREVIEW_IDE to the full path of your preferred IDE."
+            )
+        else:
+            die(
+                "Could not find 'code' (Visual Studio Code) in PATH.\n"
+                "       Either install VS Code and ensure 'code' is in your PATH,\n"
+                "       or set the PREVIEW_IDE environment variable to the full path\n"
+                "       of your preferred IDE (e.g. export PREVIEW_IDE=/usr/bin/idea)."
+            )
+    return cmd
+
+
+class XpiLinkParser(HTMLParser):
+    """Scrape the direct .xpi download link from an AMO addon page."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.xpi_url: str | None = None
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if self.xpi_url:
+            return
+        attr_dict = dict(attrs)
+        href = attr_dict.get("href", "") or ""
+        if tag == "a" and href.endswith(".xpi"):
+            self.xpi_url = href
+
+
+def fetch_xpi_url(addon_url: str) -> str:
+    """Fetch the AMO addon page and extract the .xpi download URL."""
+    print(f"Fetching addon page: {addon_url}")
+    req = urllib.request.Request(
+        addon_url,
+        headers={"User-Agent": "Mozilla/5.0 (preview-addon script)"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            html = resp.read().decode("utf-8", errors="replace")
+    except urllib.error.HTTPError as e:
+        die(f"HTTP {e.code} fetching addon page: {addon_url}")
+    except urllib.error.URLError as e:
+        die(f"Could not reach addon page: {e.reason}")
+
+    parser = XpiLinkParser()
+    parser.feed(html)
+
+    if not parser.xpi_url:
+        die(
+            "Could not find a .xpi download link on the page.\n"
+            "       Make sure the URL points to a valid addons.mozilla.org addon page."
+        )
+
+    xpi_url = parser.xpi_url
+    if xpi_url.startswith("/"):
+        xpi_url = "https://addons.mozilla.org" + xpi_url
+
+    return xpi_url
+
+
+def derive_addon_name(xpi_url: str) -> str:
+    """Turn a URL like '.../autorate-1.0.xpi' into 'autorate'."""
+    filename = xpi_url.rstrip("/").split("/")[-1]          # autorate-1.0.xpi
+    stem = re.sub(r"\.xpi$", "", filename, flags=re.IGNORECASE)  # autorate-1.0
+    # Strip trailing version-like suffixes (-1.0, -1.2.3, etc.)
+    name = re.sub(r"[-_]\d[\d.\-]*$", "", stem) or stem
+    # Sanitise to something safe for a directory name
+    name = re.sub(r"[^\w\-]", "_", name)
+    return name or "addon"
+
+
+def download_xpi(xpi_url: str, dest_path: str) -> None:
+    """Download the .xpi file to dest_path."""
+    print(f"Downloading: {xpi_url}")
+    req = urllib.request.Request(
+        xpi_url,
+        headers={"User-Agent": "Mozilla/5.0 (preview-addon script)"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp, open(dest_path, "wb") as f:
+            shutil.copyfileobj(resp, f)
+    except urllib.error.HTTPError as e:
+        die(f"HTTP {e.code} downloading xpi: {xpi_url}")
+    except urllib.error.URLError as e:
+        die(f"Could not download xpi: {e.reason}")
+
+
+def unpack_xpi(xpi_path: str, dest_dir: str) -> None:
+    """Unpack a .xpi (zip) into dest_dir."""
+    try:
+        with zipfile.ZipFile(xpi_path, "r") as zf:
+            zf.extractall(dest_dir)
+    except zipfile.BadZipFile:
+        die(f"Downloaded file does not appear to be a valid .xpi (zip) archive.")
+
+
+def main() -> None:
+    if len(sys.argv) != 2:
+        print(f"Usage: {os.path.basename(sys.argv[0])} <addons.mozilla.org addon URL>")
+        print(f"Example: {os.path.basename(sys.argv[0])} https://addons.mozilla.org/en-US/firefox/addon/autorate/")
+        sys.exit(1)
+
+    addon_url = sys.argv[1]
+
+    if "addons.mozilla.org" not in addon_url:
+        die("URL does not look like an addons.mozilla.org URL.")
+
+    # 1. Resolve IDE early so we fail fast before doing any network work.
+    ide_cmd = get_ide_command()
+
+    # 2. Scrape the addon page for the .xpi link.
+    xpi_url = fetch_xpi_url(addon_url)
+    addon_name = derive_addon_name(xpi_url)
+
+    # 3. Build the output directory in the system temp dir.
+    tmp_root = tempfile.gettempdir()          # /tmp on Linux
+    addon_dir = os.path.join(tmp_root, addon_name)
+
+    if os.path.exists(addon_dir):
+        print(f"Removing existing directory: {addon_dir}")
+        shutil.rmtree(addon_dir)
+
+    os.makedirs(addon_dir)
+
+    # 4. Download the .xpi into a temp file then unpack it.
+    xpi_tmp = os.path.join(addon_dir, f"{addon_name}.xpi")
+    download_xpi(xpi_url, xpi_tmp)
+    print(f"Unpacking into: {addon_dir}")
+    unpack_xpi(xpi_tmp, addon_dir)
+    os.remove(xpi_tmp)      # tidy up — not part of the source
+
+    # 5. Open the directory with the chosen IDE.
+    print(f"Opening '{addon_dir}' with '{ide_cmd}' ...")
+    os.execvp(ide_cmd, [ide_cmd, addon_dir])
+
+
+if __name__ == "__main__":
+    main()
