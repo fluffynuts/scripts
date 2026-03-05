@@ -33,6 +33,38 @@ except ImportError:
   def _guess_mime(filepath: Path) -> str:
     return mimetypes.guess_type(str(filepath))[0] or "application/octet-stream"
 
+TEXT_MIME_TYPES: frozenset[str] = frozenset({
+    "application/javascript",
+    "application/typescript",
+    "application/json",
+    "application/xml",
+    "application/xhtml+xml",
+    "application/yaml",
+    "application/toml",
+    "application/graphql",
+    "application/x-sh",
+    "application/x-bash",
+    "application/x-zsh",
+    "application/x-fish",
+    "application/x-perl",
+    "application/x-ruby",
+    "application/x-php",
+    "application/x-httpd-php",
+    "application/x-powershell",
+    "application/x-ndjson",
+    "application/ld+json",
+    "application/manifest+json",
+    "application/geo+json",
+    "application/sql",
+    "application/x-sql",
+    "image/svg+xml",
+})
+
+
+def is_text(mime_type: str) -> bool:
+    if mime_type.startswith("text/"):
+        return True
+    return mime_type in TEXT_MIME_TYPES
 
 def resolve_inputs(patterns: list[str]) -> list[Path]:
   """
@@ -102,7 +134,7 @@ def build_output(files: list[Path], verbose: bool, base_dir: Path | None = None)
       display_path = filepath
 
     mime_type = _guess_mime(filepath)
-    is_binary = not mime_type.startswith("text/")
+    is_binary = not is_text(mime_type)
 
     try:
       if is_binary:
