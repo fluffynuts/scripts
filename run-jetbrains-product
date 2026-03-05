@@ -79,10 +79,17 @@ CHILD_PID="$!"
 
 echo "${TARGET} started as pid: ${CHILD_PID}"
 
+ATTEMPTS=0
 while ps -p $CHILD_PID &> /dev/null; do
   spin
   if wmctrl -lp | awk '{print $3}' | grep $CHILD_PID &> /dev/null; then
     echo -e "\r    \r\n"
+    exit 0
+  fi
+  let ATTEMPTS="$ATTEMPTS + 1"
+  if test "$ATTEMPTS" -ge 100; then
+    echo -e "\r    \r\n"
+    echo "assuming started ..."
     exit 0
   fi
 done
