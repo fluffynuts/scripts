@@ -4,6 +4,6 @@ if test -z "$1"; then
 else
     # watch takes up the first two lines
     let HEAD=2
-    let ROWS="$(stty size | cut -f 1 --delimiter=' ') - $HEAD"
+    let ROWS="$(stty size | cut -f 1 --delimiter=' ') - $HEAD - 1"
     dmesg | tail -n $ROWS
 fi
