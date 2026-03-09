@@ -1,0 +1,11 @@
+#!/bin/bash
+WID="$(kdotool search --class claude)"
+if test -z "$WID"; then
+  echo "starting claude"
+  claude-desktop
+  exit 0
+fi
+for w in $WID; do
+  kdotool windowactivate $w
+done
+#kdotool windowactivate "$WID"
