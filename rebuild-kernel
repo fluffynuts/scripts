@@ -11,10 +11,12 @@ GREEN="\033[1;32m"
 YELLOW="\033[1;33m"
 RESET="\033[0m"
 
+ARGS=("$@")
+
 function check_is_root()
 {
    if test "$(whoami)" != "root"; then
-     sudo -p "Your password is required to continue: " $0 $@
+     sudo -p "Your password is required to continue: " $0 "${ARGS[@]}"
      exit $?
    fi
 }
