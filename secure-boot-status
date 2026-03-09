@@ -1,0 +1,13 @@
+#!/bin/bash
+ARGS=("$@")
+
+function check_is_root()
+{
+   if test "$(whoami)" != "root"; then
+     sudo -p "Your password is required to continue: " "$0" "${ARGS[@]}"
+     exit $?
+   fi
+}
+
+check_is_root
+sbctl status && sbctl list-files && sbctl verify
