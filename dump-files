@@ -6,6 +6,10 @@ Usage:
     dump-files /path/to/folder /path/to/file /path/to/glob/*.conf
     dump-files -o output.txt src/ README.md config/*.yaml
 
+    Inline exclusions with '^':
+    dump-files 'src^overlays' 'src/overlays/debonairs/**/*.ts'
+    dump-files 'src/**/*.ts^overlays^node_modules'
+
 Output format:
     [{relative/path/to/file}]
     <file contents>
@@ -66,7 +70,9 @@ def is_text(mime_type: str) -> bool:
         return True
     return mime_type in TEXT_MIME_TYPES
 
-def resolve_inputs(patterns: list[str]) -> list[Path]:
+def resolve_inputs(
+  patterns: list[str],
+) -> list[Path]:
   """
   Resolve a list of input patterns into a sorted, deduplicated list of file paths.
 
@@ -74,26 +80,59 @@ def resolve_inputs(patterns: list[str]) -> list[Path]:
     - A directory: recursively includes all files within it.
     - A file: includes that file directly.
     - A glob pattern: includes all matching files.
+
+  Patterns may include inline exclusions using '^' as a separator:
+    src/**/*.ts^overlays         — all .ts files under src, except paths containing 'overlays'
+    src^overlays^node_modules    — everything under src, except overlays and node_modules
+
+  This allows later patterns to re-include excluded subtrees:
+    src/**/*.ts^overlays  src/overlays/debonairs/**/*.ts
   """
   files: set[Path] = set()
 
-  for pattern in patterns:
+  for raw_pattern in patterns:
+    parts = raw_pattern.split("^")
+    pattern = parts[0]
+    excludes = [e.replace(os.sep, "/").strip("/") for e in parts[1:] if e.strip()]
+
+    matched: list[Path] = []
     path = Path(pattern)
 
     if path.is_dir():
-      for child in path.rglob("*"):
-        if child.is_file():
-          files.add(child.resolve())
+      matched = [child.resolve() for child in path.rglob("*") if child.is_file()]
     elif path.is_file():
-      files.add(path.resolve())
+      matched = [path.resolve()]
     else:
       # Treat as a glob pattern
-      for match in glob.glob(pattern, recursive=True):
-        match_path = Path(match)
-        if match_path.is_file():
-          files.add(match_path.resolve())
+      matched = [
+        Path(m).resolve()
+        for m in glob.glob(pattern, recursive=True)
+        if Path(m).is_file()
+      ]
+
+    for filepath in matched:
+      if not _matches_any_exclude(filepath, excludes):
+        files.add(filepath)
 
   return sorted(files)
+
+
+def _matches_any_exclude(filepath: Path, excludes: list[str]) -> bool:
+  """
+  Check whether any exclude pattern matches the filepath.
+
+  Each exclude pattern is tested as a substring against the
+  '/'-joined path parts, so 'overlays' matches any path
+  containing an 'overlays' segment, and 'overlays/disabled'
+  matches paths containing that specific segment sequence.
+  """
+  if not excludes:
+    return False
+  path_str = "/".join(filepath.parts)
+  for pattern in excludes:
+    if pattern in path_str:
+      return True
+  return False
 
 
 def build_output(files: list[Path], verbose: bool, base_dir: Path | None = None) -> str:
@@ -176,7 +215,9 @@ def build_parser() -> argparse.ArgumentParser:
     "inputs",
     nargs="*",
     metavar="PATH",
-    help="Files, directories, or glob patterns to include.",
+    help="Files, directories, or glob patterns to include. "
+         "Append '^segment' to exclude paths containing that segment, "
+         "e.g. 'src^overlays' or 'src/**/*.ts^overlays^node_modules'.",
   )
   parser.add_argument(
     "-o",
@@ -235,7 +276,7 @@ def write_compressed(text: str, target: str) -> None:
     plain_path.write_text(text, encoding="utf-8")
     ok()
     start("compressing with pigz")
-    subprocess.run(["pigz", str(plain_path)], check=True)
+    subprocess.run(["pigz", "-9", str(plain_path)], check=True)
     ok()
     # pigz produces <filename>.gz, rename if target differs
     pigz_output = plain_path.with_suffix(plain_path.suffix + ".gz")
@@ -375,6 +416,54 @@ class TestResolveInputs:
   def test_sorted_output(self, sample_tree: Path):
     result = resolve_inputs([str(sample_tree)])
     assert result == sorted(result)
+
+  def test_exclude_single_segment(self, sample_tree: Path):
+    """Excluding 'utils' via ^ should drop src/utils/helper.py but keep src/main.py."""
+    result = resolve_inputs([str(sample_tree / "src") + "^utils"])
+    names = {f.name for f in result}
+    assert names == {"main.py"}
+
+  def test_exclude_multi_segment(self, sample_tree: Path):
+    """Excluding 'src/utils' via ^ should drop src/utils/helper.py but keep src/main.py."""
+    result = resolve_inputs([str(sample_tree / "src") + "^src/utils"])
+    names = {f.name for f in result}
+    assert names == {"main.py"}
+
+  def test_exclude_directory_name(self, sample_tree: Path):
+    """Excluding 'config' should drop config/ but keep everything else."""
+    result = resolve_inputs([str(sample_tree) + "^config"])
+    names = {f.name for f in result}
+    assert "app.conf" not in names
+    assert "db.conf" not in names
+    assert "main.py" in names
+    assert "readme.txt" in names
+
+  def test_exclude_multiple_patterns(self, sample_tree: Path):
+    """Multiple ^ excludes on one pattern should all be applied."""
+    result = resolve_inputs([str(sample_tree) + "^config^utils"])
+    names = {f.name for f in result}
+    assert names == {"main.py", "readme.txt", "notes.log"}
+
+  def test_exclude_no_match_keeps_all(self, sample_tree: Path):
+    """Excluding a pattern that matches nothing should keep all files."""
+    all_files = resolve_inputs([str(sample_tree)])
+    filtered = resolve_inputs([str(sample_tree) + "^nonexistent"])
+    assert all_files == filtered
+
+  def test_exclude_with_trailing_slash(self, sample_tree: Path):
+    """Trailing slashes in the exclude segment should be tolerated."""
+    result = resolve_inputs([str(sample_tree / "src") + "^utils/"])
+    names = {f.name for f in result}
+    assert names == {"main.py"}
+
+  def test_exclude_is_per_pattern(self, sample_tree: Path):
+    """Excludes on one pattern should not affect other patterns."""
+    result = resolve_inputs([
+      str(sample_tree / "src") + "^utils",
+      str(sample_tree / "src" / "utils"),
+    ])
+    names = {f.name for f in result}
+    assert names == {"main.py", "helper.py"}
 
 
 class TestBuildOutput:
