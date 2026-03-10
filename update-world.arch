@@ -1,14 +1,43 @@
 #!/bin/bash
+set -euo pipefail
 LINE_BREAK="-------------------------------"
 
+ALLOW_DOWNGRADES=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -d|--allow-downgrades)
+      ALLOW_DOWNGRADES=1
+      ;;
+    -h|--help)
+      echo "Usage: $0 {options}"
+      echo "   where options are one of:"
+      echo "   -d | --allow-downgrades          allow package downgrades"
+      echo "   -h | --help                      this help"
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1"
+      exit 1
+      ;;
+  esac
+  shift
+done
+
+echo "ALLOW_DOWNGRADES: $ALLOW_DOWNGRADES"
 echo -e "Upgrading all the things..."
-if test -x "$GRIMAUR_LOCATION"; then
+if test -x "${GRIMAUR_LOCATION:-}"; then
   "$GRIMAUR_LOCATION" update
 else
-  yay -Syu
+  if test "$ALLOW_DOWNGRADES" = 1; then
+    yay -Syuu
+  else
+    yay -Syu
+  fi
 fi
 
-if ! test -z "$(pacman -Qdtq)"; then
+orphans="$(pacman -Qdtq)" || true
+
+if ! test -z "$orphans"; then
   echo -e "\n\n${LINE_BREAK}\nRemoving unused dependencies...\n"
   sudo pacman -Rns $(pacman -Qdtq)
 fi
