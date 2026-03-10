@@ -1,0 +1,52 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#     "torch",
+#     "torchvision",
+#     "torchaudio",
+#     "diffusers",
+#     "transformers",
+#     "Pillow",
+#     "accelerate"
+# ]
+# ///
+
+import os
+import torch
+from diffusers import StableDiffusionPipeline
+import accelerate
+
+def generate_image(prompt: str) -> "Image.Image":
+    model_id = "CompVis/stable-diffusion-v1-4"
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(" --- setting up image pipeline ---")
+    pipe = StableDiffusionPipeline.from_pretrained(
+      model_id,
+      torch_dtype=torch.float16 if device == "cuda" else torch.float32
+    )
+
+    pipe = pipe.to(device)
+
+    if prompt.find("cartoon"):
+      negative_prompt = "realistic, photorealistic, detailed, cinematic, dar, scary, horror, scales, texture, 3d render, photograph"
+    else:
+      negative_prompt = None
+
+    print(" --- generating image ---");
+    return pipe(prompt, negative_prompt=negative_prompt).images[0]
+
+
+def main() -> None:
+    prompt = input("prompt: ")
+    save_path = input("save to: ")
+
+    image = generate_image(prompt)
+
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    image.save(save_path)
+    print(f"Image saved to {save_path}")
+
+
+if __name__ == "__main__":
+    main()
