@@ -1,4 +1,4 @@
-#!/usr/bin/env -S uv run --script
+#!/usr/bin/env -S UV_CONCURRENT_DOWNLOADS=3 uv run --script
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
@@ -44,6 +44,8 @@ def main() -> None:
     image = generate_image(prompt)
 
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    if os.path.isfile(save_path):
+      os.unlink(save_path)
     image.save(save_path)
     print(f"Image saved to {save_path}")
 
