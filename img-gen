@@ -33,7 +33,7 @@ def generate_image(prompt: str) -> "Image.Image":
     else:
       negative_prompt = None
 
-    print(" --- generating image ---");
+    print(" --- generating image ---")
     return pipe(prompt, negative_prompt=negative_prompt).images[0]
 
 
