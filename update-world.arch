@@ -3,10 +3,15 @@ set -euo pipefail
 LINE_BREAK="-------------------------------"
 
 ALLOW_DOWNGRADES=0
+CONFIRM_INSTALLATIONS=0
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -d|--allow-downgrades)
       ALLOW_DOWNGRADES=1
+      ;;
+    -c|--confirm-installation)
+      CONFIRM_INSTALLATIONS=1
       ;;
     -h|--help)
       echo "Usage: $0 {options}"
@@ -28,11 +33,14 @@ echo -e "Upgrading all the things..."
 if test -x "${GRIMAUR_LOCATION:-}"; then
   "$GRIMAUR_LOCATION" update
 else
+  ARGS="-Syu"
   if test "$ALLOW_DOWNGRADES" = 1; then
-    yay -Syuu
-  else
-    yay -Syu
+    ARGS="${ARGS}u"
   fi
+  if test "$CONFIRM_INSTALLATIONS" = 0; then
+    ARGS="${ARGS} --noconfirm --diffmenu --editmenu"
+  fi
+  yay $ARGS
 fi
 
 orphans="$(pacman -Qdtq)" || true
