@@ -1,0 +1,66 @@
+#!/bin/env python3
+import subprocess
+import sys
+from pathlib import Path
+
+def find_window(search: str) -> str | None:
+  """Find the Thunderbird window ID via kdotool, or None if not found."""
+  try:
+    result = subprocess.run(
+      ["kdotool", "search", "--name", "Thunderbird"],
+      capture_output=True, text=True, timeout=2
+    )
+    window_ids = result.stdout.strip().splitlines()
+    if window_ids:
+      print(f"found window(s): {window_ids}")
+      return window_ids[0]
+    print(f"no window found for search term '{search}'")
+    return None
+  except (subprocess.TimeoutExpired, FileNotFoundError) as e:
+    print(f"nestray: kdotool search failed: {e}", file=sys.stderr)
+    return None
+
+
+def raise_or_start(window_search: str, fallback_command: str) -> None:
+  """Find the Thunderbird window ID via kdotool, or None if not found."""
+  try:
+    wid = find_window(window_search)
+    if wid is None:
+      print(f"starting fallback command: {fallback_command}")
+      run_fallback(fallback_command)
+    else:
+      subprocess.run([
+        "kdotool",
+        "windowactivate",
+        wid
+      ])
+  except (subprocess.TimeoutExpired, FileNotFoundError) as e:
+    print(f"kdotool search failed: {e}", file=sys.stderr)
+    run_fallback(fallback_command)
+    return None
+
+def run_fallback(cmd: str) -> None:
+  print(f"starting fallback command: {cmd}")
+  subprocess.Popen(
+    cmd,
+    stdout=subprocess.DEVNULL,
+    stderr=subprocess.DEVNULL,
+    start_new_session=True,
+    shell=True
+  )
+
+def usage() -> None:
+  me = Path(sys.argv[0]).name
+  print(f"Usage: {me} <search string> <fallback command>")
+  print(f"  eg: {me} Thunderbird thunderbird")
+  print(f"  or: {me} Thunderbird /usr/bin/thunderbird")
+  print(f"  or: {me} SomeWindowClass \"/path/to/app --option foo\"")
+
+def main() -> None:
+  args = sys.argv[1:]
+  if len(args) != 2:
+    usage()
+    sys.exit(1)
+
+if __name__ == "__main__":
+  main()
