@@ -4,10 +4,9 @@ import sys
 from pathlib import Path
 
 def find_window(search: str) -> str | None:
-  """Find the Thunderbird window ID via kdotool, or None if not found."""
   try:
     result = subprocess.run(
-      ["kdotool", "search", "--name", "Thunderbird"],
+      ["kdotool", "search", "--name", search],
       capture_output=True, text=True, timeout=2
     )
     window_ids = result.stdout.strip().splitlines()
@@ -29,6 +28,7 @@ def raise_or_start(window_search: str, fallback_command: str) -> None:
       print(f"starting fallback command: {fallback_command}")
       run_fallback(fallback_command)
     else:
+      print(f"activating window {wid}")
       subprocess.run([
         "kdotool",
         "windowactivate",
@@ -51,16 +51,23 @@ def run_fallback(cmd: str) -> None:
 
 def usage() -> None:
   me = Path(sys.argv[0]).name
-  print(f"Usage: {me} <search string> <fallback command>")
+  print(f"Usage: {me} <search string> <optional fallback command, defaults to search string>")
   print(f"  eg: {me} Thunderbird thunderbird")
   print(f"  or: {me} Thunderbird /usr/bin/thunderbird")
   print(f"  or: {me} SomeWindowClass \"/path/to/app --option foo\"")
 
 def main() -> None:
   args = sys.argv[1:]
-  if len(args) != 2:
+  if len(args) == 0:
     usage()
     sys.exit(1)
+  if len(args) == 1:
+    args.append(args[0])
+
+  raise_or_start(
+    args[0],
+    args[1]
+  )
 
 if __name__ == "__main__":
   main()
