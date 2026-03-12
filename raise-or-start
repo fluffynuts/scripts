@@ -2,6 +2,12 @@
 import subprocess
 import sys
 from pathlib import Path
+import os
+import shutil
+
+EXIT_CODE_BAD_ARGS=1
+EXIT_CODE_BAD_ENV=2
+EXIT_CODE_MISSING_TOOL=3
 
 def find_window(search: str) -> str | None:
   try:
@@ -39,15 +45,40 @@ def raise_or_start(window_search: str, fallback_command: str) -> None:
     run_fallback(fallback_command)
     return None
 
+
 def run_fallback(cmd: str) -> None:
   print(f"starting fallback command: {cmd}")
-  subprocess.Popen(
-    cmd,
-    stdout=subprocess.DEVNULL,
-    stderr=subprocess.DEVNULL,
-    start_new_session=True,
-    shell=True
-  )
+  try:
+    subprocess.Popen(
+      cmd,
+      stdout=subprocess.DEVNULL,
+      stderr=subprocess.DEVNULL,
+      start_new_session=True,
+      shell=True
+    )
+  except FileNotFoundError:
+    print("cannot launch command: not found")
+
+def verify_environment():
+  desktop_environment = os.environ.get("XDG_CURRENT_DESKTOP")
+  session_type = os.environ.get("XDG_SESSION_TYPE")
+  forced = os.environ.get("FORCE")
+  if desktop_environment != "KDE" or session_type != "wayland":
+    print(
+      f"""
+      WARNING: this utility is designed to work on KDE in a wayland session.
+      Your environment reports:
+      XDG_CURRENT_DESKTOP: {desktop_environment}
+      XDG_SESSION_TYPE: {session_type}
+      """
+    )
+    if forced != "1":
+      print("you may suppress this warning and try anyway if you set the environment variable FORCE=1")
+      sys.exit(EXIT_CODE_BAD_ENV)
+    if not shutil.which("kdotool"):
+      print("this utility requires kdotool to be in your path")
+      sys.exit(EXIT_CODE_BAD_ENV);
+
 
 def usage() -> None:
   me = Path(sys.argv[0]).name
@@ -55,12 +86,19 @@ def usage() -> None:
   print(f"  eg: {me} Thunderbird thunderbird")
   print(f"  or: {me} Thunderbird /usr/bin/thunderbird")
   print(f"  or: {me} SomeWindowClass \"/path/to/app --option foo\"")
+  print(f"exit codes:")
+  print(f"  0 - ok!")
+  print(f"  {EXIT_CODE_BAD_ARGS} - missing arguments (you should see help)")
+  print(f"  {EXIT_CODE_BAD_ENV} - invalid environment (DE, display server)")
+  print(f"  {EXIT_CODE_MISSING_TOOL} - missing required system tooling")
+
 
 def main() -> None:
+  verify_environment()
   args = sys.argv[1:]
   if len(args) == 0:
     usage()
-    sys.exit(1)
+    sys.exit(EXIT_CODE_BAD_ARGS)
   if len(args) == 1:
     args.append(args[0])
 
@@ -68,6 +106,7 @@ def main() -> None:
     args[0],
     args[1]
   )
+
 
 if __name__ == "__main__":
   main()
