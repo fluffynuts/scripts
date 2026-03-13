@@ -57,7 +57,7 @@ def run_fallback(cmd: str) -> None:
       shell=True
     )
   except FileNotFoundError:
-    print("cannot launch command: not found")
+    print(f"cannot launch command: not found: {cmd}")
 
 def verify_environment():
   desktop_environment = os.environ.get("XDG_CURRENT_DESKTOP")
