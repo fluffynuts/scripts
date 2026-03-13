@@ -27,6 +27,7 @@ from pathlib import Path
 import gzip
 import shutil
 import subprocess
+import re
 
 
 try:
@@ -72,6 +73,7 @@ def is_text(mime_type: str) -> bool:
 
 def resolve_inputs(
   patterns: list[str],
+  include_node_modules: bool
 ) -> list[Path]:
   """
   Resolve a list of input patterns into a sorted, deduplicated list of file paths.
@@ -89,6 +91,11 @@ def resolve_inputs(
     src/**/*.ts^overlays  src/overlays/debonairs/**/*.ts
   """
   files: set[Path] = set()
+
+  if include_node_modules:
+    print(f"WARN: including node_modules")
+    print(patterns)
+  have_warned_node_modules = False
 
   for raw_pattern in patterns:
     parts = raw_pattern.split("^")
@@ -112,6 +119,12 @@ def resolve_inputs(
 
     for filepath in matched:
       if not _matches_any_exclude(filepath, excludes):
+        if re.search(r"node_modules", str(filepath)) and not include_node_modules:
+          if not have_warned_node_modules:
+            print("implicitly ignoring node_modules - explicitly include the folder if you want it")
+          have_warned_node_modules = True
+          continue
+        print(f"adding file: {filepath}")
         files.add(filepath)
 
   return sorted(files)
@@ -242,6 +255,11 @@ def build_parser() -> argparse.ArgumentParser:
     action="store_true",
     help="Run the built-in test suite and exit.",
   )
+  parser.add_argument(
+    "--include-node-modules",
+    action="store_true",
+    help="Explicitly include node_modules when globbed in (normally the folder will be ignored)"
+  )
   return parser
 
 def start(label: str) -> None:
@@ -307,7 +325,7 @@ def main(argv: list[str] | None = None) -> int:
   if not args.inputs:
     parser.error("the following arguments are required: PATH")
 
-  files = resolve_inputs(args.inputs)
+  files = resolve_inputs(args.inputs, args.include_node_modules)
 
   if not files:
     print("No files matched the given inputs.", file=sys.stderr)
