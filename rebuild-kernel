@@ -186,7 +186,7 @@ function build_generic() {
 }
 
 function update_grub() {
-  if test -z $"(which update-grub)"; then
+  if test -z "$(which update-grub)"; then
     grub-mkconfig -o /boot/grub/grub.cfg
   else
     update-grub
