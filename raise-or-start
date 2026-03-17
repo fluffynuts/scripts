@@ -31,6 +31,9 @@ def raise_or_start(window_search: str, fallback_command: str) -> None:
   try:
     wid = find_window(window_search)
     if wid is None:
+      if fallback_command == "-":
+        print(f"command explicitly unset")
+        return None
       print(f"starting fallback command: {fallback_command}")
       run_fallback(fallback_command)
     else:
@@ -82,7 +85,7 @@ def verify_environment():
 
 def usage() -> None:
   me = Path(sys.argv[0]).name
-  print(f"Usage: {me} <search string> <optional fallback command, defaults to search string>")
+  print(f"Usage: {me} <search string> <optional fallback command, defaults to search string, provide - to search & raise only>")
   print(f"  eg: {me} Thunderbird thunderbird")
   print(f"  or: {me} Thunderbird /usr/bin/thunderbird")
   print(f"  or: {me} SomeWindowClass \"/path/to/app --option foo\"")
