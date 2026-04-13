@@ -55,7 +55,6 @@ def main():
         capture_output=True,
         text=True
     )
-    print(status)
     needs_restart = any(
             s in status.stdout for s in ("crashed", "failed", "stopped")
         ) or any(
