@@ -55,7 +55,13 @@ def main():
         capture_output=True,
         text=True
     )
-    if any(s in status.stdout for s in ("crashed", "failed", "stopped", "failed")):
+    print(status)
+    needs_restart = any(
+            s in status.stdout for s in ("crashed", "failed", "stopped")
+        ) or any(
+            s in status.stderr for s in ("crashed", "failed", "stopped")
+        )
+    if needs_restart:
         log("restarting server...")
         print(f"✗ Radarr is NOT listening on {url}")
         print("Restarting...")
