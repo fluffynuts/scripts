@@ -1,0 +1,27 @@
+#!/usr/bin/env python3
+import sys
+import time
+import requests
+
+
+def main() -> None:
+    if len(sys.argv) < 2:
+        print(f"Usage: {sys.argv[0]} <url>")
+        sys.exit(1)
+
+    url = sys.argv[1]
+    while True:
+        try:
+            response = requests.get(url, timeout=5)
+            print(f"{response.status_code} {url}")
+        except requests.ConnectionError:
+            print(f"Connection refused {url}")
+        except requests.Timeout:
+            print(f"Timeout {url}")
+        except requests.RequestException as e:
+            print(f"Error: {e}")
+        time.sleep(1)
+
+
+if __name__ == "__main__":
+    main()
