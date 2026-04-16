@@ -43,11 +43,12 @@ def build_import_re(aliases: dict[str, Path]) -> re.Pattern:
     # Each alias like "@" should match "@/" at the start of the import path.
     alias_patterns = [re.escape(prefix) + "/" for prefix in sorted(aliases.keys(), key=len, reverse=True)]
 
-    # Combine: relative paths (starting with .) OR any alias prefix
-    path_alts = r"\." + ("|" + "|".join(alias_patterns) if alias_patterns else "")
+    # Combine: relative paths (starting with .) OR any alias prefix.
+    # Wrapped in (?:...) so the alternation is grouped before .*? is appended.
+    path_alts = r"(?:" + r"\." + ("|" + "|".join(alias_patterns) if alias_patterns else "") + r")"
 
     return re.compile(
-        rf"""^(\s*(?:import|export)\s+(?:type\s+)?(?:.*?\s+from\s+|))(['"])({path_alts}.*?)\2(.*)$""",
+        rf"""^(\s*(?:import|export)\s+(?:type\s+)?(?:[\s\S]*?\s+from\s+|))(['"])({path_alts}.*?)\2(.*)$""",
         re.MULTILINE,
     )
 
