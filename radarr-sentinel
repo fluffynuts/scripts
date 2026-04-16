@@ -62,8 +62,6 @@ def main():
         )
     if needs_restart:
         log("restarting server...")
-        print(f"✗ Radarr is NOT listening on {url}")
-        print("Restarting...")
         status = subprocess.run(["rc-service", "radarr", "restart"], text=True, capture_output=True)
         if status.returncode == 0:
             log("service should be restarted!")
