@@ -283,23 +283,31 @@ def human_readable_filesize(size_in_bytes: int) -> str:
   else:
     return f"{size_in_bytes / 1048576:.1f}mb"
 
-def write_compressed(text: str, target: str) -> None:
+def write_compressed(text: str, target: str) -> str:
   target_path = Path(target)
   target_path.unlink(missing_ok=True)
 
-  if shutil.which("pigz"):
+  external_compressor = None
+  ext = ".gz"
+  if shutil.which("xz"):
+    external_compressor = "xz"
+    xz_output = target_path.with_suffix(".xz")
+    if xz_output.is_file():
+      os.unlink(xz_output)
+    ext = ".xz"
+  elif shutil.which("pigz"):
+    external_compressor = "pigz"
+
+  if external_compressor is not None:
     # Write plain text file without .gz extension
     plain_path = target_path.with_suffix("") if target_path.suffix == ".gz" else target_path
     start(f"writing intermediate file")
     plain_path.write_text(text, encoding="utf-8")
     ok()
-    start("compressing with pigz")
-    subprocess.run(["pigz", "-9", str(plain_path)], check=True)
+    start(f"compressing with {external_compressor}")
+    subprocess.run([external_compressor, "-9", str(plain_path)], check=True)
     ok()
-    # pigz produces <filename>.gz, rename if target differs
-    pigz_output = plain_path.with_suffix(plain_path.suffix + ".gz")
-    if pigz_output != target_path:
-      pigz_output.rename(target_path)
+    return str(plain_path.with_suffix(ext))
   else:
     start("compressing")
     compressed = gzip.compress(text.encode("utf-8"))
@@ -307,6 +315,7 @@ def write_compressed(text: str, target: str) -> None:
     start("writing file... ")
     target_path.write_bytes(compressed)
     ok()
+    return str(target_path.with_suffix(ext))
 
 def main(argv: list[str] | None = None) -> int:
   parser = build_parser()
@@ -340,8 +349,8 @@ def main(argv: list[str] | None = None) -> int:
       # print("ok")
       new_path = Path(args.output).with_suffix(".gz")
       # new_path.write_bytes(compressed)
-      write_compressed(output, str(new_path))
-      print(f"Wrote {len(files)} file(s) to {new_path} ({file_size_from_path(str(new_path))})", file=sys.stderr)
+      output_file_path = write_compressed(output, str(new_path))
+      print(f"Wrote {len(files)} file(s) to {output_file_path} ({file_size_from_path(str(output_file_path))})", file=sys.stderr)
     else:
       Path(args.output).with_suffix(".txt").write_text(output, encoding="utf-8")
       print(f"Wrote {len(files)} file(s) to {args.output}", file=sys.stderr)
