@@ -5,57 +5,102 @@ import sys
 import subprocess
 import os
 
+from PyQt6.QtCore import QUrl
 from PyQt6.QtGui import QIcon, QAction
-from PyQt6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
+from PyQt6.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QMainWindow
+self_hosted = True
+try:
+  from PyQt6.QtWebEngineWidgets import QWebEngineView
 
+  class BrowserWindow(QMainWindow):
+    def __init__(self, url: str, icon: QIcon) -> None:
+      super().__init__()
+      self.setWindowTitle(url)
+      self.setWindowIcon(icon)
+      self.resize(1024, 768)
+
+      self._web_view = QWebEngineView()
+      self._web_view.setUrl(QUrl(url))
+      self.setCentralWidget(self._web_view)
+
+    def closeEvent(self, event: "QCloseEvent") -> None:
+      # Hide instead of destroying so we can re-show later
+      event.ignore()
+      self.hide()
+
+except:
+  self_hosted = False
+  class BrowserWindow:
+    def __init__(self, url: str, icon: QIcon) -> None:
+      self.url = url
+      pass
+
+    def closeEvent(self, event: "QCloseEvent") -> None:
+      pass
 
 def open_url(url: str) -> None:
-    subprocess.Popen(["xdg-open", url])
+  subprocess.Popen(["xdg-open", url])
+
+def toggle_window(window: BrowserWindow) -> None:
+  if self_hosted:
+    if window.isVisible() and window.isActiveWindow():
+      window.hide()
+    else:
+      window.show()
+      window.raise_()
+      window.activateWindow()
+  else:
+    open_url(window.url)
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="System tray launcher for a URL")
-    parser.add_argument("-i", "--icon", required=True, help="System theme icon name")
-    parser.add_argument("-u", "--url", required=True, help="URL to open on click")
-    return parser.parse_args()
+  parser = argparse.ArgumentParser(description="System tray launcher for a URL")
+  parser.add_argument("-i", "--icon", required=True, help="System theme icon name")
+  parser.add_argument("-u", "--url", required=True, help="URL to open on click")
+  return parser.parse_args()
 
 
 def main() -> None:
-    args = parse_args()
+  args = parse_args()
 
-    if get_running_pid(args.url, args.icon) is not None:
-      print("already running")
-      return
+  if get_running_pid(args.url, args.icon) is not None:
+    print("already running")
+    return
 
-    app = QApplication(sys.argv)
-    app.setQuitOnLastWindowClosed(False)
+  app = QApplication(sys.argv)
+  app.setQuitOnLastWindowClosed(False)
 
-    icon = QIcon.fromTheme(args.icon)
-    tray = QSystemTrayIcon(icon, app)
+  icon = QIcon.fromTheme(args.icon)
 
-    tray.activated.connect(
-        lambda reason: open_url(args.url)
-        if reason == QSystemTrayIcon.ActivationReason.Trigger
-        else None
-    )
+  window = BrowserWindow(args.url, icon)
 
-    menu = QMenu()
-    exit_action = QAction("Exit")
-    exit_action.triggered.connect(app.quit)
-    menu.addAction(exit_action)
-    tray.setContextMenu(menu)
+  tray = QSystemTrayIcon(icon, app)
 
-    tray.show()
-    sys.exit(app.exec())
+  tray.activated.connect(
+    lambda reason: toggle_window(window)
+    if reason == QSystemTrayIcon.ActivationReason.Trigger
+    else None
+  )
+
+  menu = QMenu()
+  exit_action = QAction("Exit")
+  exit_action.triggered.connect(app.quit)
+  menu.addAction(exit_action)
+  tray.setContextMenu(menu)
+
+  tray.show()
+  sys.exit(app.exec())
+
 
 def lock_file_path(url: str, icon: str) -> str:
-    safe_url = re.sub(r"[/:]+", "-", url).strip("-")
-    safe_url = re.sub(r"[?&=]", "_", safe_url)
-    return f"/tmp/tray-site-{icon}-{safe_url}.pid"
+  safe_url = re.sub(r"[/:]+", "-", url).strip("-")
+  safe_url = re.sub(r"[?&=]", "_", safe_url)
+  return f"/tmp/tray-site-{icon}-{safe_url}.pid"
+
 
 def get_running_pid(url: str, icon: str) -> int | None:
   """
-  Check if another nestray instance is running.
+  Check if another instance is running.
   Returns the PID of the running instance, or None if not running.
   Writes our own PID file if no other instance is found.
   """
@@ -68,14 +113,16 @@ def get_running_pid(url: str, icon: str) -> int | None:
     try:
       os.kill(existing_pid, 0)
       return existing_pid
-    except ProcessLookupError as e:
+    except ProcessLookupError:
       write_pid_file(pidfile)
       return None
+
 
 def write_pid_file(pidfile: str) -> None:
   with open(pidfile, "w") as fp:
     pid = str(os.getpid())
     fp.write(pid)
 
+
 if __name__ == "__main__":
-    main()
+  main()
