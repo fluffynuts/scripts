@@ -27,6 +27,12 @@ try:
       reload_action = QShortcut(QKeySequence.StandardKey.Refresh, self)
       reload_action.activated.connect(self._web_view.reload)
 
+      back_action = QShortcut(QKeySequence.StandardKey.Back, self)
+      back_action.activated.connect(self._web_view.back)
+
+      forward_action = QShortcut(QKeySequence.StandardKey.Forward, self)
+      forward_action.activated.connect(self._web_view.forward)
+
     def closeEvent(self, event: "QCloseEvent") -> None:
       # Hide instead of destroying so we can re-show later
       event.ignore()
