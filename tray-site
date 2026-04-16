@@ -55,7 +55,7 @@ def toggle_window(window: BrowserWindow) -> None:
 
 def parse_args() -> argparse.Namespace:
   parser = argparse.ArgumentParser(description="System tray launcher for a URL")
-  parser.add_argument("-i", "--icon", required=True, help="System theme icon name")
+  parser.add_argument("-i", "--icon", required=True, help="System theme icon name or path to icon file")
   parser.add_argument("-u", "--url", required=True, help="URL to open on click")
   return parser.parse_args()
 
@@ -70,7 +70,11 @@ def main() -> None:
   app = QApplication(sys.argv)
   app.setQuitOnLastWindowClosed(False)
 
-  icon = QIcon.fromTheme(args.icon)
+  if os.path.isfile(args.icon):
+    print(f"load icon from {args.icon}")
+    icon = QIcon(args.icon)
+  else:
+    icon = QIcon.fromTheme(args.icon)
 
   window = BrowserWindow(args.url, icon)
 
@@ -95,6 +99,8 @@ def main() -> None:
 def lock_file_path(url: str, icon: str) -> str:
   safe_url = re.sub(r"[/:]+", "-", url).strip("-")
   safe_url = re.sub(r"[?&=]", "_", safe_url)
+  if os.path.exists(icon):
+    icon = os.path.basename(icon)
   return f"/tmp/tray-site-{icon}-{safe_url}.pid"
 
 
