@@ -1,0 +1,37 @@
+#!/bin/bash
+set -euo pipefail
+
+CHANGED=0
+
+for preset in /etc/mkinitcpio.d/linux*.preset; do
+  [ -f "$preset" ] || continue
+  
+  # Skip if already in UKI mode
+  if grep -qE '^default_uki=' "$preset" && grep -qE '^#default_image=' "$preset"; then
+    continue
+  fi
+  
+  # Make the changes idempotent: enable UKI, disable image, fix path
+  sed -i \
+    -e 's|^default_image=|#default_image=|' \
+    -e 's|^#default_uki="/efi/EFI/Linux/|default_uki="/boot/efi/EFI/Linux/|' \
+    "$preset"
+  
+  echo "Updated UKI config in: $preset"
+  CHANGED=1
+done
+
+PRESET_COUNT=$(ls /etc/mkinitcpio.d/linux*.preset 2>/dev/null | wc -l)
+
+if [ "$PRESET_COUNT" -eq 0 ]; then
+  echo "WARNING: No kernel presets found in /etc/mkinitcpio.d/" >&2
+  exit 1
+fi
+
+# Only regenerate if we actually changed something
+# (pacman will run mkinitcpio anyway as part of its own hooks for kernel installs)
+if [ "$CHANGED" = 1 ]; then
+  echo "Regenerating UKIs..."
+  mkinitcpio -P
+fi
+
