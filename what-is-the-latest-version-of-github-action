@@ -1,0 +1,3 @@
+#!/bin/bash
+ACTION="$1"
+curl -s https://api.github.com/repos/$ACTION/releases/latest | jq -r .tag_name
