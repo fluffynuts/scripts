@@ -1,0 +1,611 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#     "prompt_toolkit>=3.0",
+# ]
+# ///
+"""
+show-pr-coverage: open the HTML coverage report for files changed in a GitHub PR.
+
+Usage:
+    show-pr-coverage <pr-url>
+    show-pr-coverage <pr-url> --artifact-name coverage-report
+    show-pr-coverage <pr-url> --workflow tests.yml
+
+Requires the `gh` CLI to be installed and authenticated, OR the
+SHOW_PR_COVERAGE_TOKEN environment variable to be set with a token
+that has `repo` scope.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import urllib.request
+import webbrowser
+import zipfile
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Iterator
+from urllib.error import HTTPError
+
+from prompt_toolkit import Application
+from prompt_toolkit.formatted_text import FormattedText
+from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.layout import Layout
+from prompt_toolkit.layout.containers import HSplit, Window
+from prompt_toolkit.layout.controls import FormattedTextControl
+from prompt_toolkit.layout.dimension import Dimension
+from prompt_toolkit.styles import Style
+
+DEFAULT_ARTIFACT_NAME = "coverage-report"
+COVERAGE_FILE_EXTENSIONS = (".ts", ".tsx", ".js", ".jsx", ".vue")
+PR_URL_PATTERN = re.compile(
+    r"^https?://github\.com/(?P<owner>[^/]+)/(?P<repo>[^/]+)/pull/(?P<number>\d+)/?"
+)
+
+
+@dataclass(frozen=True)
+class PrInfo:
+    owner: str
+    repo: str
+    number: int
+    head_sha: str
+    head_branch: str
+    changed_files: list[str]
+
+
+@dataclass(frozen=True)
+class CliOptions:
+    pr_url: str
+    artifact_name: str
+    workflow: str | None
+
+
+def parse_pr_url(url: str) -> tuple[str, str, int]:
+    match = PR_URL_PATTERN.match(url.strip())
+    if not match:
+        raise SystemExit(
+            f"not a recognized GitHub PR URL: {url}\n"
+            "expected: https://github.com/<owner>/<repo>/pull/<number>"
+        )
+    return (
+        match.group("owner"),
+        match.group("repo"),
+        int(match.group("number"))
+    )
+
+
+def have_gh_cli() -> bool:
+    return shutil.which("gh") is not None
+
+
+def run_gh(args: list[str]) -> str:
+    """Run a gh command and return stdout. Raises SystemExit on failure."""
+    try:
+        result = subprocess.run(
+            ["gh", *args],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        return result.stdout
+    except subprocess.CalledProcessError as ex:
+        sys.stderr.write(f"gh command failed: gh {' '.join(args)}\n")
+        sys.stderr.write(ex.stderr)
+        raise SystemExit(1) from ex
+
+
+def api_get(
+    owner: str,
+    repo: str,
+    path: str,
+    token: str | None = None
+) -> dict | list:
+    """Fetch a GitHub API endpoint via gh or direct HTTP."""
+    if have_gh_cli() and not token:
+        body = run_gh([
+            "api", f"repos/{owner}/{repo}/{path}",
+            "-H", "Accept: application/vnd.github+json"
+        ])
+        return json.loads(body)
+
+    if not token:
+        raise SystemExit(
+            "gh CLI not available and SHOW_PR_COVERAGE_TOKEN not set"
+        )
+    request = urllib.request.Request(
+        f"https://api.github.com/repos/{owner}/{repo}/{path}",
+        headers={
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {token}",
+            "X-GitHub-Api-Version": "2022-11-28"
+        }
+    )
+    try:
+        with urllib.request.urlopen(request) as response:
+            return json.loads(response.read())
+    except HTTPError as ex:
+        sys.stderr.write(f"GitHub API error: {ex.code} {ex.reason}\n")
+        sys.stderr.write(ex.read().decode("utf-8", errors="replace"))
+        raise SystemExit(1) from ex
+
+
+def fetch_all_pr_files(
+    owner: str,
+    repo: str,
+    number: int,
+    token: str | None
+) -> list[str]:
+    """Fetch every changed file in a PR, paginating as needed.
+
+    Note: GitHub's API caps file listings at 3000 entries per PR. PRs
+    larger than that will be truncated by the API itself, not by us.
+    """
+    if have_gh_cli() and not token:
+        # gh's --paginate handles pagination but the JSON output combines
+        # pages into a single array. We use the lower-level `api` subcommand
+        # because `pr view --json files` doesn't paginate.
+        body = run_gh([
+            "api",
+            "--paginate",
+            f"repos/{owner}/{repo}/pulls/{number}/files",
+            "--jq", ".[].filename",
+            "-H", "Accept: application/vnd.github+json"
+        ])
+        return [line for line in body.splitlines() if line.strip()]
+
+    files: list[str] = []
+    page = 1
+    while True:
+        path = f"pulls/{number}/files?per_page=100&page={page}"
+        payload = api_get(owner, repo, path, token)
+        if not isinstance(payload, list):
+            raise SystemExit("unexpected response shape from PR files endpoint")
+        if not payload:
+            break
+        files.extend(entry["filename"] for entry in payload)
+        if len(payload) < 100:
+            break
+        page += 1
+    return files
+
+
+def fetch_pr_info(owner: str, repo: str, number: int) -> PrInfo:
+    token = os.environ.get("SHOW_PR_COVERAGE_TOKEN")
+
+    if have_gh_cli() and not token:
+        body = run_gh([
+            "pr", "view", str(number),
+            "--repo", f"{owner}/{repo}",
+            "--json", "headRefOid,headRefName,changedFiles"
+        ])
+        meta = json.loads(body)
+        head_sha = meta["headRefOid"]
+        head_branch = meta["headRefName"]
+        changed_count = meta["changedFiles"]
+    else:
+        pr_payload = api_get(owner, repo, f"pulls/{number}", token)
+        if not isinstance(pr_payload, dict):
+            raise SystemExit("unexpected response shape from PR endpoint")
+        head_sha = pr_payload["head"]["sha"]
+        head_branch = pr_payload["head"]["ref"]
+        changed_count = pr_payload.get("changed_files", 0)
+
+    print(f"  files changed: {changed_count}")
+    if changed_count > 100:
+        pages = (changed_count + 99) // 100
+        print(
+            f"  fetching {changed_count} file paths in {pages} page(s) — "
+            "this may take a moment..."
+        )
+
+    files = fetch_all_pr_files(owner, repo, number, token)
+    return PrInfo(
+        owner=owner,
+        repo=repo,
+        number=number,
+        head_sha=head_sha,
+        head_branch=head_branch,
+        changed_files=files
+    )
+
+
+def find_run_id_with_artifact(
+    pr: PrInfo,
+    artifact_name: str,
+    workflow: str | None
+) -> int:
+    """Find the latest workflow run on the PR head SHA that produced the artifact."""
+    token = os.environ.get("SHOW_PR_COVERAGE_TOKEN")
+
+    if have_gh_cli() and not token:
+        args = [
+            "run", "list",
+            "--repo", f"{pr.owner}/{pr.repo}",
+            "--branch", pr.head_branch,
+            "--json", "databaseId,headSha,status,conclusion,workflowName",
+            "--limit", "30"
+        ]
+        if workflow:
+            args.extend(["--workflow", workflow])
+        runs = json.loads(run_gh(args))
+    else:
+        path = f"actions/runs?branch={pr.head_branch}&per_page=30"
+        if workflow:
+            path = f"actions/workflows/{workflow}/runs?branch={pr.head_branch}&per_page=30"
+        payload = api_get(pr.owner, pr.repo, path, token)
+        if not isinstance(payload, dict):
+            raise SystemExit("unexpected response shape from runs endpoint")
+        runs = [
+            {
+                "databaseId": run["id"],
+                "headSha": run["head_sha"],
+                "status": run["status"],
+                "conclusion": run["conclusion"],
+                "workflowName": run["name"]
+            }
+            for run in payload.get("workflow_runs", [])
+        ]
+
+    candidate_runs = [
+        run for run in runs
+        if run.get("headSha") == pr.head_sha
+        and run.get("status") == "completed"
+    ]
+
+    if not candidate_runs:
+        raise SystemExit(
+            f"no completed workflow runs found for PR #{pr.number} "
+            f"head SHA {pr.head_sha[:7]}"
+        )
+
+    for run in candidate_runs:
+        run_id = run["databaseId"]
+        if artifact_exists_for_run(pr, run_id, artifact_name, token):
+            return int(run_id)
+
+    raise SystemExit(
+        f"none of the {len(candidate_runs)} run(s) on head SHA "
+        f"{pr.head_sha[:7]} produced an artifact named '{artifact_name}'"
+    )
+
+
+def artifact_exists_for_run(
+    pr: PrInfo,
+    run_id: int,
+    artifact_name: str,
+    token: str | None
+) -> bool:
+    payload = api_get(
+        pr.owner,
+        pr.repo,
+        f"actions/runs/{run_id}/artifacts",
+        token
+    )
+    if not isinstance(payload, dict):
+        return False
+    return any(
+        entry.get("name") == artifact_name and not entry.get("expired", False)
+        for entry in payload.get("artifacts", [])
+    )
+
+
+def download_and_extract_artifact(
+    pr: PrInfo,
+    run_id: int,
+    artifact_name: str,
+    target_dir: Path
+) -> Path:
+    """Download the artifact and return the extracted directory path."""
+    token = os.environ.get("SHOW_PR_COVERAGE_TOKEN")
+
+    if have_gh_cli() and not token:
+        run_gh([
+            "run", "download", str(run_id),
+            "--repo", f"{pr.owner}/{pr.repo}",
+            "--name", artifact_name,
+            "--dir", str(target_dir)
+        ])
+        return target_dir
+
+    payload = api_get(
+        pr.owner,
+        pr.repo,
+        f"actions/runs/{run_id}/artifacts",
+        token
+    )
+    if not isinstance(payload, dict):
+        raise SystemExit("unexpected artifacts response")
+    matching = [
+        entry for entry in payload.get("artifacts", [])
+        if entry.get("name") == artifact_name
+    ]
+    if not matching:
+        raise SystemExit(f"artifact '{artifact_name}' not found in run {run_id}")
+
+    download_url = matching[0]["archive_download_url"]
+    request = urllib.request.Request(
+        download_url,
+        headers={
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {token}"
+        }
+    )
+    zip_path = target_dir / "artifact.zip"
+    with urllib.request.urlopen(request) as response:
+        with open(zip_path, "wb") as zip_file:
+            shutil.copyfileobj(response, zip_file)
+    with zipfile.ZipFile(zip_path) as zip_file:
+        zip_file.extractall(target_dir)
+    zip_path.unlink()
+    return target_dir
+
+
+def candidate_coverage_paths(
+    coverage_root: Path,
+    source_path: str
+) -> Iterator[Path]:
+    """Yield plausible HTML report paths for a source file."""
+    yield coverage_root / f"{source_path}.html"
+    if source_path.startswith("src/"):
+        without_src = source_path[len("src/"):]
+        yield coverage_root / f"{without_src}.html"
+    yield coverage_root / "lcov-report" / f"{source_path}.html"
+
+
+def find_coverage_html(coverage_root: Path, source_path: str) -> Path | None:
+    for candidate in candidate_coverage_paths(coverage_root, source_path):
+        if candidate.is_file():
+            return candidate
+
+    # Fallback: recursive search by basename match
+    target_basename = Path(source_path).name + ".html"
+    for found in coverage_root.rglob(target_basename):
+        if found.is_file():
+            return found
+    return None
+
+
+def filter_to_coverable_files(files: list[str]) -> list[str]:
+    return [
+        path for path in files
+        if path.endswith(COVERAGE_FILE_EXTENSIONS)
+        and not path.startswith("tests/")
+        and not path.endswith(".d.ts")
+    ]
+
+
+def detect_coverage_root(extract_dir: Path) -> Path:
+    """Find the actual coverage report root inside the extracted artifact."""
+    if (extract_dir / "index.html").is_file():
+        return extract_dir
+    for child in extract_dir.iterdir():
+        if child.is_dir() and (child / "index.html").is_file():
+            return child
+    return extract_dir
+
+
+MENU_VISIBLE_ROWS = 10
+MENU_STYLE = Style.from_dict({
+    "cursor": "reverse bold",
+    "seen": "ansigreen",
+    "seen-cursor": "reverse bold ansigreen",
+    "done": "ansiyellow",
+    "done-cursor": "reverse bold ansiyellow",
+    "header": "bold",
+    "footer": "ansibrightblack",
+})
+
+
+def run_persistent_menu(items: list[tuple[str, Path]]) -> None:
+    """Run a scrollable menu that preserves cursor position across opens.
+
+    `items` is a list of (display_label, html_path) pairs. The final menu
+    entry (Done) is appended automatically.
+    """
+    cursor = [0]
+    seen: set[int] = set()
+    total = len(items) + 1  # +1 for the Done row
+    done_index = len(items)
+
+    def get_menu_text() -> FormattedText:
+        # Window the visible slice around the cursor
+        window_size = min(MENU_VISIBLE_ROWS, total)
+        half = window_size // 2
+        start = max(0, cursor[0] - half)
+        start = min(start, total - window_size)
+        end = start + window_size
+
+        fragments: list[tuple[str, str]] = []
+        fragments.append((
+            "class:header",
+            f"select a file to open  ({len(seen)}/{len(items)} viewed)\n"
+        ))
+
+        if start > 0:
+            fragments.append(("class:footer", "  ↑ more above\n"))
+        else:
+            fragments.append(("", "\n"))
+
+        for index in range(start, end):
+            is_cursor = index == cursor[0]
+            is_done = index == done_index
+            is_seen = index in seen
+
+            prefix = "❯ " if is_cursor else "  "
+
+            if is_done:
+                label = "── Done"
+                style = "class:done-cursor" if is_cursor else "class:done"
+            else:
+                path, _ = items[index]
+                marker = " (seen)" if is_seen else ""
+                label = f"{path}{marker}"
+                if is_cursor:
+                    style = "class:seen-cursor" if is_seen else "class:cursor"
+                else:
+                    style = "class:seen" if is_seen else ""
+
+            fragments.append((style, f"{prefix}{label}\n"))
+
+        if end < total:
+            fragments.append(("class:footer", "  ↓ more below\n"))
+        else:
+            fragments.append(("", "\n"))
+
+        fragments.append((
+            "class:footer",
+            "↑/↓ navigate · Enter open · q/Esc quit"
+        ))
+        return FormattedText(fragments)
+
+    bindings = KeyBindings()
+
+    @bindings.add("up")
+    @bindings.add("k")
+    def _(event):  # type: ignore[no-untyped-def]
+        cursor[0] = (cursor[0] - 1) % total
+
+    @bindings.add("down")
+    @bindings.add("j")
+    def _(event):  # type: ignore[no-untyped-def]
+        cursor[0] = (cursor[0] + 1) % total
+
+    @bindings.add("home")
+    @bindings.add("g")
+    def _(event):  # type: ignore[no-untyped-def]
+        cursor[0] = 0
+
+    @bindings.add("end")
+    @bindings.add("G")
+    def _(event):  # type: ignore[no-untyped-def]
+        cursor[0] = total - 1
+
+    @bindings.add("pageup")
+    def _(event):  # type: ignore[no-untyped-def]
+        cursor[0] = max(0, cursor[0] - MENU_VISIBLE_ROWS)
+
+    @bindings.add("pagedown")
+    def _(event):  # type: ignore[no-untyped-def]
+        cursor[0] = min(total - 1, cursor[0] + MENU_VISIBLE_ROWS)
+
+    @bindings.add("enter")
+    def _(event):  # type: ignore[no-untyped-def]
+        index = cursor[0]
+        if index == done_index:
+            event.app.exit()
+            return
+        _, html = items[index]
+        webbrowser.open(html.as_uri())
+        seen.add(index)
+        # leave cursor where it is
+
+    @bindings.add("q")
+    @bindings.add("escape")
+    @bindings.add("c-c")
+    def _(event):  # type: ignore[no-untyped-def]
+        event.app.exit()
+
+    layout_height = MENU_VISIBLE_ROWS + 4  # header + 2 padding + footer
+    control = FormattedTextControl(get_menu_text, focusable=True)
+    layout = Layout(HSplit([
+        Window(content=control, height=Dimension.exact(layout_height))
+    ]))
+    app = Application(
+        layout=layout,
+        key_bindings=bindings,
+        style=MENU_STYLE,
+        full_screen=False,
+    )
+    app.run()
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Open HTML coverage for files changed in a GitHub PR"
+    )
+    parser.add_argument("pr_url", help="URL of the GitHub PR")
+    parser.add_argument(
+        "--artifact-name",
+        default=DEFAULT_ARTIFACT_NAME,
+        help=f"name of the coverage artifact (default: {DEFAULT_ARTIFACT_NAME})"
+    )
+    parser.add_argument(
+        "--workflow",
+        default=None,
+        help="restrict search to a specific workflow file (e.g. tests.yml)"
+    )
+    args = parser.parse_args()
+
+    options = CliOptions(
+        pr_url=args.pr_url,
+        artifact_name=args.artifact_name,
+        workflow=args.workflow
+    )
+
+    if not have_gh_cli() and not os.environ.get("SHOW_PR_COVERAGE_TOKEN"):
+        sys.stderr.write(
+            "neither `gh` CLI nor SHOW_PR_COVERAGE_TOKEN env var available\n"
+        )
+        return 1
+
+    owner, repo, number = parse_pr_url(options.pr_url)
+    print(f"fetching PR #{number} from {owner}/{repo}...")
+    pr = fetch_pr_info(owner, repo, number)
+    print(f"  head: {pr.head_sha[:7]} ({pr.head_branch})")
+
+    coverable = filter_to_coverable_files(pr.changed_files)
+    if not coverable:
+        print("no coverage-eligible files in this PR")
+        return 0
+    print(f"  coverable: {len(coverable)}")
+
+    print(f"locating run with artifact '{options.artifact_name}'...")
+    run_id = find_run_id_with_artifact(
+        pr, options.artifact_name, options.workflow
+    )
+    print(f"  run: {run_id}")
+
+    with tempfile.TemporaryDirectory(prefix="show-pr-coverage-") as temp_str:
+        temp_dir = Path(temp_str)
+        print(f"downloading artifact to {temp_dir}...")
+        extract_dir = download_and_extract_artifact(
+            pr, run_id, options.artifact_name, temp_dir
+        )
+        coverage_root = detect_coverage_root(extract_dir)
+        print(f"  coverage root: {coverage_root}")
+
+        # Pre-resolve which files have coverage so the menu reflects reality
+        resolved: list[tuple[str, Path | None]] = [
+            (source_path, find_coverage_html(coverage_root, source_path))
+            for source_path in coverable
+        ]
+        missing = [path for path, html in resolved if html is None]
+        if missing:
+            print(f"  no coverage entry found for {len(missing)} file(s):")
+            for path in missing:
+                print(f"    - {path}")
+
+        viewable = [(path, html) for path, html in resolved if html is not None]
+        if not viewable:
+            print("nothing to show")
+            return 0
+
+        run_persistent_menu(viewable)
+
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        print()
+        sys.exit(130)
