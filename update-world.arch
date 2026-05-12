@@ -2,18 +2,22 @@
 set -euo pipefail
 
 if test -z "${STY:-}" && test -z "${TMUX:-}"; then
-  exec screen -S update-world -- "$0" "$@"
+  exec screen -S update-world -- "$0" "$@" -w
 fi
 
 LINE_BREAK="-------------------------------"
 
 ALLOW_DOWNGRADES=0
+PAUSE_AT_EXIT=0
 #CONFIRM_INSTALLATIONS=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -d|--allow-downgrades)
       ALLOW_DOWNGRADES=1
+      ;;
+    -w|--wait)
+      PAUSE_AT_EXIT=1
       ;;
 #    -c|--confirm-installation)
 #      CONFIRM_INSTALLATIONS=1
@@ -23,6 +27,7 @@ while [[ $# -gt 0 ]]; do
       echo "   where options are one of:"
       echo "   -d | --allow-downgrades          allow package downgrades"
       echo "   -h | --help                      this help"
+      echo "   -w | --wait                      pause before exiting"
       exit 0
       ;;
     *)
@@ -53,4 +58,8 @@ orphans="$(pacman -Qdtq)" || true
 if ! test -z "$orphans"; then
   echo -e "\n\n${LINE_BREAK}\nRemoving unused dependencies...\n"
   sudo pacman -Rns $(pacman -Qdtq)
+fi
+
+if test "$PAUSE_AT_EXIT" -eq 1; then
+  $(dirname $0)/pause
 fi
