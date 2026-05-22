@@ -1,0 +1,172 @@
+#!/usr/bin/env python3
+"""
+Enumerate all USB devices and report their power-management state.
+
+For each device, prints:
+  - sysfs path (e.g. "3-4.3", matches dmesg output)
+  - bus:device  (matching `lsusb` numbering)
+  - vendor:product
+  - human-readable name (from /sys; falls back to vendor:product)
+  - power-saving state: "on" (autosuspend enabled) or "off" (always on)
+
+Note: in /sys, power/control values are:
+  "auto" = autosuspend enabled  -> we print "on"  (power saving is ON)
+  "on"   = autosuspend disabled -> we print "off" (power saving is OFF)
+We invert the kernel's value because the user's mental model is
+"is power saving active" rather than "is the device kept awake".
+"""
+
+from pathlib import Path
+from typing import NamedTuple, Optional
+
+
+USB_ROOT = Path("/sys/bus/usb/devices")
+
+
+class UsbDevice(NamedTuple):
+    sysfs_name: str  # e.g. "3-4.3", as seen in dmesg
+    bus: str
+    devnum: str
+    vendor_id: str
+    product_id: str
+    name: str
+    power_saving: str  # "on", "off", or "n/a"
+    is_hub: bool
+    sysfs_path: Path
+
+
+def read_attr(path: Path, attr: str) -> Optional[str]:
+    """Read a sysfs attribute, returning None if missing or unreadable."""
+    try:
+        return (path / attr).read_text().strip()
+    except (FileNotFoundError, PermissionError, OSError):
+        return None
+
+
+def get_human_name(path: Path, vendor_id: str, product_id: str) -> str:
+    """Build a human-readable name from manufacturer + product, with fallback."""
+    manufacturer: str = read_attr(path, "manufacturer") or ""
+    product: str = read_attr(path, "product") or ""
+    name: str = f"{manufacturer} {product}".strip()
+    if not name:
+        name = f"{vendor_id}:{product_id}"
+    return name
+
+
+def get_power_saving_state(path: Path) -> str:
+    """Translate kernel power/control into user-facing power-saving state."""
+    control: Optional[str] = read_attr(path, "power/control")
+    if control is None:
+        return "n/a"
+    # Kernel "auto" = autosuspend allowed = power saving ON
+    # Kernel "on"   = always powered      = power saving OFF
+    if control == "auto":
+        return "on"
+    if control == "on":
+        return "off"
+    return control  # unknown value, surface it as-is
+
+
+def is_hub_device(path: Path) -> bool:
+    """A USB hub has bDeviceClass == 09."""
+    device_class: Optional[str] = read_attr(path, "bDeviceClass")
+    return device_class == "09"
+
+
+def sysfs_sort_key(name: str) -> tuple[int, ...]:
+    """
+    Sort sysfs names like '3-4.3' by their natural numeric topology
+    rather than lexicographically (which would put '3-4.10' before '3-4.2').
+    """
+    # Strip "usb" prefix on root hubs (e.g. "usb3" -> "3")
+    cleaned: str = name[3:] if name.startswith("usb") else name
+    # Split into numeric components: "3-4.3" -> [3, 4, 3]
+    parts: list[int] = []
+    for chunk in cleaned.replace("-", ".").split("."):
+        try:
+            parts.append(int(chunk))
+        except ValueError:
+            parts.append(0)
+    return tuple(parts)
+
+
+def enumerate_usb_devices() -> list[UsbDevice]:
+    """Walk /sys/bus/usb/devices and collect everything that looks like a real USB device."""
+    devices: list[UsbDevice] = []
+    if not USB_ROOT.exists():
+        return devices
+
+    for entry in USB_ROOT.iterdir():
+        # Skip USB interfaces (they contain ':') and only keep device dirs.
+        # Device dirs look like: 1-0, 3-4, 3-4.1, usb3, etc.
+        if ":" in entry.name:
+            continue
+
+        vendor_id: Optional[str] = read_attr(entry, "idVendor")
+        product_id: Optional[str] = read_attr(entry, "idProduct")
+        if vendor_id is None or product_id is None:
+            continue  # not a real device (no descriptors)
+
+        bus: str = read_attr(entry, "busnum") or "?"
+        devnum: str = read_attr(entry, "devnum") or "?"
+
+        devices.append(
+            UsbDevice(
+                sysfs_name=entry.name,
+                bus=bus.zfill(3),
+                devnum=devnum.zfill(3),
+                vendor_id=vendor_id,
+                product_id=product_id,
+                name=get_human_name(entry, vendor_id, product_id),
+                power_saving=get_power_saving_state(entry),
+                is_hub=is_hub_device(entry),
+                sysfs_path=entry,
+            )
+        )
+
+    # Sort by USB topology so parent hubs appear before their children.
+    devices.sort(key=lambda d: sysfs_sort_key(d.sysfs_name))
+    return devices
+
+
+def render_table(devices: list[UsbDevice]) -> str:
+    """Format the device list as an aligned table."""
+    if not devices:
+        return "No USB devices found."
+
+    # Compute column widths from data so output stays neat regardless of names.
+    sysfs_width: int = max(len(d.sysfs_name) for d in devices)
+    sysfs_width = max(sysfs_width, len("sysfs"))
+    id_width: int = max(len(f"{d.bus}:{d.devnum}") for d in devices)
+    vp_width: int = max(len(f"{d.vendor_id}:{d.product_id}") for d in devices)
+    name_width: int = max(len(d.name) for d in devices)
+
+    header: str = (
+        f"{'sysfs'.ljust(sysfs_width)}  "
+        f"{'bus:dev'.ljust(id_width)}  "
+        f"{'vid:pid'.ljust(vp_width)}  "
+        f"{'name'.ljust(name_width)}  "
+        f"power-saving"
+    )
+    separator: str = "-" * len(header)
+
+    lines: list[str] = [header, separator]
+    for d in devices:
+        marker: str = " [hub]" if d.is_hub else ""
+        lines.append(
+            f"{d.sysfs_name.ljust(sysfs_width)}  "
+            f"{(d.bus + ':' + d.devnum).ljust(id_width)}  "
+            f"{(d.vendor_id + ':' + d.product_id).ljust(vp_width)}  "
+            f"{d.name.ljust(name_width)}  "
+            f"{d.power_saving}{marker}"
+        )
+    return "\n".join(lines)
+
+
+def main() -> None:
+    devices: list[UsbDevice] = enumerate_usb_devices()
+    print(render_table(devices))
+
+
+if __name__ == "__main__":
+    main()

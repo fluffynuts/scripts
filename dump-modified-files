@@ -1,0 +1,50 @@
+#!/bin/env python3
+import subprocess
+import argparse
+
+
+def list_modified_files() -> list[str]:
+  output = subprocess.run(
+    ["git", "status", "-s"],
+    capture_output=True,
+    text=True
+  )
+  if output.returncode != 0:
+    print(output.stderr)
+    raise Exception("Failed to list modified files")
+
+  lines = output.stdout.strip().split("\n");
+  result = [];
+  for line in lines:
+    line = line.strip();
+    pre = line[:2].strip()
+    post = line[2:].strip()
+    if pre == "D":
+      print(f"skipping deleted file: {post}");
+      continue
+    result.append(post)
+
+  return result
+
+def dump_files(opts, paths: list[str]) -> None:
+  dump_args = [ "dump-files" ]
+  dump_args.extend(paths)
+  dump_args.append("-o")
+  dump_args.append(opts.output)
+
+  subprocess.run(
+    dump_args,
+    capture_output=False
+  )
+
+if __name__ == "__main__":
+  parser = argparse.ArgumentParser()
+  parser.add_argument("--output", "-o", type=str, default=None)
+  args = parser.parse_args()
+  if args.output is None:
+    args.output = "/tmp/dump"
+
+  files = list_modified_files()
+  dump_files(args, files)
+
+
