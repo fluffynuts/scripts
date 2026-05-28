@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+# switch-to — focus/cycle windows owned by a named process (X11 + Wayland/KDE)
+# Usage: switch-to <name>   e.g. switch-to rider
+
+set -euo pipefail
+
+target="${1:-}"
+if [[ -z "$target" ]]; then
+    echo "Usage: switch-to <name>" >&2
+    exit 2
+fi
+
+# --- backend detection ---------------------------------------------------
+if [[ "${XDG_SESSION_TYPE:-}" == "wayland" ]]; then
+    backend="kdotool"
+else
+    backend="xdotool"
+fi
+
+# --- find matching PIDs --------------------------------------------------
+mapfile -t pids < <(pgrep -if "$target" || true)
+
+if [[ ${#pids[@]} -eq 0 ]]; then
+    echo "No processes matching '$target'" >&2
+    exit 1
+fi
+
+declare -A want_pids=()
+for p in "${pids[@]}"; do
+    want_pids[$p]=1
+done
+
+# --- backend implementations --------------------------------------------
+case "$backend" in
+    xdotool)
+        list_matching() {
+            local w pid_of_window
+            while read -r w; do
+                pid_of_window="$(xdotool getwindowpid "$w" 2>/dev/null || true)"
+                [[ -z "$pid_of_window" ]] && continue
+                [[ -z "${want_pids[$pid_of_window]:-}" ]] && continue
+                # Real top-level windows have WM_STATE set by the WM.
+                # JetBrains' internal/utility windows do not.
+                xprop -id "$w" WM_STATE 2>/dev/null | grep -q "WM_STATE(" || continue
+                echo "$w"
+            done < <(xdotool search --name '.*' 2>/dev/null || true)
+        }
+        active_window() {
+            xdotool getactivewindow 2>/dev/null || true
+        }
+        activate() {
+            xdotool windowactivate "$1" 2>/dev/null
+            xdotool windowraise "$1" 2>/dev/null || true
+        }
+        ;;
+    kdotool)
+        list_matching() {
+            local pid w
+            local -A seen=()
+            for pid in "${pids[@]}"; do
+                while read -r w; do
+                    [[ -z "$w" ]] && continue
+                    if [[ -z "${seen[$w]:-}" ]]; then
+                        seen[$w]=1
+                        echo "$w"
+                    fi
+                done < <(kdotool search --pid "$pid" 2>/dev/null || true)
+            done
+        }
+        active_window() {
+            kdotool getactivewindow 2>/dev/null || true
+        }
+        activate() {
+            kdotool windowactivate "$1" 2>/dev/null
+        }
+        ;;
+esac
+
+# --- main logic ----------------------------------------------------------
+mapfile -t windows < <(list_matching)
+
+if [[ ${#windows[@]} -eq 0 ]]; then
+    echo "Found process(es) matching '$target' but no windows" >&2
+    exit 1
+fi
+
+current="$(active_window)"
+
+current_index=-1
+for i in "${!windows[@]}"; do
+    if [[ "${windows[$i]}" == "$current" ]]; then
+        current_index=$i
+        break
+    fi
+done
+
+if [[ $current_index -eq -1 ]]; then
+    activate "${windows[0]}"
+    exit 0
+fi
+
+if [[ ${#windows[@]} -eq 1 ]]; then
+    exit 0
+fi
+
+next_index=$(( (current_index + 1) % ${#windows[@]} ))
+activate "${windows[$next_index]}"
