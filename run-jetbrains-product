@@ -40,6 +40,17 @@ EOF
   chmod +x "$LOCAL_LINK"
 }
 
+function increase_audio_buffer() {
+  pw-metadata -n settings 0 clock.force-quantum 16384 || echo "unable to increase audio buffers"
+}
+
+function reset_audio_buffer() {
+  # give the process some time to smash files before lowering buffers
+  echo "will reset audio buffers after 10s"
+  sleep 10
+  pw-metadata -n settings 0 clock.force-quantum 0 &> /dev/null || echo "unable to reset audio buffers"
+}
+
 TARGET="$1"
 
 # special cases
@@ -73,6 +84,8 @@ if test -z "$FULL_PATH"; then
   die 3 "FATAL: cannot find tool stub for ${TARGET} (check under $JETBRAINS_HOME - is it installed? is it named what you expect it to be?)"
 fi
 
+increase_audio_buffer
+
 echo "Starting '$FULL_PATH' ${@:2}"
 "$FULL_PATH" "${@:2}" &> /dev/null &
 CHILD_PID="$!"
@@ -84,12 +97,14 @@ while ps -p $CHILD_PID &> /dev/null; do
   spin
   if wmctrl -lp | awk '{print $3}' | grep $CHILD_PID &> /dev/null; then
     echo -e "\r    \r\n"
+    reset_audio_buffer &
     exit 0
   fi
   let ATTEMPTS="$ATTEMPTS + 1"
   if test "$ATTEMPTS" -ge 100; then
     echo -e "\r    \r\n"
     echo "assuming started ..."
+    reset_audio_buffer &
     exit 0
   fi
 done
