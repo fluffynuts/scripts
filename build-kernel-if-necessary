@@ -10,9 +10,12 @@ if ! test -e /usr/src/linux; then
   exit $NO_USR_SRC_LINUX
 fi
 
-SOURCES_VERSION="$(readlink /usr/src/linux | grep -oP '(?<=-)(\d+\.\d+\.\d+)(?=-)')"
+SOURCES_VERSION="$(readlink /usr/src/linux | sed -e 's/^linux-//')"
+
+echo "Sources version: $SOURCES_VERSION"
 
 if ls /boot/*"${SOURCES_VERSION}"* &> /dev/null; then
+  echo "already have /boot/*${SOURCES_VERSION}"
   exit 0
 fi
 
