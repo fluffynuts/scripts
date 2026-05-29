@@ -1,0 +1,298 @@
+#!/usr/bin/env python3
+"""
+watch-series: progress through a series of videos in a folder tree.
+
+Layout expected:
+    <series>/<season>/<episode files>
+
+Marks the last-watched file by appending "_" before the extension,
+e.g. "203 - Some Story.mkv" -> "203 - Some Story_.mkv".
+On start, resumes from the file AFTER the marked one.
+
+(thanks, Claude - I was just too lazy to do it myself)
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+VIDEO_EXTENSIONS: frozenset[str] = frozenset({".mp4", ".mkv", ".avi", ".webm", ".mov", ".m4v"})
+MARK: str = "_"
+
+
+def is_video(path: Path) -> bool:
+    return path.is_file() and path.suffix.lower() in VIDEO_EXTENSIONS
+
+
+def find_all_episodes(series_dir: Path) -> list[Path]:
+    """Return all video files under series_dir, sorted ascending by path."""
+    episodes: list[Path] = [p for p in series_dir.rglob("*") if is_video(p)]
+    episodes.sort(key=lambda p: str(p).lower())
+    return episodes
+
+
+def is_marked(path: Path) -> bool:
+    return path.stem.endswith(MARK)
+
+
+def unmarked_name(path: Path) -> Path:
+    """Return the path with a trailing underscore stripped from the stem, if present."""
+    if not is_marked(path):
+        return path
+    return path.with_name(path.stem[:-1] + path.suffix)
+
+
+def marked_name(path: Path) -> Path:
+    """Return the path with a trailing underscore added to the stem."""
+    if is_marked(path):
+        return path
+    return path.with_name(path.stem + MARK + path.suffix)
+
+
+def find_marked(episodes: list[Path]) -> Path | None:
+    for ep in episodes:
+        if is_marked(ep):
+            return ep
+    return None
+
+
+def clear_all_marks(episodes: list[Path]) -> list[Path]:
+    """Remove the mark from every marked file. Returns the updated episode list."""
+    updated: list[Path] = []
+    for ep in episodes:
+        if is_marked(ep):
+            target: Path = unmarked_name(ep)
+            if target.exists() and target != ep:
+                # Collision: another file already has the unmarked name.
+                # Leave this one alone rather than overwrite.
+                print(f"warn: cannot unmark {ep.name} — {target.name} already exists", file=sys.stderr)
+                updated.append(ep)
+                continue
+            ep.rename(target)
+            updated.append(target)
+        else:
+            updated.append(ep)
+    return updated
+
+
+def mark_episode(episode: Path, all_episodes: list[Path]) -> Path:
+    """Clear every mark in the series, then mark this episode. Returns the new path.
+
+    Mutates `all_episodes` in place so the caller's list stays consistent with disk.
+    """
+    # Clear marks on everything except the target first.
+    for i, ep in enumerate(all_episodes):
+        if ep == episode:
+            continue
+        if not is_marked(ep):
+            continue
+        if not ep.exists():
+            # Stale entry — a previous mark_episode call already renamed this.
+            continue
+        target: Path = unmarked_name(ep)
+        if target.exists() and target != ep:
+            print(f"warn: cannot unmark {ep.name} — {target.name} already exists", file=sys.stderr)
+            continue
+        ep.rename(target)
+        all_episodes[i] = target
+
+    if is_marked(episode):
+        return episode
+
+    new_path: Path = marked_name(episode)
+    if new_path.exists() and new_path != episode:
+        print(f"warn: cannot mark {episode.name} — {new_path.name} already exists", file=sys.stderr)
+        return episode
+    episode.rename(new_path)
+    return new_path
+
+
+def pick_start_index(episodes: list[Path]) -> int:
+    """Return the index of the next episode to play, or len(episodes) if done."""
+    for i, ep in enumerate(episodes):
+        if is_marked(ep):
+            return i + 1
+    return 0
+
+
+def resolve_player(explicit: str | None) -> list[str]:
+    """Return the player command as a list. Preference: CLI arg > env > vlc > mpv."""
+    candidate: str | None = explicit or os.environ.get("VIDEO_PLAYER")
+    if candidate:
+        # Allow "vlc --fullscreen" style via env/CLI
+        return candidate.split()
+
+    # --play-and-exit tells VLC to quit after the file, so returncode 0
+    # means "watched to completion or quit cleanly" — what we want.
+    # Note: some VLC builds still exit non-zero when closed via the
+    # window close button; in that case pass --player explicitly.
+    if shutil.which("mpv"):
+      return ["mpv", "--fs"]
+    if shutil.which("vlc"):
+        return ["vlc", "--fullscreen", "--play-and-exit" ]
+    if shutil.which("xdg-open"):
+        return ["xdg-open"]
+
+    print("error: no video player found. Install vlc or mpv, or pass --player.", file=sys.stderr)
+    sys.exit(1)
+
+
+def play(player_cmd: list[str], episode: Path) -> int:
+    """Launch the player. Returns its exit code."""
+    print(f"\n▶  {episode.relative_to(episode.parents[1]) if len(episode.parents) >= 2 else episode.name}")
+    try:
+        result: subprocess.CompletedProcess[bytes] = subprocess.run([*player_cmd, str(episode)])
+        return result.returncode
+    except FileNotFoundError:
+        print(f"error: player not found: {player_cmd[0]}", file=sys.stderr)
+        sys.exit(1)
+
+
+def prompt_next() -> str:
+    """Return one of: 'next', 'quit', 'replay'."""
+    while True:
+        try:
+            answer: str = input("\n[Enter] next  [r] replay  [q] quit > ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            return "quit"
+        if answer in ("", "n", "next"):
+            return "next"
+        if answer in ("r", "replay"):
+            return "replay"
+        if answer in ("q", "quit", "exit"):
+            return "quit"
+
+
+def main() -> int:
+    parser: argparse.ArgumentParser = argparse.ArgumentParser(
+        description="Progress through a video series folder, marking the last watched file.",
+    )
+    parser.add_argument("series_dir", type=Path, help="Path to the series folder")
+    parser.add_argument(
+        "--player",
+        type=str,
+        default=None,
+        help="Player command (overrides $VIDEO_PLAYER). Default: vlc --fullscreen --play-and-exit",
+    )
+    parser.add_argument(
+        "--prompt",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Prompt between episodes (default: off). Use --prompt to be asked before each next episode.",
+    )
+    parser.add_argument(
+        "--restart",
+        action="store_true",
+        help="Ignore the existing mark and start from the first episode",
+    )
+    parser.add_argument(
+        "--rewind",
+        action="store_true",
+        help="Re-watch the most recently marked episode (e.g. after an accidental quit). "
+             "Moves the mark back one episode and starts from the previously marked one.",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="List what would be played without launching the player",
+    )
+    args: argparse.Namespace = parser.parse_args()
+
+    series_dir: Path = args.series_dir.expanduser().resolve()
+    if not series_dir.is_dir():
+        print(f"error: not a directory: {series_dir}", file=sys.stderr)
+        return 1
+
+    episodes: list[Path] = find_all_episodes(series_dir)
+    if not episodes:
+        print(f"error: no video files found under {series_dir}", file=sys.stderr)
+        return 1
+
+    if args.restart and args.rewind:
+        print("error: --restart and --rewind are mutually exclusive", file=sys.stderr)
+        return 1
+
+    if args.restart:
+        episodes = clear_all_marks(episodes)
+        start_index: int = 0
+    elif args.rewind:
+        marked: Path | None = find_marked(episodes)
+        if marked is None:
+            print("error: nothing to rewind to — no episode is marked yet", file=sys.stderr)
+            return 1
+        marked_index: int = episodes.index(marked)
+        # The script's invariant is: playback starts at (mark + 1). To rewind
+        # *to* the marked episode, the mark must move to the episode before it,
+        # so the marked episode itself becomes the next to play.
+        if marked_index == 0:
+            # Special case: the mark is on the very first episode. There's no
+            # earlier episode to move the mark to, so just clear all marks and
+            # start from the beginning.
+            episodes = clear_all_marks(episodes)
+            start_index: int = 0
+        else:
+            previous: Path = episodes[marked_index - 1]
+            # mark_episode unmarks `marked` (updating that index in `episodes`
+            # in place) and marks `previous`. The new path of `previous` is
+            # returned but not written back — so we do that ourselves.
+            episodes[marked_index - 1] = mark_episode(previous, episodes)
+            start_index = marked_index
+    else:
+        start_index = pick_start_index(episodes)
+
+    if start_index >= len(episodes):
+        print("All episodes watched. Use --restart to start over.")
+        return 0
+
+    player_cmd: list[str] = resolve_player(args.player)
+
+    if args.dry_run:
+        print(f"Series: {series_dir}")
+        print(f"Player: {' '.join(player_cmd)}")
+        print(f"Starting at: {episodes[start_index].name}")
+        print("Queue:")
+        for ep in episodes[start_index:]:
+            print(f"  {ep.relative_to(series_dir)}")
+        return 0
+
+    index: int = start_index
+    while index < len(episodes):
+        current: Path = episodes[index]
+        exit_code: int = play(player_cmd, current)
+
+        if exit_code != 0:
+            print(f"player exited with code {exit_code}; not marking {current.name}", file=sys.stderr)
+            return exit_code
+
+        # Mark this episode as watched. Re-read the returned path because
+        # the filename just changed on disk.
+        new_path: Path = mark_episode(current, episodes)
+        episodes[index] = new_path
+
+        if index + 1 >= len(episodes):
+            print("\nReached the end of the series.")
+            return 0
+
+        if args.prompt:
+            choice: str = prompt_next()
+            if choice == "quit":
+                return 0
+            if choice == "replay":
+                continue
+        index += 1
+
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        print()
+        sys.exit(130)
