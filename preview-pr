@@ -6,5 +6,9 @@ if test ! -e $NVS_HOME; then
 fi
 
 NVS_EXECUTE=1 source "$NVS_HOME/nvs.sh"
+MERGE_BASE="$1"
+if test -z "$MERGE_BASE"; then
+  MERGE_BASE="origin/master"
+fi
 
-nvs exec 24 npx -y difit . origin/master
+nvs exec 24 npx -y difit . "$MERGE_BASE"
