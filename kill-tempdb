@@ -20,7 +20,7 @@ function kill_tempdb_mysql()
     echo "No temporary mysqld processes found"
   else
     ps aux | grep mysqld | grep -- --port | awk '{print $2}' | xargs -r kill -15
-    echo "Killed $COUNT temporary mysqd processe$(s $COUNT)"
+    echo "Killed $COUNT temporary mysqld processe$(s $COUNT)"
   fi
 }
 
