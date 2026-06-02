@@ -11,7 +11,7 @@ RESET="\033[0m"
 function check_is_root()
 {
   if test "$(whoami)" != "root"; then
-    sudo -p "Your password is required to continue: " $0 $@
+    sudo -p "Your password is required to continue: " "$0" "$@"
     exit $?
   fi
 }
@@ -98,14 +98,14 @@ if test ! -z "$WAIT"; then
 fi
 
 if test -z "$NO_SYNC"; then
-  check_is_root $@
+  check_is_root "$@"
   if ! emerge --sync; then
     echo -e "${RED}sync fails - check logged output${RESET}"
     exit $?
   fi
 fi
 if test -z "$PRETEND"; then
-  check_is_root $@
+  check_is_root "$@"
 else
   EMERGE_ARGS="$EMERGE_ARGS --pretend"
 fi
