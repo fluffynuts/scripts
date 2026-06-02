@@ -1,0 +1,40 @@
+#!/bin/bash
+set -euo pipefail
+
+CFG="/opt/eset/eea/lib/cfg"
+
+if test ! -f "$CFG"; then
+  echo "ESET cfg util not found at $CFG"
+  exit 1
+fi
+
+function check_is_root()
+{
+  if test "$(whoami)" != "root"; then
+    sudo -p "Your password is required to continue: " "$0" "$@"
+    exit $?
+  fi
+}
+
+check_is_root "$@"
+
+SOURCE="${1-}"
+if test -z "$SOURCE"; then
+  echo "No source xml file provided"
+  exit 2
+fi
+
+BEFORE="/tmp/.import-verify-before.xml"
+AFTER="/tmp/.import-verify-after.xml"
+
+"$CFG" --export-xml="$BEFORE"
+"$CFG" --import-xml="$SOURCE"
+"$CFG" --export-xml="$AFTER"
+chmod 666 "$BEFORE" "$AFTER"
+
+if diff "$BEFORE" "$AFTER"; then
+  echo "WARNING: no changes applied!"
+else
+  echo "Config updated!"
+fi
+

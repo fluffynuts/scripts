@@ -1,0 +1,31 @@
+#!/bin/bash
+set -euo pipefail
+
+CFG="/opt/eset/eea/lib/cfg"
+
+if test ! -f "$CFG"; then
+  echo "ESET cfg util not found at $CFG"
+  exit 1
+fi
+
+function check_is_root()
+{
+  if test "$(whoami)" != "root"; then
+    sudo -p "Your password is required to continue: " "$0" "$@"
+    exit $?
+  fi
+}
+
+check_is_root "$@"
+
+TARGET="${1:-/tmp/eset-export-$(date +%Y-%m-%d_%H-%M-%S)}"
+[[ "$TARGET" == *.xml ]] || TARGET="${TARGET}.xml"
+"$CFG" --export-xml="$TARGET"
+if test -f "$TARGET"; then
+  chmod 666 "$TARGET"
+  chown --reference="$(dirname "$TARGET")" "$TARGET"
+  echo "ESET config exported to $TARGET"
+else
+  echo "ERROR: output not found at '$TARGET'"
+  exit 3
+fi
