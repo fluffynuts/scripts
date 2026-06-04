@@ -1,0 +1,2 @@
+#!/bin/bash
+/opt/eset/eea/lib/install_scripts/sign_modules.sh -p /var/lib/shim-signed/mok/MOK.priv -d /var/lib/shim-signed/mok/MOK.der -a
