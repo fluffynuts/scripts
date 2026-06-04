@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# enable-mint-update-light-icon [--disable]
+# Force the Mint Update tray icon white for a dark KDE panel by shadowing the
+# hicolor symbolic SVGs in ~/.local. Re-run after a mintupdate upgrade.
+set -euo pipefail
+
+states=(up-to-date updates-available checking installing error)
+src=/usr/share/icons/hicolor/scalable/status
+dst="$HOME/.local/share/icons/hicolor/scalable/status"
+
+mode=enable
+case "${1:-}" in
+  --disable)  mode=disable ;;
+  -h|--help)  echo "usage: $(basename "$0") [--disable]"; exit 0 ;;
+  "")         ;;
+  *)          echo "unknown option: $1" >&2
+              echo "usage: $(basename "$0") [--disable]" >&2; exit 2 ;;
+esac
+
+if [ "$mode" = enable ]; then
+  mkdir -p "$dst"
+  for st in "${states[@]}"; do
+    f="$src/mintupdate-$st-symbolic.svg"
+    [ -f "$f" ] || { echo "skip: $f missing" >&2; continue; }
+    grep -qi '#bebebe' "$f" || echo "WARN: no #bebebe in $(basename "$f") — upstream SVG changed, recolour may no-op" >&2
+    sed -e 's/#bebebe/#ffffff/Ig' \
+        -e 's/fill:#ffffff/fill:#ffffff !important/g' \
+        "$f" > "$dst/$(basename "$f")"
+  done
+  echo "Light icons installed."
+else
+  for st in "${states[@]}"; do
+    rm -f "$dst/mintupdate-$st-symbolic.svg"
+  done
+  echo "Light icons removed (reverted to system default)."
+fi
+
+gtk-update-icon-cache -f --ignore-theme-index "$HOME/.local/share/icons/hicolor" 2>/dev/null || true
+echo "Restart the tray to apply (quit from its menu, or: pkill -f mintUpdate)."
