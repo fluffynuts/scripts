@@ -1,2 +1,2 @@
 #!/bin/bash
-git log --author $(git config user.email) --since="midnight" --stat
+git log --author $(git config user.email) --since="midnight" $@
