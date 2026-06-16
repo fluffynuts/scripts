@@ -1,2 +1,16 @@
 #!/bin/bash
-systemctl --user restart wireplumber pipewire pipewire-pulse
+if command -v systemctl >/dev/null 2>&1; then
+  systemctl --user restart wireplumber pipewire pipewire-pulse
+else
+    # stop: pulse + session manager first, then the core daemon
+    pkill -x pipewire-pulse
+    pkill -x wireplumber
+    pkill -x pipewire
+    sleep 0.3
+
+    # start: core daemon first, give it a moment, then the rest
+    setsid -f pipewire
+    sleep 0.3
+    setsid -f wireplumber
+    setsid -f pipewire-pulse
+fi
