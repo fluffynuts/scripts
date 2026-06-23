@@ -1,0 +1,22 @@
+#!/bin/bash
+set -euo pipefail
+
+if test -z "${1:?Usage: $0 <version>}"; then
+  echo "Please provide a version"
+  exit 1
+fi
+if ! command -v svn &> /dev/null; then
+  echo "Please install subversion"
+  exit 2
+fi
+if ! command -v dotnet &> /dev/null; then
+  echo "PLease install dotnet"
+  exit 3
+fi
+
+cd /tmp
+svn co "https://dist.apache.org/repos/dist/dev/logging/log4net/$1" "log4net-$1"
+cd "log4net-$1"
+./verify-release.sh
+dotnet test src/src/log4net.sln
+
