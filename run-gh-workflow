@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/bin/env python3
 import subprocess
 import json
 import os
@@ -11,7 +11,7 @@ from datetime import datetime
 from urllib.parse import urlparse
 from colorama import init, Fore, Style
 
-jsonFields = "attempt,conclusion,displayTitle,event,name,number,status,workflowDatabaseId,workflowName,databaseId"
+jsonFields = "conclusion,displayTitle,event,name,number,status,workflowDatabaseId,workflowName,databaseId"
 DEBUG= "DEBUG" in os.environ and os.environ["DEBUG"] == "1"
 init()
 
