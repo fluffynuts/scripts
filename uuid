@@ -1,10 +1,14 @@
 #!/bin/bash
 UUID=$(uuidgen)
-if which wl-copy &> /dev/null; then
-  echo -n $UUID | wl-copy
+if test "$XDG_SESSION_TYPE" = "wayland"; then
+  if which wl-copy &> /dev/null; then
+    echo -n $UUID | wl-copy
+  fi
 fi
-if which xclip &> /dev/null; then
-  echo -n $UUID | xclip
+if test "$XDG_SESSION_TYPE" = "x11"; then
+  if which xclip &> /dev/null; then
+    echo -n $UUID | xclip
+  fi
 fi
 echo $UUID
 
