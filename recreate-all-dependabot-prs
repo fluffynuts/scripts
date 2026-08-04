@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO="${1:-}"
+if test -z "$REPO"; then
+  echo "Please specify the owner/repo"
+  echo "Usage: $0 <owner>/<repo>"
+  exit 2
+fi
+
+gh pr list \
+  --repo "$REPO" \
+  --author "app/dependabot" \
+  --state open \
+  --json number \
+  --jq '.[].number' \
+| while read -r pr; do
+    echo "Recreating #$pr"
+    gh pr comment "$pr" --repo "$REPO" --body "@dependabot recreate"
+    sleep 2   # be gentle; avoid secondary rate limits
+  done

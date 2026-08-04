@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO="${1:-}"
+PR="${2:-}"
+
+if [[ -z "$REPO" || -z "$PR" ]]; then
+  echo "Usage: $0 <owner>/<repo> <pr-number>" >&2
+  exit 2
+fi
+
+PR="${PR#\#}"                       # tolerate a leading '#'
+if [[ "$REPO" != */* ]]; then
+  echo "Expected <owner>/<repo>, got: $REPO" >&2
+  exit 2
+fi
+
+TIMEOUT="${TIMEOUT:-600}"           # seconds to wait, overridable
+INTERVAL="${INTERVAL:-10}"
+
+before="$(gh pr view "$PR" --repo "$REPO" --json headRefOid --jq '.headRefOid')"
+echo "Current head: ${before:0:12}"
+
+echo "Requesting recreate on #$PR ..."
+gh pr comment "$PR" --repo "$REPO" --body "@dependabot recreate"
+
+echo "Waiting up to ${TIMEOUT}s for Dependabot to recreate #$PR ..."
+elapsed=0
+while true; do
+  read -r state current < <(
+    gh pr view "$PR" --repo "$REPO" --json state,headRefOid \
+      --jq '"\(.state) \(.headRefOid)"' 2>/dev/null || echo "UNKNOWN "
+  )
+
+  if [[ -n "${current:-}" && "$current" != "$before" ]]; then
+    echo "Recreated. New head: ${current:0:12}"
+    exit 0
+  fi
+
+  if [[ "$state" == "CLOSED" || "$state" == "MERGED" ]]; then
+    echo "PR is now $state (Dependabot may have superseded or dropped it)." >&2
+    exit 3
+  fi
+
+  if (( elapsed >= TIMEOUT )); then
+    echo "Timed out after ${TIMEOUT}s; head unchanged." >&2
+    exit 1
+  fi
+
+  sleep "$INTERVAL"
+  elapsed=$(( elapsed + INTERVAL ))
+done
