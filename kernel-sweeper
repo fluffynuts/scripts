@@ -7,40 +7,46 @@ import subprocess
 import shutil
 import re
 
-def would(str):
-    print("Would: %s" % (str))
+def would(str: str) -> None:
+    print("Would: %s" % str)
 
 
-def purge_dpkg(version):
-    if not on_debian():
+def purge_dpkg(ver: str) -> None:
+    if not have_dpkg():
         return
-    print("Purging headers for %s" % (version))
-    cmd = "dpkg --purge linux-image-%s" % (version)
+    print("Purging headers for %s" % ver)
+    cmd = "dpkg --purge linux-image-%s" % ver
     if DRY_RUN:
         would(cmd)
     else:
         os.system(cmd)
 
-    print("Purging image for %s" % (version))
-    cmd = "dpkg --purge linux-headers-%s" % (version)
+    print("Purging image for %s" % ver)
+    cmd = "dpkg --purge linux-headers-%s" % ver
+    if DRY_RUN:
+        would(cmd)
+    else:
+        os.system(cmd)
+
+    print("Purging modules for %s" % ver)
+    cmd = "dpkg --purge linux-modules-%s" % ver
     if DRY_RUN:
         would(cmd)
     else:
         os.system(cmd)
 
 
-def on_debian():
-    proc = subprocess.Popen(
+def have_dpkg() -> bool:
+    proc = subprocess.run(
         ["which", "dpkg"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
+        capture_output=True
     )
     return proc.returncode == 0
 
 
-def remove_modules(version, base):
-    print(yellow("Picking off straggling modules for %s" % (version)))
-    modules_dir = os.path.join(base, version)
+def remove_modules(ver: str, base: str):
+    print(yellow("Picking off straggling modules for %s" % ver))
+    modules_dir = os.path.join(base, ver)
     contents = sorted(ls_recursive(modules_dir), reverse=True)
     if DRY_RUN:
         for f in contents:
@@ -50,11 +56,11 @@ def remove_modules(version, base):
     shutil.rmtree(modules_dir)
 
 
-def remove_boot_detritus(version):
-    print(yellow("Cleaning out /boot for %s" % version))
+def remove_boot_detritus(ver: str):
+    print(yellow("Cleaning out /boot for %s" % ver))
     contents = ls_recursive("/boot")
     for f in contents:
-        if not version in f:
+        if not ver in f:
             continue
         if DRY_RUN:
             would(red("remove: %s" % (f)))
@@ -62,9 +68,9 @@ def remove_boot_detritus(version):
             os.remove(f)
 
 
-def remove_kernel_sources(version):
-    source_dir = re.sub("-(x86_64|i386)", "", "/usr/src/linux-%s" % version)
-    if (not os.path.isdir(source_dir)):
+def remove_kernel_sources(ver: str) -> None:
+    source_dir = re.sub("-(x86_64|i386)", "", "/usr/src/linux-%s" % ver)
+    if not os.path.isdir(source_dir):
         print(yellow("No kernel sources found at %s" % source_dir))
         return
 
@@ -76,26 +82,37 @@ def remove_kernel_sources(version):
     shutil.rmtree(source_dir)
 
 
-def ls_recursive(dir):
+def ls_recursive(dir: str) -> list[str]:
     stack = [dir]
     ret = []
     while stack:
-        thisdir = stack.pop(0)
-        if not os.path.isdir(thisdir):
+        this_dir = stack.pop(0)
+        if not os.path.isdir(this_dir):
             continue
-        for f in sorted(os.listdir(thisdir)):
-            path = os.path.join(thisdir, f)
+        for f in sorted(os.listdir(this_dir)):
+            path = os.path.join(this_dir, f)
             ret.append(path)
             if os.path.isdir(path):
                 stack.append(path)
     return ret
 
+def to_ints(str: str) -> list[int]:
+  result: list[int] = []
+  parts = re.split(r"[.-]", str)
+  for part in parts:
+    try:
+      result.append(int(part))
+    except ValueError:
+      pass
+  return result
 
-def version(path):
-    parts = path.split(os.sep)
-    last = re.sub(r"-.*$", "", parts[-1])
-    # parts = map(lambda x: x * 100, map(int, last.split(".")))
-    parts = map(int, last.split("."))
+def version(path: str) -> str:
+    # parts = path.split(os.sep)
+    # last = re.sub(r"-.*$", "", parts[-1])
+    # parts = map(int, last.split("."))
+    path_parts = path.split(os.sep)
+    parts = to_ints(path_parts[-1])
+
     result = ""
     for part in parts:
         local_part = str(part)
@@ -105,7 +122,7 @@ def version(path):
     return result
 
 
-def usage():
+def usage() -> None:
     print("Usage: %s {opts}" % (os.path.basename(sys.argv[0])))
     print(" where opts are of")
     print(" -d / --dryrun:      report only, don't actually delete or remove anything")
@@ -115,42 +132,42 @@ def usage():
     print("                      (default /lib/modules)")
 
 
-def red(s):
+def red(s: str) -> str:
     return color(s, 31)
 
 
-def green(s):
+def green(s: str) -> str:
     return color(s, 32)
 
 
-def yellow(s):
+def yellow(s: str) -> str:
     return color(s, 33)
 
 
-def blue(s):
+def blue(s: str) -> str:
     return color(s, 34)
 
 
-def purple(s):
+def purple(s: str) -> str:
     return color(s, 35)
 
 
-def cyan(s):
+def cyan(s: str) -> str:
     return color(s, 36)
 
 
-def white(s):
+def white(s: str) -> str:
     return color(s, 37)
 
 
-def color(s, c):
+def color(s: str, c: int) -> str:
     return "\033[1;%im%s\033[1;0m" % (c, s)
 
 
-def try_convert_to_int(s):
+def try_convert_to_int(s: str) -> int:
     try:
         return int(s)
-    except:
+    except ValueError:
         print("%s is not a valid number" % (s))
         sys.exit(1)
 
@@ -169,14 +186,10 @@ def restarted_as_root():
     os.system(args)
     return True
 
-# TODO: should rather use subprocess for restarting as root
-
-
 if __name__ == "__main__":
     if restarted_as_root():
         sys.exit()
     global DRY_RUN
-    DRY_RUN = False
     keep = 2
     basedir = "/lib/modules"
     last_arg = ""
