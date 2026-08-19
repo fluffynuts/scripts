@@ -7,18 +7,27 @@
 #   sbx-cc -n custom-name .   # override the derived sandbox name
 #   sbx-cc --stop             # stop the sandbox for $PWD
 #   sbx-cc --stop /path       # stop the sandbox for an explicit folder
+#   sbx-cc --ssh              # ssh into the sandbox for $PWD
+#   sbx-cc --ssh /path        # ssh into the sandbox for an explicit folder
+#   sbx-cc --re-init          # remove the sandbox, rewrite the kit, start fresh
 #   sbx-cc --init             # (re)write the bundled kit spec, then exit
 #   sbx-cc --init -f          # ...without prompting to replace an existing one
 #
-# --stop resolves the sandbox name exactly as a normal run would, so
-# `sbx-cc --stop && sbx-cc` restarts whatever you are working on.
+# --stop, --ssh and --re-init resolve the sandbox name exactly as a normal run
+# would, so `sbx-cc --stop && sbx-cc` restarts whatever you are working on, and
+# `sbx-cc --re-init` rebuilds it from the current bundled spec.
+#
+# --ssh requires `sbx setup ssh` to have been run once on this machine.
+#
+# --re-init confirms before removing and before replacing the spec; -f skips
+# both prompts.
 #
 # The kit spec is written to $SBX_CC_KIT (default ~/.sbx/kits/diffity) on first
-# use, and never overwritten afterwards except via --init.
+# use, and never overwritten afterwards except via --init or --re-init.
 #
 # Creation-only settings (--memory, --publish, --kit) are applied by `sbx create`.
 # Once a sandbox exists this script only attaches; remove it with `sbx rm <name>`
-# if you need those settings changed.
+# or --re-init if you need those settings changed.
 
 set -euo pipefail
 
@@ -32,7 +41,7 @@ die() { printf "sbx-cc: %s\n" "$*" >&2; exit 1; }
 note() { printf "sbx-cc: %s\n" "$*" >&2; }
 
 usage() {
-  sed -n "3,21p" "$0" | sed "s/^# \{0,1\}//"
+  sed -n "3,30p" "$0" | sed "s/^# \{0,1\}//"
 }
 
 # --init only touches local config, so it doesn't need sbx present.
@@ -51,9 +60,9 @@ kit_spec() {
   cat <<'SPEC'
 schemaVersion: "2"
 kind: mixin
-name: diffity
-displayName: Diffity review tooling
-description: GitHub-style diff viewer and agent review skills
+name: diffity-dotnet
+displayName: Diffity review tooling + .NET SDK
+description: GitHub-style diff viewer, agent review skills, and the .NET 8 SDK
 sourceURL: https://github.com/nilbuild/diffity
 requires:
   agent: claude
@@ -62,8 +71,17 @@ permissions:
     allow:
       - registry.npmjs.org
       - github.com
+      - "*.pkg.github.com"
       - codeload.github.com
       - objects.githubusercontent.com
+      # .NET SDK via apt
+      - archive.ubuntu.com
+      - security.ubuntu.com
+      - ports.ubuntu.com
+      - packages.microsoft.com
+      # NuGet restore
+      - api.nuget.org
+      - "*.nuget.org"
 ports:
   - container: 5391
     protocol: tcp
@@ -71,8 +89,22 @@ ports:
 environment:
   variables:
     DIFFITY_HOST: "localhost"
+    DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+    DOTNET_NOLOGO: "1"
 setup:
   install:
+    - command: "sudo apt-get update -qq"
+      user: "0"
+      description: Refresh apt indexes
+#    - command: "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq dotnet-sdk-8.0 </dev/null"
+#      user: "0"
+#      description: Install the .NET 8 SDK
+    - command: "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq dotnet-sdk-10.0 </dev/null || echo 'NOTE: dotnet-sdk-10.0 not available from this apt source — continuing with 8.0 only'"
+      user: "0"
+      description: Install the .NET 10 SDK if the distro has it
+    - command: "dotnet --list-sdks || { echo 'ERROR: no dotnet on PATH after install'; exit 1; }"
+      user: "0"
+      description: Verify the SDK install
     - command: "npm install -g diffity"
       user: "0"
       description: Install diffity globally
@@ -165,6 +197,13 @@ setup:
       description: Serve the diffity review UI on port 5391
 agentInstructions:
   content: |
+    ## Toolchain
+
+    The .NET SDK is installed — run `dotnet --list-sdks` to see which versions.
+    `dotnet build` and `dotnet test` work against the workspace. NuGet restore
+    reaches api.nuget.org only — if a restore fails on a private feed, say so
+    rather than trying to work around it.
+
     ## Diffity
 
     `diffity` is installed and its skills are available. Use it for code review:
@@ -192,23 +231,35 @@ ensure_kit() {
   write_kit
 }
 
-# --init: (re)write the bundled spec, confirming before clobbering.
+# Ask a yes/no question on the terminal. -f answers yes. Reads /dev/tty so a
+# redirected stdin can't silently approve a destructive action.
+confirm() {
+  local prompt="$1" reply=""
+  [ "$force" != "1" ] || return 0
+  if [ ! -t 0 ] && [ ! -e /dev/tty ]; then
+    die "no terminal to confirm on: ${prompt} — re-run with -f"
+  fi
+  printf "sbx-cc: %s [y/N] " "$prompt" >&2
+  read -r reply < /dev/tty || reply=""
+  case "$reply" in
+    [yY] | [yY][eE][sS]) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# --init / --re-init: (re)write the bundled spec, confirming before clobbering.
 init_kit() {
-  local spec="${KIT}/spec.yaml" reply=""
-  if [ -f "$spec" ] && [ "$force" != "1" ]; then
-    if [ ! -t 0 ] && [ ! -e /dev/tty ]; then
-      die "${spec} exists and there is no terminal to confirm on; re-run with -f"
-    fi
-    printf "sbx-cc: %s already exists.\nsbx-cc: Replace it with the bundled spec? [y/N] " "$spec" >&2
-    read -r reply < /dev/tty || reply=""
-    case "$reply" in
-      [yY] | [yY][eE][sS]) ;;
-      *) note "left unchanged"; return 0 ;;
-    esac
+  local spec="${KIT}/spec.yaml"
+  if [ -f "$spec" ]; then
+    confirm "${spec} already exists. Replace it with the bundled spec?" || {
+      note "kit spec left unchanged"
+      return 0
+    }
   fi
   write_kit
   note "wrote ${spec}"
-  note "existing sandboxes keep their old kit — 'sbx rm <name>' to pick this up"
+  [ "$do_reinit" = "1" ] \
+    || note "existing sandboxes keep their old kit — 'sbx rm <name>' to pick this up"
 }
 
 # Derive a valid sandbox name from a path.
@@ -228,6 +279,21 @@ sandbox_exists() {
   sbx ls --quiet 2>/dev/null | grep -qx -- "$1"
 }
 
+# Does ssh have a usable config for this host? `ssh -G` prints the effective
+# configuration after following Include directives, so we never parse
+# ~/.ssh/config ourselves — sbx setup ssh writes its block into an included
+# file, not the main one. A matching *.sbx block sets a ProxyCommand; without
+# one, ssh would try to resolve "<name>.sbx" as a real hostname and fail at DNS.
+# If `ssh -G` is unavailable we return success and let ssh speak for itself.
+ssh_host_configured() {
+  local host="$1" out
+  out="$(ssh -G "$host" 2>/dev/null)" || return 0
+  printf "%s\n" "$out" | awk '
+    tolower($1) == "proxycommand" && tolower($2) != "none" { found = 1 }
+    END { exit found ? 0 : 1 }
+  '
+}
+
 # Walk upward from BASE_PORT until we find one nothing is listening on.
 find_free_port() {
   local port="$1"
@@ -242,11 +308,15 @@ name_override=""
 force="0"
 do_init="0"
 do_stop="0"
+do_reinit="0"
+do_ssh="0"
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --init) do_init="1"; shift ;;
+    --re-init | --reinit) do_reinit="1"; shift ;;
     --stop) do_stop="1"; shift ;;
+    --ssh) do_ssh="1"; shift ;;
     -f | --force) force="1"; shift ;;
     -h | --help) usage; exit 0 ;;
     -n | --name)
@@ -259,7 +329,10 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-[ "$do_init" = "1" ] && [ "$do_stop" = "1" ] && die "--init and --stop are mutually exclusive"
+case "${do_init}${do_stop}${do_reinit}${do_ssh}" in
+  0000 | 1000 | 0100 | 0010 | 0001) ;;
+  *) die "--init, --stop, --re-init and --ssh are mutually exclusive" ;;
+esac
 
 if [ "$do_init" = "1" ]; then
   [ "$#" -eq 0 ] || die "--init takes no path argument"
@@ -280,6 +353,31 @@ if [ "$do_stop" = "1" ]; then
     || die "no sandbox named '${name}' for ${target} — nothing to stop"
   note "stopping sandbox '${name}'"
   exec sbx stop "$name"
+fi
+
+if [ "$do_ssh" = "1" ]; then
+  sandbox_exists "$name" \
+    || die "no sandbox named '${name}' for ${target} — run sbx-cc first"
+  command -v ssh >/dev/null 2>&1 || die "ssh not found on PATH"
+  ssh_host_configured "${name}.sbx" || die "\
+no ssh configuration for ${name}.sbx
+(checked ~/.ssh/config and everything it Includes, via 'ssh -G')
+Run 'sbx setup ssh' once on this machine."
+  note "connecting to ${name}.sbx"
+  exec ssh "${name}.sbx"
+fi
+
+if [ "$do_reinit" = "1" ]; then
+  if sandbox_exists "$name"; then
+    confirm "Remove sandbox '${name}' (workspace ${target})?" \
+      || die "aborted — sandbox left alone"
+    note "removing sandbox '${name}'"
+    sbx rm -f "$name"
+  else
+    note "no existing sandbox '${name}' — nothing to remove"
+  fi
+  init_kit
+  note "rebuilding '${name}' from ${KIT}/spec.yaml"
 fi
 
 if sandbox_exists "$name"; then
