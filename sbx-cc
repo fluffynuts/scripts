@@ -1,0 +1,327 @@
+#!/usr/bin/env bash
+#
+# sbx-cc — open (creating if needed) a Claude Code sandbox for a project folder.
+#
+#   sbx-cc                    # use $PWD
+#   sbx-cc /path/to/code      # use an explicit folder
+#   sbx-cc -n custom-name .   # override the derived sandbox name
+#   sbx-cc --stop             # stop the sandbox for $PWD
+#   sbx-cc --stop /path       # stop the sandbox for an explicit folder
+#   sbx-cc --init             # (re)write the bundled kit spec, then exit
+#   sbx-cc --init -f          # ...without prompting to replace an existing one
+#
+# --stop resolves the sandbox name exactly as a normal run would, so
+# `sbx-cc --stop && sbx-cc` restarts whatever you are working on.
+#
+# The kit spec is written to $SBX_CC_KIT (default ~/.sbx/kits/diffity) on first
+# use, and never overwritten afterwards except via --init.
+#
+# Creation-only settings (--memory, --publish, --kit) are applied by `sbx create`.
+# Once a sandbox exists this script only attaches; remove it with `sbx rm <name>`
+# if you need those settings changed.
+
+set -euo pipefail
+
+readonly KIT="${SBX_CC_KIT:-${HOME}/.sbx/kits/diffity}"
+readonly MEMORY="${SBX_CC_MEMORY:-12g}"
+readonly BASE_PORT="${SBX_CC_PORT:-5391}"
+readonly AGENT="${SBX_CC_AGENT:-claude}"
+readonly LAUNCHER="/home/agent/.local/bin/start-diffity"
+
+die() { printf "sbx-cc: %s\n" "$*" >&2; exit 1; }
+note() { printf "sbx-cc: %s\n" "$*" >&2; }
+
+usage() {
+  sed -n "3,21p" "$0" | sed "s/^# \{0,1\}//"
+}
+
+# --init only touches local config, so it doesn't need sbx present.
+case " $* " in
+  *" --init "*) ;;
+  *)
+    command -v sbx >/dev/null 2>&1 || die "\
+'sbx' is not on PATH — this script needs Docker Sandboxes.
+Install it from https://github.com/docker/sbx-releases/releases,
+then make sure its bin directory is on PATH (e.g. \${HOME}/.docker/sbx/bin)."
+    ;;
+esac
+
+# Emit the bundled kit spec on stdout.
+kit_spec() {
+  cat <<'SPEC'
+schemaVersion: "2"
+kind: mixin
+name: diffity
+displayName: Diffity review tooling
+description: GitHub-style diff viewer and agent review skills
+sourceURL: https://github.com/nilbuild/diffity
+requires:
+  agent: claude
+permissions:
+  network:
+    allow:
+      - registry.npmjs.org
+      - github.com
+      - codeload.github.com
+      - objects.githubusercontent.com
+ports:
+  - container: 5391
+    protocol: tcp
+    name: diffity
+environment:
+  variables:
+    DIFFITY_HOST: "localhost"
+setup:
+  install:
+    - command: "npm install -g diffity"
+      user: "0"
+      description: Install diffity globally
+    - command: "install -d -o agent -g agent -m 0755 /home/agent/.local/bin"
+      user: "0"
+      description: Ensure the launcher's parent directory exists
+    - command: "cd /home/agent && npx -y skills add nilbuild/diffity -- -y </dev/null"
+      user: "1000"
+      description: Install diffity agent skills for the agent user (non-interactive)
+    - command: "mkdir -p /home/agent/.claude/skills; for d in /home/agent/.agents/skills /home/agent/workspace/.agents/skills /home/agent/workspace/.claude/skills; do [ -d \"$d\" ] && cp -a \"$d\"/. /home/agent/.claude/skills/; done; echo 'skills installed:'; ls /home/agent/.claude/skills"
+      user: "1000"
+      description: Consolidate skills into ~/.claude/skills wherever the installer put them
+  files:
+    - path: /home/agent/.claude/settings.json
+      mode: "0644"
+      onlyIfMissing: true
+      description: Deny rules for secrets — these still apply in bypass mode
+      content: |
+        {
+          "permissions": {
+            "deny": [
+              "Read(./.env)",
+              "Read(./.env.*)",
+              "Read(**/*.pem)",
+              "Read(**/id_rsa*)"
+            ]
+          }
+        }
+    - path: /home/agent/.local/bin/start-diffity
+      mode: "0755"
+      description: Launcher that serves diffity against the workspace
+      content: |
+        #!/bin/sh
+        # Everything below is logged, including errors from set -u and any
+        # command that dies before we reach the first explicit log line.
+        mkdir -p /home/agent/.local/bin 2>/dev/null || true
+        exec >>/tmp/diffity.log 2>&1
+        echo "=== launcher invoked at $(date -Is) as $(id -un) ==="
+
+        set -u
+        PORT=5391
+        WS="${WORKDIR}"
+
+        log() { echo "[$(date -Is)] $*"; }
+        log "workspace=$WS  PATH=$PATH"
+
+        if ss -tlnH "sport = :$PORT" 2>/dev/null | grep -q .; then
+          log "already listening on $PORT — nothing to do"
+          exit 0
+        fi
+
+        # setup.startup can fire before the workspace mount is ready, so wait.
+        i=0
+        while [ ! -d "$WS" ] && [ "$i" -lt 60 ]; do
+          i=$((i + 1))
+          sleep 1
+        done
+        if [ ! -d "$WS" ]; then
+          log "ERROR: workspace $WS never appeared after $i seconds — giving up"
+          exit 1
+        fi
+        [ "$i" -eq 0 ] || log "waited $i seconds for workspace"
+
+        # Startup commands do not run through a login shell, so the npm global
+        # bin directory is absent from PATH.
+        PATH="/usr/local/share/npm-global/bin:/usr/local/bin:/home/agent/.local/bin:/usr/bin:/bin:$PATH"
+        export PATH
+        if ! command -v diffity >/dev/null 2>&1; then
+          # Fall back to asking npm where it puts global binaries.
+          npm_bin="$(npm prefix -g 2>/dev/null || true)/bin"
+          if [ -d "$npm_bin" ]; then
+            log "adding $npm_bin to PATH"
+            PATH="$npm_bin:$PATH"
+            export PATH
+          fi
+        fi
+        if ! command -v diffity >/dev/null 2>&1; then
+          log "ERROR: diffity not found. PATH=$PATH"
+          exit 1
+        fi
+        log "using $(command -v diffity)"
+
+        cd "$WS" || { log "ERROR: cannot cd to $WS"; exit 1; }
+        log "starting diffity on $PORT in $WS"
+        exec diffity --no-open --port "$PORT"
+  startup:
+    - command: ["/home/agent/.local/bin/start-diffity"]
+      user: "1000"
+      background: true
+      description: Serve the diffity review UI on port 5391
+agentInstructions:
+  content: |
+    ## Diffity
+
+    `diffity` is installed and its skills are available. Use it for code review:
+
+    - `/diffity-diff <ref>` opens the GitHub-style diff viewer in the browser.
+    - `/diffity-review <ref>` leaves your own inline review comments on the diff,
+      tagged `[must-fix]`, `[suggestion]`, `[nit]` or `[question]`.
+    - `/diffity-resolve` reads all open comments and applies the requested changes.
+
+    The viewer is reachable from the host, so pass `--no-open` when launching it
+    directly — there is no browser inside this sandbox.
+SPEC
+}
+
+write_kit() {
+  mkdir -p -- "$KIT"
+  kit_spec > "${KIT}/spec.yaml"
+}
+
+# Write the bundled spec only when the caller hasn't provided one.
+ensure_kit() {
+  local spec="${KIT}/spec.yaml"
+  [ ! -f "$spec" ] || return 0
+  note "kit spec missing — writing default to ${spec}"
+  write_kit
+}
+
+# --init: (re)write the bundled spec, confirming before clobbering.
+init_kit() {
+  local spec="${KIT}/spec.yaml" reply=""
+  if [ -f "$spec" ] && [ "$force" != "1" ]; then
+    if [ ! -t 0 ] && [ ! -e /dev/tty ]; then
+      die "${spec} exists and there is no terminal to confirm on; re-run with -f"
+    fi
+    printf "sbx-cc: %s already exists.\nsbx-cc: Replace it with the bundled spec? [y/N] " "$spec" >&2
+    read -r reply < /dev/tty || reply=""
+    case "$reply" in
+      [yY] | [yY][eE][sS]) ;;
+      *) note "left unchanged"; return 0 ;;
+    esac
+  fi
+  write_kit
+  note "wrote ${spec}"
+  note "existing sandboxes keep their old kit — 'sbx rm <name>' to pick this up"
+}
+
+# Derive a valid sandbox name from a path.
+# Rules: lowercase alphanumerics and dashes, must start alphanumeric, min 2 chars.
+derive_name() {
+  local path="$1" raw
+  raw="$(basename -- "$path")"
+  raw="$(printf "%s" "$raw" \
+    | tr "[:upper:]" "[:lower:]" \
+    | sed -E "s/[^a-z0-9]+/-/g; s/^[^a-z0-9]+//; s/-+$//")"
+  [ -n "$raw" ] || raw="sandbox"
+  [ "${#raw}" -ge 2 ] || raw="${raw}0"
+  printf "%s" "$raw"
+}
+
+sandbox_exists() {
+  sbx ls --quiet 2>/dev/null | grep -qx -- "$1"
+}
+
+# Walk upward from BASE_PORT until we find one nothing is listening on.
+find_free_port() {
+  local port="$1"
+  while ss -ltnH "sport = :${port}" 2>/dev/null | grep -q .; do
+    port=$((port + 1))
+    [ "$port" -lt 5450 ] || die "no free port found in 5391-5449"
+  done
+  printf "%s" "$port"
+}
+
+name_override=""
+force="0"
+do_init="0"
+do_stop="0"
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --init) do_init="1"; shift ;;
+    --stop) do_stop="1"; shift ;;
+    -f | --force) force="1"; shift ;;
+    -h | --help) usage; exit 0 ;;
+    -n | --name)
+      [ "$#" -ge 2 ] || die "option $1 requires an argument"
+      name_override="$2"; shift 2 ;;
+    -n*) name_override="${1#-n}"; shift ;;
+    --) shift; break ;;
+    -*) die "unknown option: $1" ;;
+    *) break ;;
+  esac
+done
+
+[ "$do_init" = "1" ] && [ "$do_stop" = "1" ] && die "--init and --stop are mutually exclusive"
+
+if [ "$do_init" = "1" ]; then
+  [ "$#" -eq 0 ] || die "--init takes no path argument"
+  init_kit
+  exit 0
+fi
+
+[ "$#" -le 1 ] || die "expected at most one path argument"
+
+target="${1:-$PWD}"
+[ -d "$target" ] || die "not a directory: ${target}"
+target="$(cd -- "$target" && pwd -P)"
+
+name="${name_override:-$(derive_name "$target")}"
+
+if [ "$do_stop" = "1" ]; then
+  sandbox_exists "$name" \
+    || die "no sandbox named '${name}' for ${target} — nothing to stop"
+  note "stopping sandbox '${name}'"
+  exec sbx stop "$name"
+fi
+
+if sandbox_exists "$name"; then
+  note "attaching to existing sandbox '${name}'"
+else
+  ensure_kit
+  port="$(find_free_port "$BASE_PORT")"
+  note "creating sandbox '${name}'"
+  note "  workspace: ${target}"
+  note "  memory:    ${MEMORY}"
+  note "  diffity:   http://localhost:${port}"
+  sbx create \
+    --name "$name" \
+    --kit "$KIT" \
+    --memory "$MEMORY" \
+    --publish "${port}:${BASE_PORT}" \
+    "$AGENT" "$target"
+fi
+
+# setup.startup doesn't fire on a sandbox's first boot (the launcher isn't on
+# disk yet when start hooks dispatch), so nudge it here. The launcher is
+# idempotent — it exits early if the port is already bound — so calling this on
+# every attach is harmless.
+#
+# Output goes to a log rather than the terminal: this runs detached and would
+# otherwise print into whatever prompt the user has moved on to.
+readonly NUDGE_LOG="${TMPDIR:-/tmp}/sbx-cc-nudge.log"
+
+nudge_diffity() {
+  local target_name="$1" i
+  for i in $(seq 1 30); do
+    if sbx exec -d "$target_name" -- "$LAUNCHER" >/dev/null 2>&1; then
+      printf "[%s] %s: launcher started\n" "$(date -Is)" "$target_name" >>"$NUDGE_LOG"
+      return 0
+    fi
+    sleep 1
+  done
+  printf "[%s] %s: gave up after 30s\n" "$(date -Is)" "$target_name" >>"$NUDGE_LOG"
+}
+
+# All output is redirected: this outlives the foreground session, and would
+# otherwise print into whatever prompt the user has moved on to.
+nudge_diffity "$name" </dev/null >/dev/null 2>&1 &
+
+exec sbx run --name "$name"
