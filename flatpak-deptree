@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+deps() {
+  local ref="$1" indent="${2:-}"
+  echo "${indent}${ref}"
+  local meta rt
+  meta="$(flatpak info -m "$ref" 2>/dev/null)" || return
+  rt="$(awk -F= '/^runtime=/{print $2; exit}' <<<"$meta")"
+  awk -F'[][]' '/^\[Extension /{print $2}' <<<"$meta" \
+    | sed 's/^Extension //' | while read -r e; do echo "${indent}  ext: $e"; done
+  [[ -n "$rt" ]] && deps "runtime/$rt" "${indent}  "
+}
+deps "$1"
