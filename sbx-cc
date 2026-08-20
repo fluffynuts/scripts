@@ -36,6 +36,10 @@ readonly MEMORY="${SBX_CC_MEMORY:-12g}"
 readonly BASE_PORT="${SBX_CC_PORT:-5391}"
 readonly AGENT="${SBX_CC_AGENT:-claude}"
 readonly LAUNCHER="/home/agent/.local/bin/start-diffity"
+readonly NUGET_LINKER="/home/agent/.local/bin/link-nuget"
+# Host ~/.nuget is mounted into the sandbox so the package cache, NuGet.Config
+# and private-feed credentials are shared. Set SBX_CC_NUGET="" to disable.
+readonly NUGET_DIR="${SBX_CC_NUGET-${HOME}/.nuget}"
 
 die() { printf "sbx-cc: %s\n" "$*" >&2; exit 1; }
 note() { printf "sbx-cc: %s\n" "$*" >&2; }
@@ -74,14 +78,23 @@ permissions:
       - "*.pkg.github.com"
       - codeload.github.com
       - objects.githubusercontent.com
-      # .NET SDK via apt
+      # skills CLI
+      - add-skill.vercel.sh
+      # apt
       - archive.ubuntu.com
       - security.ubuntu.com
       - ports.ubuntu.com
+      - "*.ubuntu.com"
       - packages.microsoft.com
       # NuGet restore
       - api.nuget.org
       - "*.nuget.org"
+      # dotnet-install.sh — aka.ms is where it redirects from
+      - dot.net
+      - aka.ms
+      - builds.dotnet.microsoft.com
+      - dotnetcli.azureedge.net
+      - dotnetcli.blob.core.windows.net
 ports:
   - container: 5391
     protocol: tcp
@@ -93,30 +106,39 @@ environment:
     DOTNET_NOLOGO: "1"
 setup:
   install:
-    - command: "sudo apt-get update -qq"
+    # Every step below appends to /tmp/sbx-setup.log and exits 0 no matter what,
+    # so a broken toolchain never blocks the sandbox from booting.
+    # Investigate with:  sbx exec <name> -- cat /tmp/sbx-setup.log
+    - command: 'echo "=== setup started $(date -Is) ===" >>/tmp/sbx-setup.log 2>&1; chmod 666 /tmp/sbx-setup.log 2>/dev/null; true'
       user: "0"
-      description: Refresh apt indexes
-#    - command: "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq dotnet-sdk-8.0 </dev/null"
-#      user: "0"
-#      description: Install the .NET 8 SDK
-    - command: "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq dotnet-sdk-10.0 </dev/null || echo 'NOTE: dotnet-sdk-10.0 not available from this apt source — continuing with 8.0 only'"
+      description: Start the setup log
+    - command: 'i=0; ok=0; while [ $i -lt 5 ]; do i=$((i+1)); echo "--- apt-get update attempt $i $(date -Is)" >>/tmp/sbx-setup.log; if sudo apt-get -o DPkg::Lock::Timeout=300 update >>/tmp/sbx-setup.log 2>&1; then ok=1; echo "apt-get update OK on attempt $i" >>/tmp/sbx-setup.log; break; fi; echo "apt-get update FAILED on attempt $i, sleeping 10s" >>/tmp/sbx-setup.log; sleep 10; done; [ $ok -eq 1 ] || echo "WARN: apt-get update never succeeded — see log above" >>/tmp/sbx-setup.log; true'
       user: "0"
-      description: Install the .NET 10 SDK if the distro has it
-    - command: "dotnet --list-sdks || { echo 'ERROR: no dotnet on PATH after install'; exit 1; }"
+      description: Refresh apt indexes (waits for dpkg lock, retries, non-fatal)
+    - command: 'echo "--- installing dotnet-sdk-10.0 $(date -Is)" >>/tmp/sbx-setup.log; sudo DEBIAN_FRONTEND=noninteractive apt-get -o DPkg::Lock::Timeout=300 install -y dotnet-sdk-10.0 </dev/null >>/tmp/sbx-setup.log 2>&1 || echo "WARN: dotnet-sdk-10.0 install failed" >>/tmp/sbx-setup.log; true'
       user: "0"
-      description: Verify the SDK install
-    - command: "npm install -g diffity"
+      description: Install the .NET 10 SDK from the distro (non-fatal)
+    - command: 'echo "--- installing .NET 8 ASP.NET Core runtime $(date -Is)" >>/tmp/sbx-setup.log; if command -v dotnet >/dev/null 2>&1; then root=$(dirname "$(readlink -f "$(command -v dotnet)")"); echo "DOTNET_ROOT=$root" >>/tmp/sbx-setup.log; curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh >>/tmp/sbx-setup.log 2>&1 && sudo bash /tmp/dotnet-install.sh --runtime aspnetcore --channel 8.0 --install-dir "$root" --no-path </dev/null >>/tmp/sbx-setup.log 2>&1 || echo "WARN: .NET 8 runtime install failed" >>/tmp/sbx-setup.log; else echo "WARN: no dotnet on PATH, skipping .NET 8 runtime" >>/tmp/sbx-setup.log; fi; true'
       user: "0"
-      description: Install diffity globally
+      description: Add the .NET 8 ASP.NET Core runtime so net8.0 tests can run (non-fatal)
+    - command: 'echo "--- dotnet inventory $(date -Is)" >>/tmp/sbx-setup.log; { echo "SDKs:"; dotnet --list-sdks; echo "Runtimes:"; dotnet --list-runtimes; } >>/tmp/sbx-setup.log 2>&1 || echo "WARN: dotnet not usable" >>/tmp/sbx-setup.log; true'
+      user: "0"
+      description: Record which SDKs and runtimes ended up installed
+    - command: 'echo "--- npm install -g diffity $(date -Is)" >>/tmp/sbx-setup.log; npm install -g diffity >>/tmp/sbx-setup.log 2>&1 || echo "WARN: diffity install failed" >>/tmp/sbx-setup.log; true'
+      user: "0"
+      description: Install diffity globally (non-fatal)
     - command: "install -d -o agent -g agent -m 0755 /home/agent/.local/bin"
       user: "0"
       description: Ensure the launcher's parent directory exists
-    - command: "cd /home/agent && npx -y skills add nilbuild/diffity -- -y </dev/null"
+    - command: 'echo "--- skills add $(date -Is)" >>/tmp/sbx-setup.log; cd /home/agent && npx -y skills add nilbuild/diffity -- -y </dev/null >>/tmp/sbx-setup.log 2>&1 || echo "WARN: skills add failed" >>/tmp/sbx-setup.log; true'
       user: "1000"
-      description: Install diffity agent skills for the agent user (non-interactive)
-    - command: "mkdir -p /home/agent/.claude/skills; for d in /home/agent/.agents/skills /home/agent/workspace/.agents/skills /home/agent/workspace/.claude/skills; do [ -d \"$d\" ] && cp -a \"$d\"/. /home/agent/.claude/skills/; done; echo 'skills installed:'; ls /home/agent/.claude/skills"
+      description: Install diffity agent skills for the agent user (non-interactive, non-fatal)
+    - command: 'mkdir -p /home/agent/.claude/skills; for d in /home/agent/.agents/skills /home/agent/workspace/.agents/skills /home/agent/workspace/.claude/skills; do [ -d "$d" ] && cp -a "$d"/. /home/agent/.claude/skills/; done; { echo "--- skills present:"; ls /home/agent/.claude/skills; } >>/tmp/sbx-setup.log 2>&1; ls /home/agent/.claude/skills; true'
       user: "1000"
       description: Consolidate skills into ~/.claude/skills wherever the installer put them
+    - command: 'echo "=== setup finished $(date -Is) ===" >>/tmp/sbx-setup.log; echo "--- setup warnings ---"; grep -E "^(WARN|ERROR)" /tmp/sbx-setup.log || echo "none"; echo "--- full log: sbx exec <name> -- cat /tmp/sbx-setup.log"; true'
+      user: "0"
+      description: Summarise any warnings from setup
   files:
     - path: /home/agent/.claude/settings.json
       mode: "0644"
@@ -133,6 +155,35 @@ setup:
             ]
           }
         }
+    - path: /home/agent/.local/bin/link-nuget
+      mode: "0755"
+      description: Point ~/.nuget at the mounted host NuGet dir, if one was passed
+      content: |
+        #!/bin/sh
+        # SBX_HOST_NUGET is set by sbx-cc when it mounts the host ~/.nuget.
+        # No braced shell expansions here: sbx validates every brace-form
+        # substitution in file content against its own placeholder list.
+        exec >>/tmp/link-nuget.log 2>&1
+        echo "=== link-nuget at $(date -Is) ==="
+        if [ -z "$SBX_HOST_NUGET" ]; then
+          echo "SBX_HOST_NUGET unset — nothing to link"
+          exit 0
+        fi
+        if [ ! -d "$SBX_HOST_NUGET" ]; then
+          echo "ERROR: $SBX_HOST_NUGET is not mounted"
+          exit 1
+        fi
+        LINK=/home/agent/.nuget
+        if [ -L "$LINK" ]; then
+          ln -sfn "$SBX_HOST_NUGET" "$LINK"
+        elif [ -e "$LINK" ]; then
+          echo "WARN: $LINK exists and is not a symlink; moving aside"
+          mv "$LINK" "$LINK.local" && ln -s "$SBX_HOST_NUGET" "$LINK"
+        else
+          ln -s "$SBX_HOST_NUGET" "$LINK"
+        fi
+        echo "linked $LINK -> $(readlink "$LINK")"
+        ls "$LINK" 2>/dev/null | head
     - path: /home/agent/.local/bin/start-diffity
       mode: "0755"
       description: Launcher that serves diffity against the workspace
@@ -191,6 +242,10 @@ setup:
         log "starting diffity on $PORT in $WS"
         exec diffity --no-open --port "$PORT"
   startup:
+    - command: ["/home/agent/.local/bin/link-nuget"]
+      user: "1000"
+      background: false
+      description: Link ~/.nuget to the mounted host NuGet directory
     - command: ["/home/agent/.local/bin/start-diffity"]
       user: "1000"
       background: true
@@ -389,12 +444,26 @@ else
   note "  workspace: ${target}"
   note "  memory:    ${MEMORY}"
   note "  diffity:   http://localhost:${port}"
+
+  # Extra workspace mounts appear inside the sandbox at their exact host path,
+  # which is why link-nuget symlinks /home/agent/.nuget to it at startup.
+  extra_mounts=()
+  create_env=()
+  if [ -n "$NUGET_DIR" ] && [ -d "$NUGET_DIR" ]; then
+    extra_mounts+=("$NUGET_DIR")
+    create_env+=(-e "SBX_HOST_NUGET=${NUGET_DIR}")
+    note "  nuget:     ${NUGET_DIR} (shared with host)"
+  elif [ -n "$NUGET_DIR" ]; then
+    note "  nuget:     ${NUGET_DIR} not found on host — not mounting"
+  fi
+
   sbx create \
     --name "$name" \
     --kit "$KIT" \
     --memory "$MEMORY" \
     --publish "${port}:${BASE_PORT}" \
-    "$AGENT" "$target"
+    ${create_env[@]+"${create_env[@]}"} \
+    "$AGENT" "$target" ${extra_mounts[@]+"${extra_mounts[@]}"}
 fi
 
 # setup.startup doesn't fire on a sandbox's first boot (the launcher isn't on
@@ -410,6 +479,7 @@ nudge_diffity() {
   local target_name="$1" i
   for i in $(seq 1 30); do
     if sbx exec -d "$target_name" -- "$LAUNCHER" >/dev/null 2>&1; then
+      sbx exec -d "$target_name" -- "$NUGET_LINKER" >/dev/null 2>&1 || true
       printf "[%s] %s: launcher started\n" "$(date -Is)" "$target_name" >>"$NUDGE_LOG"
       return 0
     fi
