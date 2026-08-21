@@ -92,6 +92,8 @@ permissions:
       - ports.ubuntu.com
       - "*.ubuntu.com"
       - packages.microsoft.com
+      # Elasticsearch
+      - artifacts.elastic.co
       # NuGet restore
       - api.nuget.org
       - "*.nuget.org"
@@ -126,7 +128,7 @@ setup:
       description: Install the .NET 10 SDK from the distro (non-fatal)
     - command: 'echo "--- installing mysql,redis,rabbitmq $(date -Is)" >>/tmp/sbx-setup.log; sudo DEBIAN_FRONTEND=noninteractive apt-get -o DPkg::Lock::Timeout=300 install -y mysql-server redis-server rabbitmq-server </dev/null >>/tmp/sbx-setup.log 2>&1 || echo "WARN: service dependencies install failed" >>/tmp/sbx-setup.log; true'
       user: "0"
-      description: Install the .NET 10 SDK from the distro (non-fatal)
+      description: Install mysql-server, redis-server and rabbitmq-server (non-fatal)
     - command: 'echo "--- installing .NET 8 ASP.NET Core runtime $(date -Is)" >>/tmp/sbx-setup.log; if command -v dotnet >/dev/null 2>&1; then root=$(dirname "$(readlink -f "$(command -v dotnet)")"); echo "DOTNET_ROOT=$root" >>/tmp/sbx-setup.log; curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh >>/tmp/sbx-setup.log 2>&1 && sudo bash /tmp/dotnet-install.sh --runtime aspnetcore --channel 8.0 --install-dir "$root" --no-path </dev/null >>/tmp/sbx-setup.log 2>&1 || echo "WARN: .NET 8 runtime install failed" >>/tmp/sbx-setup.log; else echo "WARN: no dotnet on PATH, skipping .NET 8 runtime" >>/tmp/sbx-setup.log; fi; true'
       user: "0"
       description: Add the .NET 8 ASP.NET Core runtime so net8.0 tests can run (non-fatal)
@@ -145,6 +147,15 @@ setup:
     - command: 'mkdir -p /home/agent/.claude/skills; for d in /home/agent/.agents/skills /home/agent/workspace/.agents/skills /home/agent/workspace/.claude/skills; do [ -d "$d" ] && cp -a "$d"/. /home/agent/.claude/skills/; done; { echo "--- skills present:"; ls /home/agent/.claude/skills; } >>/tmp/sbx-setup.log 2>&1; ls /home/agent/.claude/skills; true'
       user: "1000"
       description: Consolidate skills into ~/.claude/skills wherever the installer put them
+    - command: 'echo "--- elasticsearch repo $(date -Is)" >>/tmp/sbx-setup.log; curl -fsSL https://artifacts.elastic.co/GPG-KEY-elasticsearch 2>>/tmp/sbx-setup.log | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg 2>>/tmp/sbx-setup.log && echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/9.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-9.x.list >/dev/null && sudo apt-get -o DPkg::Lock::Timeout=300 update >>/tmp/sbx-setup.log 2>&1 || echo "WARN: elastic repo setup failed" >>/tmp/sbx-setup.log; true'
+      user: "0"
+      description: Add the Elastic apt repository
+    - command: 'echo "--- installing elasticsearch $(date -Is)" >>/tmp/sbx-setup.log; sudo DEBIAN_FRONTEND=noninteractive apt-get -o DPkg::Lock::Timeout=300 install -y elasticsearch </dev/null >>/tmp/sbx-setup.log 2>&1 || echo "WARN: elasticsearch install failed" >>/tmp/sbx-setup.log; true'
+      user: "0"
+      description: Install Elasticsearch (no Ubuntu package exists)
+    - command: 'printf "%s\n" "cluster.name: yumbi-sandbox" "discovery.type: single-node" "network.host: 127.0.0.1" "http.port: 9200" "path.data: /var/lib/elasticsearch" "path.logs: /var/log/elasticsearch" "xpack.security.enabled: false" "xpack.security.enrollment.enabled: false" "xpack.ml.enabled: false" | sudo tee /etc/elasticsearch/elasticsearch.yml >/dev/null && printf "%s\n" "-Xms512m" "-Xmx512m" | sudo tee /etc/elasticsearch/jvm.options.d/heap.options >/dev/null && sudo install -d -o elasticsearch -g elasticsearch -m 0750 /var/lib/elasticsearch /var/log/elasticsearch && sudo install -d -o elasticsearch -g elasticsearch -m 0755 /usr/share/elasticsearch/logs /usr/share/elasticsearch/tmp && echo "--- wrote elasticsearch config" >>/tmp/sbx-setup.log || echo "WARN: elasticsearch config failed" >>/tmp/sbx-setup.log; true'
+      user: "0"
+      description: Single-node, security-disabled config with a pinned heap
     - command: 'echo "=== setup finished $(date -Is) ===" >>/tmp/sbx-setup.log; echo "--- setup warnings ---"; grep -E "^(WARN|ERROR)" /tmp/sbx-setup.log || echo "none"; echo "--- full log: sbx exec <name> -- cat /tmp/sbx-setup.log"; true'
       user: "0"
       description: Summarise any warnings from setup
@@ -307,6 +318,55 @@ setup:
         cd "$WS" || { log "ERROR: cannot cd to $WS"; exit 1; }
         log "starting diffity on $PORT in $WS"
         exec diffity --no-open --port "$PORT"
+    - path: /home/agent/.local/bin/start-elasticsearch
+      mode: "0755"
+      description: Start Elasticsearch on 9200 and wait until it answers
+      content: |
+        #!/bin/sh
+        # No braced shell expansions: sbx validates every brace-form
+        # substitution in file content against its own placeholder list.
+        exec >>/tmp/elasticsearch.log 2>&1
+        echo "=== start-elasticsearch at $(date -Is) ==="
+
+        # 23F0 is 9200 in hex, 0A is LISTEN.
+        if awk '$2 ~ /:23F0$/ && $4 == "0A" { f = 1 } END { exit f ? 0 : 1 }' /proc/net/tcp; then
+          echo "already listening on 9200 — nothing to do"
+          exit 0
+        fi
+
+        if [ ! -x /usr/share/elasticsearch/bin/elasticsearch ]; then
+          echo "ERROR: elasticsearch is not installed"
+          exit 1
+        fi
+
+        # ES refuses to start below this; the microVM has its own kernel so
+        # the sysctl is ours to set.
+        sudo sysctl -w vm.max_map_count=262144 || echo "WARN: could not set vm.max_map_count"
+
+        echo "Recreating elasticsearch keystore"
+        sudo rm -f /etc/elasticsearch/elasticsearch.keystore
+        sudo /usr/share/elasticsearch/bin/elasticsearch-keystore create
+
+        echo "starting elasticsearch"
+        sudo -u elasticsearch env ES_PATH_CONF=/etc/elasticsearch \
+          ES_TMPDIR=/usr/share/elasticsearch/tmp \
+          setsid /usr/share/elasticsearch/bin/elasticsearch -d -p /tmp/elasticsearch.pid
+
+        # The wrapper in Yumbi probes for HTTP 200, so wait for that, not just
+        # for the port to open.
+        i=0
+        while [ $i -lt 120 ]; do
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:9200 2>/dev/null)
+          if [ "$code" = "200" ]; then
+            echo "elasticsearch ready after $i seconds"
+            exit 0
+          fi
+          i=$((i + 1))
+          sleep 1
+        done
+        echo "ERROR: elasticsearch not answering 200 after $i seconds (last code: $code)"
+        echo "check /var/log/elasticsearch/yumbi-sandbox.log"
+        exit 1
     - path: /home/agent/.local/bin/start-services
       mode: "0755"
       description: Run every service starter in order
@@ -314,7 +374,7 @@ setup:
         #!/bin/sh
         exec >>/tmp/start-services.log 2>&1
         echo "=== start-services at $(date -Is) ==="
-        for s in link-nuget start-rabbit start-diffity; do
+        for s in link-nuget start-rabbit start-elasticsearch start-diffity; do
           echo "--- $s"
           /home/agent/.local/bin/$s || echo "WARN: $s exited $?"
         done
@@ -330,9 +390,12 @@ agentInstructions:
     ## Toolchain
 
     The .NET SDK is installed — run `dotnet --list-sdks` to see which versions.
-    `dotnet build` and `dotnet test` work against the workspace. NuGet restore
-    reaches api.nuget.org only — if a restore fails on a private feed, say so
-    rather than trying to work around it.
+    `dotnet build` and `dotnet test -c IsolatedTesting` work against the workspace.
+    It is vital to run tests with the build configuration IsolatedTesting, otherwise
+    tests WILL fail in this environment.
+    
+    NuGet restore reaches api.nuget.org only — if a restore fails on a private feed,
+    say so rather than trying to work around it.
 
     ## Services
 
@@ -341,6 +404,15 @@ agentInstructions:
     `sudo -u rabbitmq env RABBITMQ_NODENAME=rabbit@localhost rabbitmqctl ...`
     for any admin commands — without the node name it will not find the broker.
     Startup log: `/tmp/rabbitmq.log`; broker log: `/tmp/rabbit@localhost.log`.
+
+    Elasticsearch runs on http://localhost:9200, single-node with security
+    disabled, cluster `yumbi-sandbox`. Yumbi detects it and skips spawning a
+    TempDb.Elasticsearch container. Startup log: `/tmp/elasticsearch.log`;
+    server log: `/var/log/elasticsearch/yumbi-sandbox.log`.
+
+    If any of these are not answering, run
+    `/home/agent/.local/bin/start-services` — it is re-entrant and safe to
+    repeat.
 
     mysqld and redis-server are installed for TempDb to spawn; do not start
     them yourself.
