@@ -31,12 +31,15 @@
 
 set -euo pipefail
 
+
 readonly KIT="${SBX_CC_KIT:-${HOME}/.sbx/kits/diffity}"
 readonly MEMORY="${SBX_CC_MEMORY:-12g}"
 readonly BASE_PORT="${SBX_CC_PORT:-5391}"
 readonly AGENT="${SBX_CC_AGENT:-claude}"
 readonly LAUNCHER="/home/agent/.local/bin/start-diffity"
 readonly NUGET_LINKER="/home/agent/.local/bin/link-nuget"
+readonly RABBIT_STARTER="/home/agent/.local/bin/start-rabbit"
+readonly SERVICE_STARTER="/home/agent/.local/bin/start-services"
 # Host ~/.nuget is mounted into the sandbox so the package cache, NuGet.Config
 # and private-feed credentials are shared. Set SBX_CC_NUGET="" to disable.
 readonly NUGET_DIR="${SBX_CC_NUGET-${HOME}/.nuget}"
@@ -47,6 +50,9 @@ note() { printf "sbx-cc: %s\n" "$*" >&2; }
 usage() {
   sed -n "3,30p" "$0" | sed "s/^# \{0,1\}//"
 }
+
+sbx version >/dev/null 2>&1 </dev/null \
+  || die "sbx needs attention — run 'sbx version' directly (it may be waiting for input after an update)"
 
 # --init only touches local config, so it doesn't need sbx present.
 case " $* " in
@@ -158,13 +164,63 @@ setup:
             ]
           }
         }
-    - path: /home/agent/.local/bin/setup-rabbitmq
+    - path: /home/agent/.local/bin/start-rabbit
       mode: "0755"
-      description: Sets up the rabbit user
+      description: Start RabbitMQ with a stable node name, then ensure the rabbit user
       content: |
         #!/bin/sh
-        rabbitmqctl add_user rabbit rabbit
-        rabbitmqctl set_permissions -p / rabbit '.*' '.*' '.*'
+        # No braced shell expansions: sbx validates every brace-form
+        # substitution in file content against its own placeholder list.
+        exec >>/tmp/rabbitmq.log 2>&1
+        echo "=== start-rabbit at $(date -Is) ==="
+        sleep 5
+
+        NODE=rabbit@localhost
+        CTL="sudo -u rabbitmq env RABBITMQ_NODENAME=$NODE rabbitmqctl"
+
+        # 1628 is 5672 in hex, 0A is LISTEN.
+        if awk '$2 ~ /:1628$/ && $4 == "0A" { f = 1 } END { exit f ? 0 : 1 }' /proc/net/tcp; then
+          echo "broker already listening on 5672"
+        else
+          # The mnesia tree must be owned by rabbitmq or ra_log_ets crashes
+          # with eacces on quorum/.../names.dets and boot aborts.
+          # sudo because this runs as root from setup.startup but as the agent
+          # user when invoked via sbx exec from sbx-cc's nudge.
+          sudo install -d -o rabbitmq -g rabbitmq -m 750 /var/lib/rabbitmq/mnesia \
+            || echo "WARN: could not prepare /var/lib/rabbitmq/mnesia"
+          echo "starting broker as $NODE"
+          sudo -u rabbitmq env RABBITMQ_NODENAME=$NODE RABBITMQ_LOG_BASE=/tmp \
+            rabbitmq-server -detached
+        fi
+
+        # rabbitmqctl needs a live node; wait rather than assume.
+        i=0
+        ready=0
+        while [ $i -lt 60 ]; do
+          if $CTL await_startup --timeout 5 >/dev/null 2>&1; then
+            ready=1
+            break
+          fi
+          i=$((i + 1))
+          sleep 1
+        done
+        if [ $ready -eq 0 ]; then
+          echo "ERROR: broker not ready after $i seconds"
+          echo "check /tmp/rabbit@localhost.log for the boot failure"
+          exit 1
+        fi
+        echo "broker ready after $i seconds"
+
+        # Idempotent: startup commands replay on every container restart.
+        if $CTL list_users 2>/dev/null | awk 'NR > 1 && $1 == "rabbit" { f = 1 } END { exit f ? 0 : 1 }'; then
+          echo "user 'rabbit' already exists"
+        else
+          echo "creating user 'rabbit'"
+          $CTL add_user rabbit rabbit || echo "WARN: add_user failed"
+        fi
+        $CTL set_permissions -p / rabbit '.*' '.*' '.*' || echo "WARN: set_permissions failed"
+        $CTL set_user_tags rabbit administrator || echo "WARN: set_user_tags failed"
+        echo "rabbit user provisioned"
     - path: /home/agent/.local/bin/link-nuget
       mode: "0755"
       description: Point ~/.nuget at the mounted host NuGet dir, if one was passed
@@ -251,18 +307,24 @@ setup:
         cd "$WS" || { log "ERROR: cannot cd to $WS"; exit 1; }
         log "starting diffity on $PORT in $WS"
         exec diffity --no-open --port "$PORT"
+    - path: /home/agent/.local/bin/start-services
+      mode: "0755"
+      description: Run every service starter in order
+      content: |
+        #!/bin/sh
+        exec >>/tmp/start-services.log 2>&1
+        echo "=== start-services at $(date -Is) ==="
+        for s in link-nuget start-rabbit start-diffity; do
+          echo "--- $s"
+          /home/agent/.local/bin/$s || echo "WARN: $s exited $?"
+        done
+        echo "=== done at $(date -Is) ==="
   startup:
-    - command: ["/home/agent/.local/bin/link-nuget"]
-      user: "1000"
-      background: false
-      description: Link ~/.nuget to the mounted host NuGet directory
-    - command: ["/home/agent/.local/bin/setup-rabbitmq"]
+    - command: ["/home/agent/.local/bin/start-services"]
       user: "0"
-      background: false
-    - command: ["/home/agent/.local/bin/start-diffity"]
-      user: "1000"
       background: true
-      description: Serve the diffity review UI on port 5391
+      description: Link nuget, start RabbitMQ, then serve diffity
+
 agentInstructions:
   content: |
     ## Toolchain
@@ -271,6 +333,17 @@ agentInstructions:
     `dotnet build` and `dotnet test` work against the workspace. NuGet restore
     reaches api.nuget.org only — if a restore fails on a private feed, say so
     rather than trying to work around it.
+
+    ## Services
+
+    RabbitMQ runs on 5672 as node `rabbit@localhost`, with user `rabbit`
+    (password `rabbit`) holding full permissions on `/`. Use
+    `sudo -u rabbitmq env RABBITMQ_NODENAME=rabbit@localhost rabbitmqctl ...`
+    for any admin commands — without the node name it will not find the broker.
+    Startup log: `/tmp/rabbitmq.log`; broker log: `/tmp/rabbit@localhost.log`.
+
+    mysqld and redis-server are installed for TempDb to spawn; do not start
+    them yourself.
 
     ## Diffity
 
@@ -489,16 +562,37 @@ fi
 readonly NUDGE_LOG="${TMPDIR:-/tmp}/sbx-cc-nudge.log"
 
 nudge_diffity() {
-  local target_name="$1" i
-  for i in $(seq 1 30); do
-    if sbx exec -d "$target_name" -- "$LAUNCHER" >/dev/null 2>&1; then
-      sbx exec -d "$target_name" -- "$NUGET_LINKER" >/dev/null 2>&1 || true
-      printf "[%s] %s: launcher started\n" "$(date -Is)" "$target_name" >>"$NUDGE_LOG"
-      return 0
+  local target_name="$1" i rc out
+  # sbx create provisions but does not start; sbx run boots it. This races
+  # that boot, which after a full install pass can take well over a minute.
+  for i in $(seq 1 180); do
+    if out="$(sbx exec "$target_name" -- /bin/true 2>&1)"; then
+      printf "[%s] %s: sandbox reachable after %ss\n" \
+        "$(date -Is)" "$target_name" "$i" >>"$NUDGE_LOG"
+      break
+    fi
+    if [ "$i" -eq 1 ] || [ "$((i % 30))" -eq 0 ]; then
+      printf "[%s] %s: not reachable (attempt %s): %s\n" \
+        "$(date -Is)" "$target_name" "$i" "$out" >>"$NUDGE_LOG"
+    fi
+    if [ "$i" -eq 180 ]; then
+      printf "[%s] %s: gave up after 180s\n" "$(date -Is)" "$target_name" >>"$NUDGE_LOG"
+      return 1
     fi
     sleep 1
   done
-  printf "[%s] %s: gave up after 30s\n" "$(date -Is)" "$target_name" >>"$NUDGE_LOG"
+
+  # start-services runs link-nuget, start-rabbit, then execs diffity, so it
+  # never returns: dispatch it detached. It is re-entrant, so a duplicate
+  # invocation from a login shell is harmless.
+  printf "[%s] %s: dispatching start-services\n" "$(date -Is)" "$target_name" >>"$NUDGE_LOG"
+  if sbx exec -d "$target_name" -- "$SERVICE_STARTER" >>"$NUDGE_LOG" 2>&1; then
+    printf "[%s] %s: start-services dispatched\n" "$(date -Is)" "$target_name" >>"$NUDGE_LOG"
+  else
+    rc=$?
+    printf "[%s] %s: start-services FAILED rc=%s\n" \
+      "$(date -Is)" "$target_name" "$rc" >>"$NUDGE_LOG"
+  fi
 }
 
 # All output is redirected: this outlives the foreground session, and would
