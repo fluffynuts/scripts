@@ -43,6 +43,11 @@ readonly SERVICE_STARTER="/home/agent/.local/bin/start-services"
 # Host ~/.nuget is mounted into the sandbox so the package cache, NuGet.Config
 # and private-feed credentials are shared. Set SBX_CC_NUGET="" to disable.
 readonly NUGET_DIR="${SBX_CC_NUGET-${HOME}/.nuget}"
+# Agent memories live at /home/agent/.claude/projects, which is claude-specific.
+# A host directory is mounted in so backup/restore is a plain cp inside the
+# sandbox rather than streaming a tar through sbx exec's stdio.
+readonly MEMORY_ROOT="${SBX_CC_MEMORY_ROOT:-${HOME}/.sbx-cc/memories}"
+readonly AGENT_MEMORY_PATH="/home/agent/.claude/projects"
 
 die() { printf "sbx-cc: %s\n" "$*" >&2; exit 1; }
 note() { printf "sbx-cc: %s\n" "$*" >&2; }
@@ -580,10 +585,145 @@ Run 'sbx setup ssh' once on this machine."
   exec ssh "${name}.sbx"
 fi
 
+# The published host port is chosen at creation and must stay stable so the
+# diffity tab can be bookmarked. Record it rather than parsing sbx output.
+readonly PORT_ROOT="${SBX_CC_PORT_ROOT:-${HOME}/.sbx-cc/ports}"
+
+remember_port() {
+  mkdir -p "$PORT_ROOT"
+  printf "%s\n" "$2" > "${PORT_ROOT}/$1"
+}
+
+recall_port() {
+  local f="${PORT_ROOT}/$1"
+  if [ -r "$f" ]; then
+    cat "$f"
+  else
+    printf "%s" "$BASE_PORT"
+  fi
+}
+
+port_in_use() {
+  ss -tlnH "sport = :$1" 2>/dev/null | grep -q .
+}
+
+report_port_holder() {
+  local port="$1"
+  note "  processes holding ${port}:"
+  ss -tlnp "sport = :${port}" 2>/dev/null | sed 's/^/    /' >&2 || true
+  if command -v fuser >/dev/null 2>&1; then
+    fuser -v "${port}/tcp" 2>&1 | sed 's/^/    /' >&2 || true
+  fi
+}
+
+readonly OPEN_LOG="${TMPDIR:-/tmp}/sbx-cc-open.log"
+
+# Poll until diffity answers, then hand the URL to the desktop. Runs detached:
+# the Claude UI takes over the terminal, so anything printed here is lost.
+# Set SBX_CC_OPEN=0 to disable.
+open_diffity() {
+  local port="$1" url opener i
+  url="http://localhost:${port}"
+
+  if command -v xdg-open >/dev/null 2>&1; then
+    opener="xdg-open"
+  elif [ "$(uname -s)" = "Darwin" ] && command -v open >/dev/null 2>&1; then
+    opener="open"
+  else
+    printf "[%s] no xdg-open or open on PATH; %s not opened\n" \
+      "$(date -Is)" "$url" >>"$OPEN_LOG"
+    return 1
+  fi
+
+  for i in $(seq 1 180); do
+    if curl -fsS -o /dev/null --max-time 2 "$url" 2>/dev/null; then
+      printf "[%s] %s is up after %ss — opening with %s\n" \
+        "$(date -Is)" "$url" "$i" "$opener" >>"$OPEN_LOG"
+      "$opener" "$url" >>"$OPEN_LOG" 2>&1 || \
+        printf "[%s] %s failed\n" "$(date -Is)" "$opener" >>"$OPEN_LOG"
+      return 0
+    fi
+    sleep 1
+  done
+  printf "[%s] %s never answered after 180s\n" "$(date -Is)" "$url" >>"$OPEN_LOG"
+  return 1
+}
+
+# Wait until the sandbox will accept an exec. sbx create provisions but does
+# not start; sbx run boots it. Bounded so a broken sandbox fails loudly.
+wait_reachable() {
+  local target_name="$1" limit="${2:-120}" i=0
+  while [ "$i" -lt "$limit" ]; do
+    if sbx exec "$target_name" -- /bin/true >/dev/null 2>&1; then
+      return 0
+    fi
+    i=$((i + 1))
+    sleep 1
+  done
+  return 1
+}
+
+# Memory preservation is claude-specific: the path is /home/agent/.claude.
+memories_supported() {
+  [ "$AGENT" = "claude" ]
+}
+
+memory_store_for() {
+  printf "%s/%s" "$MEMORY_ROOT" "$1"
+}
+
+# Copy the agent's memories out to the mounted host directory before the
+# sandbox is destroyed. Requires the sandbox to have been created by a version
+# of this script that mounts MEMORY_ROOT.
+backup_memories() {
+  local target_name="$1" store
+  store="$(memory_store_for "$target_name")"
+  mkdir -p "$store"
+  if ! sbx exec "$target_name" -- test -d "$AGENT_MEMORY_PATH" >/dev/null 2>&1; then
+    note "  no memories found in '${target_name}' — nothing to preserve"
+    return 1
+  fi
+  if sbx exec "$target_name" -- sh -c \
+      "mkdir -p '$store' && cp -a '$AGENT_MEMORY_PATH'/. '$store'/" >/dev/null 2>&1; then
+    note "  memories saved to ${store}"
+    return 0
+  fi
+  note "  WARNING: could not save memories (sandbox may predate memory support)"
+  return 1
+}
+
+# Copy them back after re-creation, before the agent starts at sbx run.
+restore_memories() {
+  local target_name="$1" store
+  store="$(memory_store_for "$target_name")"
+  if [ ! -d "$store" ] || [ -z "$(ls -A "$store" 2>/dev/null)" ]; then
+    return 0
+  fi
+  note "waiting for '${target_name}' to accept commands before restoring memories"
+  if ! wait_reachable "$target_name" 120; then
+    note "WARNING: sandbox not reachable — memories left in ${store}"
+    return 1
+  fi
+  if sbx exec "$target_name" -- sh -c \
+      "mkdir -p '$AGENT_MEMORY_PATH' && cp -a '$store'/. '$AGENT_MEMORY_PATH'/" >/dev/null 2>&1; then
+    note "memories restored from ${store}"
+    return 0
+  fi
+  note "WARNING: restore failed — memories left in ${store}"
+  return 1
+}
+
+restore_after_create="0"
+
 if [ "$do_reinit" = "1" ]; then
   if sandbox_exists "$name"; then
     confirm "Remove sandbox '${name}' (workspace ${target})?" \
       || die "aborted — sandbox left alone"
+    if memories_supported; then
+      if confirm "Preserve agent memories from '${name}'?"; then
+        backup_memories "$name" && restore_after_create="1"
+      fi
+    fi
     note "removing sandbox '${name}'"
     sbx rm -f "$name"
   else
@@ -595,6 +735,18 @@ fi
 
 if sandbox_exists "$name"; then
   note "attaching to existing sandbox '${name}'"
+  port="$(recall_port "$name")"
+  # A running sandbox already holds its published port; only a stopped one
+  # will try to bind it on start, which is when sbx prompts interactively.
+  if ! sbx exec "$name" -- /bin/true >/dev/null 2>&1; then
+    if port_in_use "$port"; then
+      note "host port ${port} is in use, and sandbox '${name}' is stopped."
+      note "sbx would prompt for an alternative port and lose your stable URL."
+      report_port_holder "$port"
+      die "free port ${port} (e.g. 'fuser -k ${port}/tcp'), then re-run"
+    fi
+  fi
+  note "  diffity:   http://localhost:${port}"
 else
   ensure_kit
   port="$(find_free_port "$BASE_PORT")"
@@ -610,14 +762,17 @@ else
   if [ -n "$NUGET_DIR" ] && [ -d "$NUGET_DIR" ]; then
     extra_mounts+=("$NUGET_DIR")
     create_env+=(-e "SBX_HOST_NUGET=${NUGET_DIR}")
-    # Restore bakes absolute paths into obj/project.assets.json. Without this
-    # the sandbox resolves its cache via $HOME (/home/agent/.nuget), which does
-    # not exist on the host, so Rider cannot resolve any package after a
-    # container build. Pinning both sides to the host path keeps them identical.
-    create_env+=(-e "NUGET_PACKAGES=${NUGET_DIR}/packages")
     note "  nuget:     ${NUGET_DIR} (shared with host)"
   elif [ -n "$NUGET_DIR" ]; then
     note "  nuget:     ${NUGET_DIR} not found on host — not mounting"
+  fi
+
+  if memories_supported; then
+    memory_store="$(memory_store_for "$name")"
+    mkdir -p "$memory_store"
+    extra_mounts+=("$memory_store")
+    create_env+=(-e "SBX_CC_MEMORY_STORE=${memory_store}")
+    note "  memories:  ${memory_store}"
   fi
 
   sbx create \
@@ -627,6 +782,11 @@ else
     --publish "${port}:${BASE_PORT}" \
     ${create_env[@]+"${create_env[@]}"} \
     "$AGENT" "$target" ${extra_mounts[@]+"${extra_mounts[@]}"}
+
+  if [ "$restore_after_create" = "1" ]; then
+    restore_memories "$name" || true
+  fi
+  remember_port "$name" "$port"
 fi
 
 # setup.startup doesn't fire on a sandbox's first boot (the launcher isn't on
@@ -675,5 +835,9 @@ nudge_diffity() {
 # All output is redirected: this outlives the foreground session, and would
 # otherwise print into whatever prompt the user has moved on to.
 nudge_diffity "$name" </dev/null >/dev/null 2>&1 &
+
+if [ "${SBX_CC_OPEN:-1}" != "0" ]; then
+  open_diffity "$port" </dev/null >/dev/null 2>&1 &
+fi
 
 exec sbx run --name "$name"
