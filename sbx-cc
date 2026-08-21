@@ -36,7 +36,6 @@ readonly KIT="${SBX_CC_KIT:-${HOME}/.sbx/kits/diffity}"
 readonly MEMORY="${SBX_CC_MEMORY:-12g}"
 readonly BASE_PORT="${SBX_CC_PORT:-5391}"
 readonly AGENT="${SBX_CC_AGENT:-claude}"
-readonly LAUNCHER="/home/agent/.local/bin/start-diffity"
 readonly NUGET_LINKER="/home/agent/.local/bin/link-nuget"
 readonly RABBIT_STARTER="/home/agent/.local/bin/start-rabbit"
 readonly SERVICE_STARTER="/home/agent/.local/bin/start-services"
@@ -266,63 +265,6 @@ setup:
         fi
         echo "linked $LINK -> $(readlink "$LINK")"
         ls "$LINK" 2>/dev/null | head
-    - path: /home/agent/.local/bin/start-diffity
-      mode: "0755"
-      description: Launcher that serves diffity against the workspace
-      content: |
-        #!/bin/sh
-        # Everything below is logged, including errors from set -u and any
-        # command that dies before we reach the first explicit log line.
-        mkdir -p /home/agent/.local/bin 2>/dev/null || true
-        exec >>/tmp/diffity.log 2>&1
-        echo "=== launcher invoked at $(date -Is) as $(id -un) ==="
-
-        set -u
-        PORT=5391
-        WS="${WORKDIR}"
-
-        log() { echo "[$(date -Is)] $*"; }
-        log "workspace=$WS  PATH=$PATH"
-
-        if ss -tlnH "sport = :$PORT" 2>/dev/null | grep -q .; then
-          log "already listening on $PORT — nothing to do"
-          exit 0
-        fi
-
-        # setup.startup can fire before the workspace mount is ready, so wait.
-        i=0
-        while [ ! -d "$WS" ] && [ "$i" -lt 60 ]; do
-          i=$((i + 1))
-          sleep 1
-        done
-        if [ ! -d "$WS" ]; then
-          log "ERROR: workspace $WS never appeared after $i seconds — giving up"
-          exit 1
-        fi
-        [ "$i" -eq 0 ] || log "waited $i seconds for workspace"
-
-        # Startup commands do not run through a login shell, so the npm global
-        # bin directory is absent from PATH.
-        PATH="/usr/local/share/npm-global/bin:/usr/local/bin:/home/agent/.local/bin:/usr/bin:/bin:$PATH"
-        export PATH
-        if ! command -v diffity >/dev/null 2>&1; then
-          # Fall back to asking npm where it puts global binaries.
-          npm_bin="$(npm prefix -g 2>/dev/null || true)/bin"
-          if [ -d "$npm_bin" ]; then
-            log "adding $npm_bin to PATH"
-            PATH="$npm_bin:$PATH"
-            export PATH
-          fi
-        fi
-        if ! command -v diffity >/dev/null 2>&1; then
-          log "ERROR: diffity not found. PATH=$PATH"
-          exit 1
-        fi
-        log "using $(command -v diffity)"
-
-        cd "$WS" || { log "ERROR: cannot cd to $WS"; exit 1; }
-        log "starting diffity on $PORT in $WS"
-        exec diffity --no-open --port "$PORT"
     - path: /home/agent/.local/bin/start-elasticsearch
       mode: "0755"
       description: Start Elasticsearch on 9200 and wait until it answers
@@ -379,7 +321,7 @@ setup:
         #!/bin/sh
         exec >>/tmp/start-services.log 2>&1
         echo "=== start-services at $(date -Is) ==="
-        for s in link-nuget start-rabbit start-elasticsearch start-diffity; do
+        for s in link-nuget start-rabbit start-elasticsearch; do
           echo "--- $s"
           /home/agent/.local/bin/$s || echo "WARN: $s exited $?"
         done
@@ -424,15 +366,31 @@ agentInstructions:
 
     ## Diffity
 
-    `diffity` is installed and its skills are available. Use it for code review:
+    `diffity` is installed and its skills are available, but no session is
+    running at startup. Comments are anchored to a specific diff, so a session
+    started before a commit goes stale as soon as one is made — start a fresh
+    session when review is wanted.
 
-    - `/diffity-diff <ref>` opens the GitHub-style diff viewer in the browser.
-    - `/diffity-review <ref>` leaves your own inline review comments on the diff,
-      tagged `[must-fix]`, `[suggestion]`, `[nit]` or `[question]`.
-    - `/diffity-resolve` reads all open comments and applies the requested changes.
+    - `/diffity-diff <ref>` starts a session and opens the diff viewer.
+    - `/diffity-review <ref>` leaves your own inline comments, tagged
+      `[must-fix]`, `[suggestion]`, `[nit]` or `[question]`.
+    - `/diffity-resolve` reads all open comments — the user's or your own —
+      and applies the requested changes.
+    - `diffity agent list --status open --json` reads the current session's
+      comments directly.
 
-    The viewer is reachable from the host, so pass `--no-open` when launching it
-    directly — there is no browser inside this sandbox.
+    There is no browser in this sandbox: always pass `--no-open`, and use the
+    default port 5391, which is the only port published to the host.
+
+    After starting a session, tell the user the URL to open. It is in the
+    environment variable `SBX_CC_DIFFITY_URL` — the host port may differ from
+    5391 when several sandboxes are running, so report that variable's value
+    rather than assuming.
+
+    If the user says they left comments but `diffity agent list` shows none,
+    the session's ref no longer matches the diff they commented on (usually
+    because of an intervening commit). Say so rather than asking them to
+    re-run `/diffity-review`, which only adds your own comments.
 SPEC
 }
 
@@ -616,39 +574,6 @@ report_port_holder() {
   fi
 }
 
-readonly OPEN_LOG="${TMPDIR:-/tmp}/sbx-cc-open.log"
-
-# Poll until diffity answers, then hand the URL to the desktop. Runs detached:
-# the Claude UI takes over the terminal, so anything printed here is lost.
-# Set SBX_CC_OPEN=0 to disable.
-open_diffity() {
-  local port="$1" url opener i
-  url="http://localhost:${port}"
-
-  if command -v xdg-open >/dev/null 2>&1; then
-    opener="xdg-open"
-  elif [ "$(uname -s)" = "Darwin" ] && command -v open >/dev/null 2>&1; then
-    opener="open"
-  else
-    printf "[%s] no xdg-open or open on PATH; %s not opened\n" \
-      "$(date -Is)" "$url" >>"$OPEN_LOG"
-    return 1
-  fi
-
-  for i in $(seq 1 180); do
-    if curl -fsS -o /dev/null --max-time 2 "$url" 2>/dev/null; then
-      printf "[%s] %s is up after %ss — opening with %s\n" \
-        "$(date -Is)" "$url" "$i" "$opener" >>"$OPEN_LOG"
-      "$opener" "$url" >>"$OPEN_LOG" 2>&1 || \
-        printf "[%s] %s failed\n" "$(date -Is)" "$opener" >>"$OPEN_LOG"
-      return 0
-    fi
-    sleep 1
-  done
-  printf "[%s] %s never answered after 180s\n" "$(date -Is)" "$url" >>"$OPEN_LOG"
-  return 1
-}
-
 # Wait until the sandbox will accept an exec. sbx create provisions but does
 # not start; sbx run boots it. Bounded so a broken sandbox fails loudly.
 wait_reachable() {
@@ -775,6 +700,8 @@ else
     note "  memories:  ${memory_store}"
   fi
 
+  create_env+=(-e "SBX_CC_DIFFITY_URL=http://localhost:${port}")
+
   sbx create \
     --name "$name" \
     --kit "$KIT" \
@@ -835,9 +762,5 @@ nudge_diffity() {
 # All output is redirected: this outlives the foreground session, and would
 # otherwise print into whatever prompt the user has moved on to.
 nudge_diffity "$name" </dev/null >/dev/null 2>&1 &
-
-if [ "${SBX_CC_OPEN:-1}" != "0" ]; then
-  open_diffity "$port" </dev/null >/dev/null 2>&1 &
-fi
 
 exec sbx run --name "$name"
