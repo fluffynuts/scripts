@@ -610,6 +610,11 @@ else
   if [ -n "$NUGET_DIR" ] && [ -d "$NUGET_DIR" ]; then
     extra_mounts+=("$NUGET_DIR")
     create_env+=(-e "SBX_HOST_NUGET=${NUGET_DIR}")
+    # Restore bakes absolute paths into obj/project.assets.json. Without this
+    # the sandbox resolves its cache via $HOME (/home/agent/.nuget), which does
+    # not exist on the host, so Rider cannot resolve any package after a
+    # container build. Pinning both sides to the host path keeps them identical.
+    create_env+=(-e "NUGET_PACKAGES=${NUGET_DIR}/packages")
     note "  nuget:     ${NUGET_DIR} (shared with host)"
   elif [ -n "$NUGET_DIR" ]; then
     note "  nuget:     ${NUGET_DIR} not found on host — not mounting"
