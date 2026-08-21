@@ -118,6 +118,9 @@ setup:
     - command: 'echo "--- installing dotnet-sdk-10.0 $(date -Is)" >>/tmp/sbx-setup.log; sudo DEBIAN_FRONTEND=noninteractive apt-get -o DPkg::Lock::Timeout=300 install -y dotnet-sdk-10.0 </dev/null >>/tmp/sbx-setup.log 2>&1 || echo "WARN: dotnet-sdk-10.0 install failed" >>/tmp/sbx-setup.log; true'
       user: "0"
       description: Install the .NET 10 SDK from the distro (non-fatal)
+    - command: 'echo "--- installing mysql,redis,rabbitmq $(date -Is)" >>/tmp/sbx-setup.log; sudo DEBIAN_FRONTEND=noninteractive apt-get -o DPkg::Lock::Timeout=300 install -y mysql-server redis-server rabbitmq-server </dev/null >>/tmp/sbx-setup.log 2>&1 || echo "WARN: service dependencies install failed" >>/tmp/sbx-setup.log; true'
+      user: "0"
+      description: Install the .NET 10 SDK from the distro (non-fatal)
     - command: 'echo "--- installing .NET 8 ASP.NET Core runtime $(date -Is)" >>/tmp/sbx-setup.log; if command -v dotnet >/dev/null 2>&1; then root=$(dirname "$(readlink -f "$(command -v dotnet)")"); echo "DOTNET_ROOT=$root" >>/tmp/sbx-setup.log; curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh >>/tmp/sbx-setup.log 2>&1 && sudo bash /tmp/dotnet-install.sh --runtime aspnetcore --channel 8.0 --install-dir "$root" --no-path </dev/null >>/tmp/sbx-setup.log 2>&1 || echo "WARN: .NET 8 runtime install failed" >>/tmp/sbx-setup.log; else echo "WARN: no dotnet on PATH, skipping .NET 8 runtime" >>/tmp/sbx-setup.log; fi; true'
       user: "0"
       description: Add the .NET 8 ASP.NET Core runtime so net8.0 tests can run (non-fatal)
@@ -155,6 +158,13 @@ setup:
             ]
           }
         }
+    - path: /home/agent/.local/bin/setup-rabbitmq
+      mode: "0755"
+      description: Sets up the rabbit user
+      content: |
+        #!/bin/sh
+        rabbitmqctl add_user rabbit rabbit
+        rabbitmqctl set_permissions -p / rabbit '.*' '.*' '.*'
     - path: /home/agent/.local/bin/link-nuget
       mode: "0755"
       description: Point ~/.nuget at the mounted host NuGet dir, if one was passed
@@ -246,6 +256,9 @@ setup:
       user: "1000"
       background: false
       description: Link ~/.nuget to the mounted host NuGet directory
+    - command: ["/home/agent/.local/bin/setup-rabbitmq"]
+      user: "0"
+      background: false
     - command: ["/home/agent/.local/bin/start-diffity"]
       user: "1000"
       background: true
