@@ -1,0 +1,13 @@
+#!/bin/bash
+
+if ! command -v ubi &> /dev/null; then
+  echo "Please install ubi"
+  exit 1
+fi
+
+PROJECT="$1";
+if test -z "$PROJECT"; then
+  echo "Please provide a qualified repo/project name"
+fi
+
+ubi --project "$PROJECT" --in ~/.local/bin
