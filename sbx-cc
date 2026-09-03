@@ -130,7 +130,7 @@ setup:
     - command: 'echo "--- installing dotnet-sdk-10.0 $(date -Is)" >>/tmp/sbx-setup.log; sudo DEBIAN_FRONTEND=noninteractive apt-get -o DPkg::Lock::Timeout=300 install -y dotnet-sdk-10.0 </dev/null >>/tmp/sbx-setup.log 2>&1 || echo "WARN: dotnet-sdk-10.0 install failed" >>/tmp/sbx-setup.log; true'
       user: "0"
       description: Install the .NET 10 SDK from the distro (non-fatal)
-    - command: 'echo "--- installing mysql,redis,rabbitmq $(date -Is)" >>/tmp/sbx-setup.log; sudo DEBIAN_FRONTEND=noninteractive apt-get -o DPkg::Lock::Timeout=300 install -y mysql-server redis-server rabbitmq-server </dev/null >>/tmp/sbx-setup.log 2>&1 || echo "WARN: service dependencies install failed" >>/tmp/sbx-setup.log; true'
+    - command: 'echo "--- installing mysql,redis,rabbitmq,file $(date -Is)" >>/tmp/sbx-setup.log; sudo DEBIAN_FRONTEND=noninteractive apt-get -o DPkg::Lock::Timeout=300 install -y mysql-server redis-server rabbitmq-server file </dev/null >>/tmp/sbx-setup.log 2>&1 || echo "WARN: service dependencies install failed" >>/tmp/sbx-setup.log; true'
       user: "0"
       description: Install mysql-server, redis-server and rabbitmq-server (non-fatal)
     - command: 'echo "--- installing .NET 8 ASP.NET Core runtime $(date -Is)" >>/tmp/sbx-setup.log; if command -v dotnet >/dev/null 2>&1; then root=$(dirname "$(readlink -f "$(command -v dotnet)")"); echo "DOTNET_ROOT=$root" >>/tmp/sbx-setup.log; curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh >>/tmp/sbx-setup.log 2>&1 && sudo bash /tmp/dotnet-install.sh --runtime aspnetcore --channel 8.0 --install-dir "$root" --no-path </dev/null >>/tmp/sbx-setup.log 2>&1 || echo "WARN: .NET 8 runtime install failed" >>/tmp/sbx-setup.log; else echo "WARN: no dotnet on PATH, skipping .NET 8 runtime" >>/tmp/sbx-setup.log; fi; true'
@@ -265,6 +265,24 @@ setup:
         fi
         echo "linked $LINK -> $(readlink "$LINK")"
         ls "$LINK" 2>/dev/null | head
+
+        # Restore bakes absolute package paths into obj/project.assets.json.
+        # Left to itself NuGet resolves via HOME, giving /home/agent/.nuget,
+        # which does not exist on the host — so Rider cannot resolve a single
+        # package after a container build. Pinning both sides to the host path
+        # keeps the generated files identical. Written to the persistent env
+        # file rather than passed at create time so it cannot go missing on a
+        # sandbox created before this change.
+        PERSIST=/etc/sandbox-persistent.sh
+        WANT="export NUGET_PACKAGES=$SBX_HOST_NUGET/packages"
+        if [ -f "$PERSIST" ] && grep -qxF "$WANT" "$PERSIST"; then
+          echo "NUGET_PACKAGES already persisted"
+        else
+          sudo sh -c "sed -i '/^export NUGET_PACKAGES=/d' '$PERSIST' 2>/dev/null; \
+            echo '$WANT' >> '$PERSIST'" \
+            && echo "persisted: $WANT" \
+            || echo "WARN: could not write $PERSIST"
+        fi
     - path: /home/agent/.local/bin/start-elasticsearch
       mode: "0755"
       description: Start Elasticsearch on 9200 and wait until it answers
