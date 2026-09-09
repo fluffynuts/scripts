@@ -1,0 +1,403 @@
+#!/usr/bin/env python3
+"""
+sni-path-shim
+=============
+
+Workaround for KDE Plasma 5.27's StatusNotifierWatcher and Chromium/Electron
+StatusNotifierItems.
+
+The problem, in two parts:
+
+  1. Electron calls RegisterStatusNotifierItem with a *combined* argument,
+     e.g. "org.freedesktop.StatusNotifierItem-316455-1/StatusNotifierItem/1".
+     Plasma 5.27's watcher does not split that form; it treats the whole
+     string as a bus name, the lookup fails, and it returns without
+     recording anything and without an error. Silent drop.
+
+  2. Registering the bare service name by hand *is* accepted, but the
+     watcher then assumes the item lives at the canonical object path
+     /StatusNotifierItem. Electron publishes at /StatusNotifierItem/1,
+     so plasmashell queries an address with nobody home and draws nothing.
+
+This daemon fixes both. For each org.freedesktop.StatusNotifierItem-*-*
+name on the session bus whose item is NOT at the canonical path, it opens
+its own bus connection, relays every method call and signal to and from the
+real item, and registers *its own* unique name with the watcher using the
+bare-name form the watcher understands.
+
+The relay is generic - it forwards raw messages rather than reimplementing
+the interface - so org.kde.StatusNotifierItem and com.canonical.dbusmenu
+both pass through untouched. That keeps the context menu working, which a
+property-by-property reimplementation would not.
+
+Requires: python3-dbus-next  (or: pip install dbus-next --break-system-packages)
+
+Usage:
+    ./sni-path-shim.py            # run in foreground
+    ./sni-path-shim.py -v         # with message tracing
+
+See the systemd user unit at the bottom of this file for autostart.
+"""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import logging
+import re
+import signal
+import sys
+from typing import Optional
+
+from dbus_next import BusType, Message, MessageFlag, MessageType
+from dbus_next.aio import MessageBus
+
+LOG = logging.getLogger("sni-path-shim")
+
+DBUS_NAME: str = "org.freedesktop.DBus"
+DBUS_PATH: str = "/org/freedesktop/DBus"
+DBUS_IFACE: str = "org.freedesktop.DBus"
+
+WATCHER_NAME: str = "org.kde.StatusNotifierWatcher"
+WATCHER_PATH: str = "/StatusNotifierWatcher"
+WATCHER_IFACE: str = "org.kde.StatusNotifierWatcher"
+
+ITEM_IFACE: str = "org.kde.StatusNotifierItem"
+CANONICAL_PATH: str = "/StatusNotifierItem"
+
+# Electron/Chromium name their connections like
+# org.freedesktop.StatusNotifierItem-<pid>-<n>
+SNI_NAME_RE = re.compile(r"^org\.freedesktop\.StatusNotifierItem-\d+-\d+$")
+
+# Probed in order. The canonical path is last: if the item is already there,
+# the app registered correctly and needs no shim at all.
+CANDIDATE_PATHS: tuple[str, ...] = (
+    "/StatusNotifierItem/1",
+    "/StatusNotifierItem/2",
+    "/StatusNotifierItem/3",
+    CANONICAL_PATH,
+)
+
+# Paths we relay verbatim (no rewriting). Anything the item advertises as its
+# Menu lives under one of these on the source connection, and because we keep
+# the path identical on our connection, the Menu property needs no fixing up.
+PASSTHROUGH_PREFIXES: tuple[str, ...] = (
+    "/org/chromium/DbusMenu",
+    "/com/canonical/dbusmenu",
+    "/MenuBar",
+)
+
+
+async def probe_item_path(bus: MessageBus, service: str) -> Optional[str]:
+    """Find which object path `service` actually publishes its SNI on.
+
+    Returns the path, or None if no candidate answers.
+    """
+    for path in CANDIDATE_PATHS:
+        reply = await bus.call(
+            Message(
+                destination=service,
+                path=path,
+                interface="org.freedesktop.DBus.Properties",
+                member="Get",
+                signature="ss",
+                body=[ITEM_IFACE, "Id"],
+            )
+        )
+        if reply is not None and reply.message_type == MessageType.METHOD_RETURN:
+            LOG.debug("%s: item found at %s (Id=%r)", service, path, reply.body[0].value)
+            return path
+    return None
+
+
+class ItemProxy:
+    """One dedicated bus connection standing in for one misplaced SNI."""
+
+    def __init__(self, source_name: str, source_path: str) -> None:
+        self.source_name: str = source_name
+        self.source_path: str = source_path
+        self.source_owner: Optional[str] = None
+        self.bus: Optional[MessageBus] = None
+
+    async def start(self) -> None:
+        self.bus = await MessageBus(bus_type=BusType.SESSION).connect()
+
+        owner_reply = await self.bus.call(
+            Message(
+                destination=DBUS_NAME,
+                path=DBUS_PATH,
+                interface=DBUS_IFACE,
+                member="GetNameOwner",
+                signature="s",
+                body=[self.source_name],
+            )
+        )
+        if owner_reply is None or owner_reply.message_type != MessageType.METHOD_RETURN:
+            raise RuntimeError(f"{self.source_name} vanished before proxying")
+        self.source_owner = owner_reply.body[0]
+
+        # Hear the source's signals so we can re-emit them as our own.
+        await self.bus.call(
+            Message(
+                destination=DBUS_NAME,
+                path=DBUS_PATH,
+                interface=DBUS_IFACE,
+                member="AddMatch",
+                signature="s",
+                body=[f"type='signal',sender='{self.source_name}'"],
+            )
+        )
+
+        self.bus.add_message_handler(self._on_message)
+
+        # The whole point: register the BARE unique name. The watcher appends
+        # the canonical path itself, and we answer there.
+        reg = await self.bus.call(
+            Message(
+                destination=WATCHER_NAME,
+                path=WATCHER_PATH,
+                interface=WATCHER_IFACE,
+                member="RegisterStatusNotifierItem",
+                signature="s",
+                body=[self.bus.unique_name],
+            )
+        )
+        if reg is not None and reg.message_type == MessageType.ERROR:
+            raise RuntimeError(f"watcher refused registration: {reg.error_name}")
+
+        LOG.info(
+            "proxying %s%s as %s%s",
+            self.source_name, self.source_path,
+            self.bus.unique_name, CANONICAL_PATH,
+        )
+
+    def stop(self) -> None:
+        if self.bus is not None:
+            # Disconnecting drops our name; the watcher notices and forgets us.
+            self.bus.disconnect()
+            self.bus = None
+            LOG.info("stopped proxy for %s", self.source_name)
+
+    # -- message plumbing ------------------------------------------------
+
+    def _map_inbound(self, path: str) -> Optional[str]:
+        """Our path -> the source's path, or None if we don't handle it."""
+        if path == CANONICAL_PATH:
+            return self.source_path
+        if path.startswith(PASSTHROUGH_PREFIXES):
+            return path
+        return None
+
+    def _map_outbound(self, path: str) -> Optional[str]:
+        """The source's path -> our path, or None if we don't handle it."""
+        if path == self.source_path:
+            return CANONICAL_PATH
+        if path.startswith(PASSTHROUGH_PREFIXES):
+            return path
+        return None
+
+    def _on_message(self, msg: Message) -> Optional[bool]:
+        if msg.message_type == MessageType.METHOD_CALL:
+            if self._map_inbound(msg.path) is not None:
+                asyncio.get_event_loop().create_task(self._forward_call(msg))
+                return True
+            return None
+
+        if msg.message_type == MessageType.SIGNAL and msg.sender == self.source_owner:
+            mapped = self._map_outbound(msg.path)
+            if mapped is not None:
+                self._reemit_signal(msg, mapped)
+            return None
+
+        return None
+
+    async def _forward_call(self, msg: Message) -> None:
+        assert self.bus is not None
+        target_path = self._map_inbound(msg.path)
+        if target_path is None:
+            return
+
+        LOG.debug("-> %s.%s on %s", msg.interface, msg.member, target_path)
+
+        reply = await self.bus.call(
+            Message(
+                destination=self.source_name,
+                path=target_path,
+                interface=msg.interface,
+                member=msg.member,
+                signature=msg.signature,
+                body=msg.body,
+            )
+        )
+
+        if msg.flags & MessageFlag.NO_REPLY_EXPECTED:
+            return
+        if reply is None:
+            return
+
+        self.bus.send(
+            Message(
+                message_type=reply.message_type,
+                reply_serial=msg.serial,
+                destination=msg.sender,
+                error_name=reply.error_name,
+                signature=reply.signature,
+                body=reply.body,
+            )
+        )
+
+    def _reemit_signal(self, msg: Message, mapped_path: str) -> None:
+        assert self.bus is not None
+        LOG.debug("<- signal %s.%s on %s", msg.interface, msg.member, mapped_path)
+        self.bus.send(
+            Message(
+                message_type=MessageType.SIGNAL,
+                path=mapped_path,
+                interface=msg.interface,
+                member=msg.member,
+                signature=msg.signature,
+                body=msg.body,
+            )
+        )
+
+
+class Shim:
+    def __init__(self) -> None:
+        self.bus: Optional[MessageBus] = None
+        self.proxies: dict[str, ItemProxy] = {}
+
+    async def run(self) -> None:
+        self.bus = await MessageBus(bus_type=BusType.SESSION).connect()
+
+        await self.bus.call(
+            Message(
+                destination=DBUS_NAME,
+                path=DBUS_PATH,
+                interface=DBUS_IFACE,
+                member="AddMatch",
+                signature="s",
+                body=[
+                    f"type='signal',sender='{DBUS_NAME}',"
+                    f"interface='{DBUS_IFACE}',member='NameOwnerChanged'"
+                ],
+            )
+        )
+        self.bus.add_message_handler(self._on_name_owner_changed)
+
+        await self._scan_existing()
+        LOG.info("watching for Electron-style tray items")
+        await asyncio.get_event_loop().create_future()  # run forever
+
+    async def _scan_existing(self) -> None:
+        assert self.bus is not None
+        reply = await self.bus.call(
+            Message(
+                destination=DBUS_NAME,
+                path=DBUS_PATH,
+                interface=DBUS_IFACE,
+                member="ListNames",
+            )
+        )
+        if reply is None:
+            return
+        for name in reply.body[0]:
+            if SNI_NAME_RE.match(name):
+                await self._maybe_proxy(name)
+
+    def _on_name_owner_changed(self, msg: Message) -> Optional[bool]:
+        if msg.member != "NameOwnerChanged" or msg.interface != DBUS_IFACE:
+            return None
+
+        name, old_owner, new_owner = msg.body
+        if not SNI_NAME_RE.match(name):
+            return None
+
+        if new_owner and not old_owner:
+            asyncio.get_event_loop().create_task(self._maybe_proxy(name))
+        elif old_owner and not new_owner:
+            proxy = self.proxies.pop(name, None)
+            if proxy is not None:
+                proxy.stop()
+        return None
+
+    async def _maybe_proxy(self, name: str) -> None:
+        assert self.bus is not None
+        if name in self.proxies:
+            return
+
+        # Electron registers the tray late, after the workspace loads. Give
+        # the object a moment to appear before deciding it isn't there.
+        for attempt in range(10):
+            path = await probe_item_path(self.bus, name)
+            if path is not None:
+                break
+            await asyncio.sleep(0.5)
+        else:
+            LOG.warning("%s: no SNI object found on any candidate path", name)
+            return
+
+        if path == CANONICAL_PATH:
+            LOG.info("%s already at canonical path - no shim needed", name)
+            return
+
+        proxy = ItemProxy(name, path)
+        try:
+            await proxy.start()
+        except Exception as exc:  # noqa: BLE001 - log and carry on
+            LOG.error("%s: could not proxy: %s", name, exc)
+            proxy.stop()
+            return
+        self.proxies[name] = proxy
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__.split("\n")[3])
+    parser.add_argument("-v", "--verbose", action="store_true", help="trace messages")
+    args = parser.parse_args()
+
+    logging.basicConfig(
+        level=logging.DEBUG if args.verbose else logging.INFO,
+        format="%(asctime)s %(levelname)-7s %(message)s",
+        datefmt="%H:%M:%S",
+    )
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    shim = Shim()
+
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        loop.add_signal_handler(sig, loop.stop)
+
+    try:
+        loop.run_until_complete(shim.run())
+    except (KeyboardInterrupt, RuntimeError):
+        pass
+    finally:
+        for proxy in shim.proxies.values():
+            proxy.stop()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+
+
+# ---------------------------------------------------------------------------
+# ~/.config/systemd/user/sni-path-shim.service
+# ---------------------------------------------------------------------------
+# [Unit]
+# Description=StatusNotifierItem path shim for Electron tray icons
+# PartOf=graphical-session.target
+# After=plasma-plasmashell.service
+#
+# [Service]
+# Type=simple
+# ExecStart=%h/.local/bin/sni-path-shim.py
+# Restart=on-failure
+# RestartSec=5
+#
+# [Install]
+# WantedBy=graphical-session.target
+# ---------------------------------------------------------------------------
+# systemctl --user daemon-reload
+# systemctl --user enable --now sni-path-shim.service
