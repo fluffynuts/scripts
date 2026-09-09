@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -uo pipefail
+
+getprop() {  # getprop <service> <path> <name>
+  gdbus call --session --dest "$1" --object-path "$2" \
+    --method org.freedesktop.DBus.Properties.Get \
+    org.kde.StatusNotifierItem "$3" 2>/dev/null \
+    | sed -E "s/^\(<'?//; s/'?>,\)\$//" || true
+}
+
+items=$(gdbus call --session --dest org.kde.StatusNotifierWatcher \
+  --object-path /StatusNotifierWatcher \
+  --method org.freedesktop.DBus.Properties.Get \
+  org.kde.StatusNotifierWatcher RegisteredStatusNotifierItems \
+  | grep -oE "'[^']+'" | tr -d "'")
+
+printf "%-44s %-8s %-14s %-22s %-8s %s\n" SERVICE PID COMM PATH STATUS ID
+while read -r entry; do
+  [ -z "$entry" ] && continue
+  case "$entry" in
+    */*) svc=${entry%%/*}; path=/${entry#*/} ;;
+    *)   svc=$entry;       path=/StatusNotifierItem ;;
+  esac
+
+  pid=$(gdbus call --session --dest org.freedesktop.DBus \
+        --object-path /org/freedesktop/DBus \
+        --method org.freedesktop.DBus.GetConnectionUnixProcessID "$svc" 2>/dev/null \
+        | sed -E 's/.*uint32 ([0-9]+).*/\1/')
+  [[ "$pid" =~ ^[0-9]+$ ]] || pid=""
+
+  # probe the declared path, then Chromium's indexed variant
+  found=$path
+  id=$(getprop "$svc" "$path" Id)
+  if [ -z "$id" ]; then
+    for alt in /StatusNotifierItem/1 /StatusNotifierItem/2; do
+      id=$(getprop "$svc" "$alt" Id)
+      [ -n "$id" ] && { found="$alt (declared $path DEAD)"; break; }
+    done
+  fi
+
+  printf "%-44s %-8s %-14s %-22s %-8s %s\n" \
+    "$svc" "${pid:--}" "$([ -n "$pid" ] && ps -p "$pid" -o comm= 2>/dev/null || echo -)" \
+    "$found" "$(getprop "$svc" "${found%% *}" Status)" "${id:--}"
+done <<< "$items"
