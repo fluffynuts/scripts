@@ -7,6 +7,8 @@ import subprocess
 import shutil
 import re
 
+DRY_RUN = False
+
 def would(str: str) -> None:
     print("Would: %s" % str)
 
@@ -17,21 +19,21 @@ def purge_dpkg(ver: str) -> None:
     print("Purging headers for %s" % ver)
     cmd = "dpkg --purge linux-image-%s" % ver
     if DRY_RUN:
-        would(cmd)
+        verb(cmd)
     else:
         os.system(cmd)
 
     print("Purging image for %s" % ver)
     cmd = "dpkg --purge linux-headers-%s" % ver
     if DRY_RUN:
-        would(cmd)
+        verb(cmd)
     else:
         os.system(cmd)
 
     print("Purging modules for %s" % ver)
     cmd = "dpkg --purge linux-modules-%s" % ver
     if DRY_RUN:
-        would(cmd)
+        verb(cmd)
     else:
         os.system(cmd)
 
@@ -50,8 +52,8 @@ def remove_modules(ver: str, base: str):
     contents = sorted(ls_recursive(modules_dir), reverse=True)
     if DRY_RUN:
         for f in contents:
-            would(red("remove: %s" % f))
-        would(red("remove: %s" % (modules_dir)))
+            verb(red("remove: %s" % f))
+        verb(red("remove: %s" % (modules_dir)))
         return
     shutil.rmtree(modules_dir)
 
@@ -63,7 +65,7 @@ def remove_boot_detritus(ver: str):
         if not ver in f:
             continue
         if DRY_RUN:
-            would(red("remove: %s" % (f)))
+            verb(red("remove: %s" % (f)))
         else:
             os.remove(f)
 
@@ -75,7 +77,7 @@ def remove_kernel_sources(ver: str) -> None:
         return
 
     if DRY_RUN:
-        would(red("remove %s" % source_dir))
+        verb(red("remove %s" % source_dir))
         return
 
     print(yellow("Removing sources from %s" % source_dir))
@@ -189,7 +191,6 @@ def restarted_as_root():
 if __name__ == "__main__":
     if restarted_as_root():
         sys.exit()
-    global DRY_RUN
     keep = 2
     basedir = "/lib/modules"
     last_arg = ""
@@ -219,12 +220,11 @@ if __name__ == "__main__":
     available_kernels = sorted(os.listdir(basedir), reverse=True, key=version)
 
     if len(available_kernels) <= keep:
+        s = ""
         if len(available_kernels) == 0:
             print("No kernel images found?!")
         else:
-            if len(available_kernels) == 1:
-                s = ""
-            else:
+            if len(available_kernels) != 1:
                 s = "s"
         print("You only have %i kernel image%s: nothing to do" %
               (len(available_kernels), s))
@@ -232,18 +232,18 @@ if __name__ == "__main__":
 
     to_remove = available_kernels[keep:]
 
-    would = "would"
+    verb = "would"
     if yes:
-        would = "will"
+        verb = "will"
 
     if DRY_RUN:
         print(cyan("DRY RUN ONLY - NON-DESTRUCTIVE"))
     elif not yes:
         print(red("Please verify before continuing:"))
-    print("Operation %s purge the following kernels:" % (would))
+    print("Operation %s purge the following kernels:" % (verb))
     for k in to_remove:
         print(red("  %s" % (k)))
-    print("The following kernels %s be left:" % (would))
+    print("The following kernels %s be left:" % (verb))
     for k in available_kernels[:keep]:
         print(green("  %s" % (k)))
 
@@ -262,7 +262,7 @@ if __name__ == "__main__":
         remove_kernel_sources(k)
     print(yellow("Update GRUB"))
     if DRY_RUN:
-        would(purple("update grub"))
+        verb(purple("update grub"))
     else:
         os.system("grub-mkconfig -o /boot/grub/grub.cfg")
         print(green(">> done <<"))
