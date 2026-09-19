@@ -15,7 +15,7 @@ SOURCES_VERSION="$(readlink /usr/src/linux | sed -e 's/^linux-//')"
 echo "Sources version: $SOURCES_VERSION"
 
 if ls /boot/*"${SOURCES_VERSION}"* &> /dev/null; then
-  echo "already have /boot/*${SOURCES_VERSION}"
+  echo "already have boot image for ${SOURCES_VERSION}"
   exit 0
 fi
 
