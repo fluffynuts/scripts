@@ -1,0 +1,4 @@
+#!/bin/bash
+HOME="$(getent passwd "$(id -u)" | cut -d: -f6)"
+export HOME
+exec ssh "$@"
