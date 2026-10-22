@@ -100,7 +100,7 @@ fi
 if test -z "$NO_SYNC"; then
   check_is_root "$@"
   if ! emerge --sync; then
-    echo -e "${RED}sync fails - waiting a little, then trying agian"
+    echo -e "${RED}sync fails - waiting a little, then trying again"
     sleep 30
     if ! emerge --sync; then
       echo -e "${RED}sync fails - check logged output${RESET}"
