@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# serve: quick static HTTP server around python's http.server
+set -euo pipefail
+
+prog="$(basename "$0")"
+
+usage() {
+  cat <<EOF
+Usage: $prog [-p|--port PORT] [PATH]
+
+Serve files from PATH (default: current directory) over HTTP.
+
+Options:
+  -p, --port PORT   port to listen on (default: random, 10000-30000)
+  -h, --help        show this help and exit
+EOF
+}
+
+die() {
+  echo "$prog: $*" >&2
+  exit 1
+}
+
+find_python() {
+  local candidate
+  for candidate in python3 python; do
+    if command -v "$candidate" >/dev/null 2>&1 \
+      && "$candidate" -c 'import sys, http.server; sys.exit(0 if sys.version_info >= (3, 7) else 1)' >/dev/null 2>&1; then
+      echo "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
+port=""
+dir=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    -p|--port)
+      [[ $# -ge 2 ]] || die "$1 requires a value"
+      port="$2"
+      shift 2
+      ;;
+    --port=*)
+      port="${1#--port=}"
+      shift
+      ;;
+    --)
+      shift
+      [[ $# -le 1 ]] || die "too many paths"
+      [[ $# -eq 1 ]] && dir="$1" && shift
+      ;;
+    -*)
+      die "unknown option: $1 (see --help)"
+      ;;
+    *)
+      [[ -z "$dir" ]] || die "only one path may be given"
+      dir="$1"
+      shift
+      ;;
+  esac
+done
+
+python="$(find_python)" || die "no usable python (3.7+ with http.server) found in PATH"
+
+if [[ -z "$port" ]]; then
+  port=$(( RANDOM % 20001 + 10000 ))
+elif ! [[ "$port" =~ ^[0-9]+$ ]] || (( port < 1 || port > 65535 )); then
+  die "invalid port: $port"
+fi
+
+dir="${dir:-$PWD}"
+[[ -d "$dir" ]] || die "not a directory: $dir"
+dir="$(cd "$dir" && pwd)"
+
+echo "Serving $dir on http://localhost:$port/ (Ctrl+C to stop)"
+exec "$python" -m http.server "$port" --directory "$dir"
